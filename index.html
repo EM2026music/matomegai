@@ -56,6 +56,10 @@ input[type=text],input[type=number],select{font-size:15px; padding:8px; border:1
 input:focus,select:focus{outline:2px solid var(--or);}
 .search{width:100%; padding:11px 14px; border-radius:12px; margin-bottom:10px;}
 .catbar{display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:4px;}
+.stickytop{position:sticky; top:0; z-index:8; background:var(--bg); margin:0 -14px 4px; padding:8px 14px 0;}
+.searchrow{display:flex; gap:8px; align-items:center; margin-bottom:10px;}
+.searchrow .search{flex:1; min-width:0;}
+.newbtn{flex-shrink:0; border:none; background:var(--or); color:#fff; font-weight:bold; font-size:13px; padding:11px 12px; border-radius:12px; cursor:pointer;}
 .fchip{flex-shrink:0; border:1.5px solid #e8ddcb; background:#fff; color:#6f6354; border-radius:20px; padding:7px 13px; font-size:13px; cursor:pointer;}
 .fchip.on{background:var(--or); border-color:var(--or); color:#fff; font-weight:bold;}
 .kindhead{font-size:13px; font-weight:800; color:#7d6f5c; margin:14px 2px 7px;}
@@ -497,7 +501,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-4";
+const APP_VERSION="0721-5";
 let S=null;
 function newState(){
   return {
@@ -742,6 +746,11 @@ function renderFamily(){
   });
   h+='</div>';
   h+='<p class="note">OFFにしても、その食事に入れた献立は消えません（またONにすれば戻ります）。</p>';
+  h+='<div class="kindhead">データの管理</div>';
+  h+='<div class="row2"><button class="btn sub small" onclick="exportData()">バックアップ保存</button><button class="btn sub small" onclick="document.getElementById(\'imp\').click()">読み込み</button></div>';
+  h+='<input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">';
+  h+='<p class="note">機種変更や、ご家族に渡すときに使えます。</p>';
+  h+='<button class="btn danger small" onclick="resetAll()">すべて初期化</button>';
   document.getElementById("modal").innerHTML=h;
 }
 function togMeal(k){
@@ -944,12 +953,16 @@ function pickAdd(id){
 /* ===== 献立（テンプレ管理） ===== */
 function rDish(){
   let h='<div class="pagehead"><div class="ptitle">献立</div></div>';
-  h+=`<input type="text" class="search" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;render()">`;
+  h+='<div class="stickytop">';
+  h+='<div class="searchrow">';
+  h+=`<input type="text" class="search" style="margin-bottom:0" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;render()">`;
+  h+='<button class="newbtn" onclick="openEditor(null)">＋新規</button>';
+  h+='</div>';
   h+='<div class="catbar">';
   h+=`<button class="fchip ${dishCat===""?"on":""}" onclick="dishCat='';render()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${dishCat===c?"on":""}" onclick="dishCat='${esc(c)}';render()">${esc(c)}</button>`; });
   h+=`<button class="fchip" onclick="openCatEdit()" style="color:var(--sub)">✏️編集</button>`;
-  h+='</div>';
+  h+='</div></div>';
   const q=dishSearch.trim();
   const list=S.dishes.filter(d=>(!dishCat||d.cat===dishCat)&&(!q||d.name.includes(q)||d.ing.some(i=>i.n.includes(q))));
   h+='<div class="card listcard">';
@@ -959,9 +972,7 @@ function rDish(){
   });
   h+='</div>';
   h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい献立を作る</button>';
-  h+='<div class="row2"><button class="btn sub small" onclick="exportData()">バックアップ保存</button><button class="btn sub small" onclick="document.getElementById(\'imp\').click()">読み込み</button><button class="btn danger small" onclick="resetAll()">初期化</button></div>';
-  h+='<input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">';
-  h+='<p class="note">タップで材料・分量を編集。「コピーを作る」で食べ盛り版（増量版）も作れます。テンプレの分量は基準3人分の目安で、買い物リストでは「家族の人数」に合わせて自動換算します。</p>';
+  h+='<p class="note">タップで材料・分量を編集。「コピーを作る」で食べ盛り版（増量版）も作れます。テンプレの分量は基準3人分の目安で、買い物リストでは「家族の人数」に合わせて自動換算します。データのバックアップは設定画面（ホームの「👥○人分」）から。</p>';
   return h;
 }
 
@@ -1061,11 +1072,15 @@ function rGoods(){
   let h='<div class="pagehead"><div class="ptitle">定番（いつも買う物）</div>';
   h+=`<button class="pill" onclick="goodsEdit=!goodsEdit;render()">${goodsEdit?"整理おわり":"ボタン整理"}</button></div>`;
   h+=`<p class="note">${goodsEdit?"タップで⭐毎回追加のON/OFF、✕で削除":"買うものをタップで選択。⭐付きはリスト作成時に自動で入ります"}</p>`;
-  h+=`<input type="text" class="search" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;render()">`;
+  h+='<div class="stickytop">';
+  h+='<div class="searchrow">';
+  h+=`<input type="text" class="search" style="margin-bottom:0" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;render()">`;
+  h+='<button class="newbtn" onclick="openCatalog()">＋追加</button>';
+  h+='</div>';
   h+='<div class="catbar">';
   h+=`<button class="fchip ${goodsFilter===""?"on":""}" onclick="goodsFilter='';render()">すべて</button>`;
   GOODS_ORDER.forEach(c=>{ h+=`<button class="fchip ${goodsFilter===c?"on":""}" onclick="goodsFilter='${c}';render()">${c}</button>`; });
-  h+='</div>';
+  h+='</div></div>';
   const q=goodsSearch.trim();
   const list=S.goods.map((g,i)=>[g,i]).filter(([g])=>(!goodsFilter||goodsCat(g)===goodsFilter)&&(!q||g.includes(q)));
   h+='<div class="card listcard">';
