@@ -429,7 +429,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0720-2";
+const APP_VERSION="0720-3";
 let S=null;
 function newState(){
   return {
@@ -830,15 +830,14 @@ let catEdit=[];
 function openCatEdit(){ catEdit=S.cats.map(c=>({old:c, name:c})); showModal(); renderCatEdit(); }
 function renderCatEdit(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>カテゴリの編集</b></div>';
-  h+='<p class="note" style="margin-top:0">名前を書き換え・▲▼で並べ替え。献立の一覧と選択画面に反映されます。</p>';
+  h+='<p class="note" style="margin-top:0">名前を書き換え・⠿を掴んでドラッグで並べ替え。献立の一覧と選択画面に反映されます。</p>';
   h+='<div class="card listcard">';
   catEdit.forEach((c,i)=>{
-    const cnt=S.dishes.filter(d=>d.cat===c.old).length;
-    h+='<div class="ingrow" style="align-items:center">';
+    const cnt=c.old?S.dishes.filter(d=>d.cat===c.old).length:0;
+    h+=`<div class="ingrow" data-id="${i}" style="align-items:center">`;
+    h+=`<span class="draghandle" data-sort onclick="event.stopPropagation()">⠿</span>`;
     h+=`<input class="n" type="text" value="${esc(c.name)}" oninput="catEdit[${i}].name=this.value">`;
     h+=`<span class="arq" style="width:44px;text-align:right;margin:0">${cnt}品</span>`;
-    h+=`<button class="rm" style="color:var(--sub);font-size:15px" onclick="moveCat(${i},-1)">▲</button>`;
-    h+=`<button class="rm" style="color:var(--sub);font-size:15px" onclick="moveCat(${i},1)">▼</button>`;
     h+=`<button class="rm" onclick="delCat(${i})">✕</button>`;
     h+='</div>';
   });
@@ -847,8 +846,9 @@ function renderCatEdit(){
   h+='<div class="row2" style="margin-top:12px"><button class="btn" onclick="saveCats()">保存</button><button class="btn sub" onclick="closeModal()">キャンセル</button></div>';
   h+='<p class="note">カテゴリを消しても、その料理は消えません（「すべて」から見られます）。</p>';
   document.getElementById("modal").innerHTML=h;
+  enableSort(document.querySelector("#modal .listcard"), commitCatOrder, false);
 }
-function moveCat(i,dir){ const j=i+dir; if(j<0||j>=catEdit.length) return; const t=catEdit[i]; catEdit[i]=catEdit[j]; catEdit[j]=t; renderCatEdit(); }
+function commitCatOrder(ids){ catEdit=ids.map(id=>catEdit[+id]); renderCatEdit(); }
 function addCat(){ catEdit.push({old:null, name:""}); renderCatEdit(); }
 function delCat(i){ catEdit.splice(i,1); renderCatEdit(); }
 function saveCats(){
