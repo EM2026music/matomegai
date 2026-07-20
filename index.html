@@ -968,8 +968,22 @@ function resetAll(){
 }
 
 /* ===== モーダル ===== */
-function showModal(){ document.getElementById("overlay").classList.add("show"); }
-function closeModal(){ document.getElementById("overlay").classList.remove("show"); render(); }
+let modalOpen=false;
+function showModal(){
+  document.getElementById("overlay").classList.add("show");
+  if(!modalOpen){ modalOpen=true; history.pushState({modal:1},""); }
+}
+function closeModal(){
+  if(modalOpen){ history.back(); }  /* 履歴を1つ戻す → 下のpopstateで実際に閉じる */
+  else { document.getElementById("overlay").classList.remove("show"); render(); }
+}
+window.addEventListener("popstate",function(){
+  if(modalOpen){
+    modalOpen=false;
+    document.getElementById("overlay").classList.remove("show");
+    render();
+  }
+});
 
 load(); render();
 </script>
