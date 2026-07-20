@@ -532,7 +532,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-11";
+const APP_VERSION="0721-12";
 let S=null;
 function newState(){
   return {
@@ -1099,7 +1099,7 @@ function renderEditor(){
     h+=`<input class="u" type="text" placeholder="単位" value="${esc(g.u)}" oninput="editTarget.ing[${i}].u=this.value">`;
     h+=`<button class="rm" onclick="editTarget.ing.splice(${i},1);renderEditor()">✕</button></div>`;
   });
-  h+='<button class="btn sub small" onclick="editTarget.ing.push({n:\'\',q:\'\',u:\'\'});renderEditor()">＋ 材料を追加</button>';
+  h+='<div class="row2" style="margin-top:4px"><button class="btn sub small" onclick="openCatalogForIng()">📖 カタログから選ぶ</button><button class="btn sub small" onclick="editTarget.ing.push({n:\'\',q:\'\',u:\'\'});renderEditor()">＋ 手入力で追加</button></div>';
   h+=`<div style="margin-top:14px"><input type="text" style="width:100%" placeholder="参考レシピのURL（任意）" value="${esc(t.url)}" oninput="editTarget.url=this.value"></div>`;
   if(t.url&&/^https?:\/\//.test(t.url.trim())) h+=`<div style="margin-top:6px"><a href="${esc(t.url.trim())}" target="_blank" rel="noopener" class="linkbtn">🔗 レシピを開く</a></div>`;
   h+=`<div style="margin-top:8px"><input type="text" style="width:100%" placeholder="ひとことメモ（任意：味付けのコツなど）" value="${esc(t.memo)}" oninput="editTarget.memo=this.value"></div>`;
@@ -1228,7 +1228,7 @@ function addSelGoods(){
 }
 
 /* ===== 品物カタログ（共通の追加元） ===== */
-let catSearch="", catFilter="", catOpenName="";
+let catSearch="", catFilter="", catOpenName="", catMode="add";
 function allCatalog(){
   const arr=[];
   CATALOG_CATS.forEach(c=>{ CATALOG_RAW[c].forEach(s=>{ const p=s.split("|"); arr.push({name:p[0], alias:p[1]||"", unit:p[2]||"", cat:c}); }); });
@@ -1236,7 +1236,19 @@ function allCatalog(){
   return arr;
 }
 function catInfo(name){ return allCatalog().find(x=>x.name===name)||{name:name, alias:"", unit:"", cat:"その他"}; }
-function openCatalog(){ catSearch=""; catFilter=""; catOpenName=""; showModal(); renderCatalog(); }
+function openCatalog(){ catMode="add"; catSearch=""; catFilter=""; catOpenName=""; showModal(); renderCatalog(); }
+/* 献立編集から材料をカタログで選ぶモード */
+function openCatalogForIng(){ catMode="ing"; catSearch=""; catFilter=""; catOpenName=""; renderCatalog(); }
+function backToEditor(){ catMode="add"; renderEditor(); }
+function catAddIng(name){
+  if(!editTarget) return;
+  const info=catInfo(name);
+  const row={n:name, q:"", u:info.unit||""};
+  const empty=editTarget.ing.findIndex(g=>!g.n||!g.n.trim());
+  if(empty>=0) editTarget.ing[empty]=row; else editTarget.ing.push(row);
+  catPushRecent(name); save(); flash(name+" を材料に追加");
+  renderCatalog();
+}
 function renderCatalog(){
   const modalEl=document.getElementById("modal");
   const savedScroll=modalEl?modalEl.scrollTop:0;
@@ -1249,7 +1261,9 @@ function renderCatalog(){
     list=(S.catRecent||[]).map(n=>all.find(x=>x.name===n)).filter(Boolean);
     if(!list.length){ list=all; showingAll=true; } /* 最近が空なら全部出す＝必ずスクロールできる */
   }
-  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>品物を追加</b></div>';
+  const ingMode=(catMode==="ing");
+  let h=`<div class="mhead back"><button class="backbtn" onclick="${ingMode?"backToEditor()":"closeModal()"}">←</button><b>${ingMode?"材料をカタログから選ぶ":"品物を追加"}</b></div>`;
+  if(ingMode) h+=`<p class="note" style="margin-top:0">タップすると「${esc(editTarget?editTarget.name||"この献立":"")}」の材料に入ります（単位も自動）。</p>`;
   h+=`<input type="text" class="search" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';renderCatalog()">`;
   if(!q){
     h+='<div class="catbar">';
@@ -1261,9 +1275,14 @@ function renderCatalog(){
   h+='<div class="card listcard">';
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(it=>{
-    const open=catOpenName===it.name;
+    const open=catOpenName===it.name&&!ingMode;
     const inGoods=S.goods.includes(it.name);
     const star=S.goodsStar[it.name];
+    const inIng=ingMode&&editTarget&&editTarget.ing.some(g=>g.n===it.name);
+    if(ingMode){
+      h+=`<div class="catrow" onclick="catAddIng('${esc(it.name)}')"><div class="dbody"><div class="nm">${esc(it.name)}</div><div class="ings">${esc(it.cat)}${it.unit?"・"+esc(it.unit):""}${inIng?"・追加済み":""}</div></div><span class="paddbtn ${inIng?"on":""}">${inIng?"✓":"＋"}</span></div>`;
+      return;
+    }
     h+=`<div class="catrow" onclick="catToggle('${esc(it.name)}')"><div class="dbody"><div class="nm">${star?"⭐ ":""}${esc(it.name)}</div><div class="ings">${esc(it.cat)}${it.unit?"・"+esc(it.unit):""}${inGoods?"・定番":""}</div></div><span class="paddbtn ${open?"on":""}">${open?"×":"＋"}</span></div>`;
     if(open){
       h+='<div class="catacts">';
@@ -1275,8 +1294,9 @@ function renderCatalog(){
   });
   h+='</div>';
   if(q&&!list.some(x=>x.name===q)){
-    h+=`<button class="btn sub wide" onclick="registerCatalog('${esc(q)}')">＋「${esc(q)}」を新しく登録</button>`;
+    h+=`<button class="btn sub wide" onclick="${ingMode?`catAddIng('${esc(q)}')`:`registerCatalog('${esc(q)}')`}">＋「${esc(q)}」を${ingMode?"材料に追加":"新しく登録"}</button>`;
   }
+  if(ingMode) h+='<button class="cta" style="margin-top:12px" onclick="backToEditor()">✓ 編集にもどる</button>';
   modalEl.innerHTML=h;
   modalEl.scrollTop=savedScroll; /* 追加しても見ていた位置を保つ */
 }
