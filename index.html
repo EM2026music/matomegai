@@ -532,7 +532,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-10";
+const APP_VERSION="0721-11";
 let S=null;
 function newState(){
   return {
@@ -1177,7 +1177,6 @@ function rGoods(){
   h+='<div class="stickytop">';
   h+='<div class="searchrow">';
   h+=`<input type="text" class="search" style="margin-bottom:0" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;render()">`;
-  h+='<button class="newbtn" onclick="openCatalog()">＋追加</button>';
   h+='</div>';
   h+='<div class="catbar">';
   h+=`<button class="fchip ${goodsFilter===""?"on":""}" onclick="goodsFilter='';render()">すべて</button>`;
@@ -1198,12 +1197,12 @@ function rGoods(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから品物を追加</button>';
   const n=Object.keys(S.goodsSel).filter(k=>S.goodsSel[k]).length;
-  if(n&&!goodsEdit){
-    h+='<div style="height:66px"></div>';
-    h+=`<div class="floatbar"><div class="fbcount">${n}個<br>選択中</div><button class="btn" style="flex:1;margin:0" onclick="addSelGoods()">🛒 買い物リストに追加</button></div>`;
-  }
+  h+='<div style="height:70px"></div>';
+  h+='<div class="floatbar">';
+  h+='<button class="btn sub" style="flex:1;margin:0;white-space:nowrap" onclick="openCatalog()">＋ カタログ</button>';
+  if(n&&!goodsEdit) h+=`<button class="btn" style="flex:1.5;margin:0;white-space:nowrap" onclick="addSelGoods()">🛒 リストに追加 ${n}</button>`;
+  h+='</div>';
   return h;
 }
 function togGoods(g){ S.goodsSel[g]=!S.goodsSel[g]; save(); render(); }
