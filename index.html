@@ -513,7 +513,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-6";
+const APP_VERSION="0721-7";
 let S=null;
 function newState(){
   return {
@@ -716,7 +716,7 @@ function rWeek(){
         h+='<div class="dmain mealcols">';
         ms.forEach(m=>{
           const names=(wk[i][m.k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
-          h+=`<div class="mealcol ${m.k}"><div class="mlabel">${m.label}</div><div class="mnames">${names.length?esc(names.join("・")):"—"}</div></div>`;
+          h+=`<div class="mealcol ${m.k}" onclick="event.stopPropagation();openDayMeal(${i},'${m.k}')"><div class="mlabel">${m.label}</div><div class="mnames">${names.length?esc(names.join("・")):"＋"}</div></div>`;
         });
         h+='</div>';
       } else {
@@ -726,6 +726,12 @@ function rWeek(){
         h+='</div>';
       }
       h+='<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><span class="chev">›</span>';
+    } else if(ms.length>1){
+      h+='<div class="dmain mealcols">';
+      ms.forEach(m=>{
+        h+=`<div class="mealcol ${m.k}" onclick="event.stopPropagation();openDayMeal(${i},'${m.k}')"><div class="mlabel">${m.label}</div><div class="mnames" style="color:#c2b6a2">＋</div></div>`;
+      });
+      h+='</div><span class="chev">›</span>';
     } else {
       h+=`<div class="dmain dempty">献立を追加</div><span class="dplus">＋</span>`;
     }
@@ -900,7 +906,8 @@ function rebuildList(){
 /* ===== 献立ピッカー（日ごと） ===== */
 let pickDay=0, pickSearch="", pickCat="", pickDetail="", pickMeal="d";
 function defaultMeal(){ const ms=onMeals(); return (ms.some(m=>m.k==="d")?"d":(ms[0]||{k:"d"}).k); }
-function openDay(d){ pickDay=d; pickSearch=""; pickCat=""; pickDetail=""; pickMeal=defaultMeal(); showModal(); renderPicker(); }
+function openDay(d){ openDayMeal(d, defaultMeal()); }
+function openDayMeal(d,k){ pickDay=d; pickSearch=""; pickCat=""; pickDetail=""; pickMeal=k; showModal(); renderPicker(); }
 function togSelDetail(id){ pickDetail=(pickDetail===id?"":id); renderPicker(); }
 function renderPicker(){
   const dt=weekDates()[pickDay];
