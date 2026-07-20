@@ -111,6 +111,9 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .addingto.b{background:#fdf1e5; color:#c96f28;}
 .addingto.l{background:#fbf3dd; color:#a37c12;}
 .addingto.d{background:#eaf1f9; color:#37608f;}
+.listweek{background:#f2ece2; color:var(--ink); font-size:13px; font-weight:bold; padding:9px 12px; border-radius:10px; margin-bottom:10px;}
+.listweek.other{background:#fdf1e5; color:#c96f28;}
+.lwnote{display:block; font-size:11px; font-weight:normal; margin-top:2px;}
 .dishrow.selrow .ckb2{background:var(--green); border-color:var(--green);}
 /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
@@ -515,7 +518,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-8";
+const APP_VERSION="0721-9";
 let S=null;
 function newState(){
   return {
@@ -790,13 +793,22 @@ function togMeal(k){
 function clearWeek(){ if(confirm("この週の献立をすべて消しますか？")){ S.plans[curKey()]=emptyWeek(); save(); render(); } }
 function newList(){
   const need=pantryNeeded();
-  return {items:aggregate(), pantry:need.names.map(n=>({n:n, buy:false})), excluded:need.excludedNames.map(n=>({n:n, buy:false})), at:Date.now()};
+  return {items:aggregate(), pantry:need.names.map(n=>({n:n, buy:false})), excluded:need.excludedNames.map(n=>({n:n, buy:false})), week:curKey(), at:Date.now()};
+}
+/* "2026-07-20"（月曜）→「7/20〜7/26」 */
+function weekRangeLabel(key){
+  if(!key) return "";
+  const p=key.split("-"); if(p.length!==3) return "";
+  const mon=new Date(+p[0], +p[1]-1, +p[2]);
+  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
+  return `${mon.getMonth()+1}/${mon.getDate()}〜${sun.getMonth()+1}/${sun.getDate()}`;
 }
 function makeListGo(){
   const ag=aggregate();
   if(!ag.length&&!(S.list&&S.list.items.length)){ flash("先に献立か日用品を選んでね"); return; }
   if(S.list&&S.list.items.length){
     const r=syncList(ag);
+    S.list.week=curKey();
     save();
     if(r.added||r.removed||r.updated) flash(`リストを更新：追加${r.added}・削除${r.removed}・数量変更${r.updated}（チェックは保持）`);
   } else {
@@ -1298,6 +1310,13 @@ function rShop(){
   const items=S.list.items;
   const buy=items.filter(x=>!x.stock);
   const doneN=buy.filter(x=>x.done).length;
+  const lw=S.list.week;
+  if(lw){
+    const same=lw===curKey();
+    h+=`<div class="listweek ${same?"":"other"}">📅 ${weekRangeLabel(lw)} の週のリスト`;
+    if(!same) h+=`<span class="lwnote">（今ホームで見ている週とは別です）</span>`;
+    h+='</div>';
+  }
   h+=`<div class="pmeta">購入済み <b>${doneN} / ${buy.length}</b></div>`;
   h+=`<div class="pbar"><div class="pfill" style="width:${buy.length?Math.round(doneN/buy.length*100):0}%"></div></div>`;
   h+='<div class="catbar">';
@@ -1362,7 +1381,8 @@ function addManual(){
   save(); render();
 }
 function finishTrip(){
-  if(!confirm("買い物おつかれさま！リストを空にしますか？（日用品の選択もリセットされます）")) return;
+  const wl=S.list&&S.list.week?weekRangeLabel(S.list.week)+"の週の":"";
+  if(!confirm("買い物おつかれさま！\n"+wl+"リストを空にします。よろしいですか？\n（献立表は消えません。日用品の選択はリセットされます）")) return;
   S.list=null; S.goodsSel={}; shopFilter="all";
   save(); render(); flash("完了！おつかれさまでした🎉");
 }
