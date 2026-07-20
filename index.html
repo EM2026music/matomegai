@@ -96,10 +96,15 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .wlabel{flex:1; text-align:center;}
 .wlabel b{font-size:16px;}
 .wlabel span{display:block; font-size:12px; color:var(--sub); margin-top:1px;}
-.mealcols{display:flex; gap:7px; align-items:stretch;}
-.mealcol{flex:1; min-width:0; padding-left:7px; border-left:3px solid;}
+.mealcols{display:flex; gap:7px; align-items:flex-start;}
+.mealcol{flex:1; min-width:0; padding-left:7px; border-left:3px solid; align-self:stretch;}
 .mealcol .mlabel{font-size:10px; font-weight:bold; letter-spacing:.5px; margin-bottom:2px;}
-.mealcol .mnames{font-size:12.5px; line-height:1.35; color:var(--ink); word-break:break-word;}
+.mealcol .mnames{font-size:12.5px; line-height:1.35; color:var(--ink); word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
+.mealcol .mnames.big{font-size:15px; font-weight:bold; -webkit-line-clamp:2;}
+.mealcol .mnames.empty{color:#c9bda9; font-size:15px;}
+.mealcol .more{font-size:10.5px; color:var(--sub); margin-top:2px;}
+.summaryrow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 2px 12px;}
+.viewtog{border:1.5px solid #e8ddcb; background:#fff; border-radius:10px; padding:6px 10px; font-size:12px; font-weight:bold; color:var(--or-d); cursor:pointer; flex-shrink:0;}
 .mealcol.b{border-color:#e8873c;} .mealcol.b .mlabel{color:#c96f28;}
 .mealcol.l{border-color:#e0b23c;} .mealcol.l .mlabel{color:#a37c12;}
 .mealcol.d{border-color:#4a7ab5;} .mealcol.d .mlabel{color:#37608f;}
@@ -139,6 +144,7 @@ input:focus,select:focus{outline:2px solid var(--or);}
 /* 一覧行の「−」と個数バッジ */
 .minusbtn{width:30px; height:30px; border-radius:50%; background:#fdecec; color:var(--danger); font-size:18px; font-weight:bold; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;}
 .cntbadge{min-width:22px; text-align:center; font-size:13px; font-weight:bold; color:var(--green);}
+.qtylabel{min-width:46px; text-align:center; font-size:14px; font-weight:bold; color:var(--green);}
 .catrow.sel,.pickrow.sel{background:#eef7ef; border-radius:10px;}
 .iq.editable{cursor:pointer; border:1px dashed #d9cdb8; border-radius:8px; padding:3px 7px;}
 .dishrow.selrow .ckb2{background:var(--green); border-color:var(--green);}
@@ -545,7 +551,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-15";
+const APP_VERSION="0721-16";
 let S=null;
 function newState(){
   return {
@@ -555,6 +561,7 @@ function newState(){
     goods:GOODS_SEED.slice(),
     goodsSel:{},
     goodsStar:{},
+    goodsQty:{},
     goodsCatMap:{},
     cats:CATS.slice(),
     stores:["ツルハ","ビッグ","その他"],
@@ -574,6 +581,8 @@ function load(){
   if(!S.family) S.family=3;
   if(!S.recent) S.recent=[];
   if(!S.goodsStar) S.goodsStar={};
+  if(!S.goodsQty) S.goodsQty={};
+  if(!S.weekView) S.weekView="main";
   if(!S.goodsCatMap) S.goodsCatMap={};
   if(!S.catRecent) S.catRecent=[];
   if(!S.customCatalog) S.customCatalog=[];
@@ -646,6 +655,7 @@ function curWeek(create){
   return S.plans[k];
 }
 function weekDates(){ const m=curMonday(); return DAYS.map((_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
+function togWeekView(){ S.weekView=(S.weekView==="main"?"all":"main"); save(); render(); }
 function shiftWeek(d){ weekOffset+=d; render(); }
 function gotoThisWeek(){ weekOffset=0; render(); }
 
@@ -746,7 +756,10 @@ function rWeek(){
   h+='<button class="wnav" onclick="shiftWeek(1)">▶</button>';
   h+='</div>';
   if(weekOffset!==0) h+='<div class="ctalink small" style="margin-top:-4px;margin-bottom:8px" onclick="gotoThisWeek()">↩ 今週にもどる</div>';
-  h+=`<div class="summary"><b>${decided}日</b>決定・未定<b>${7-decided}日</b>・買うもの<b>${nItems}品</b></div>`;
+  h+='<div class="summaryrow">';
+  h+=`<div class="summary" style="margin:0"><b>${decided}日</b>決定・未定<b>${7-decided}日</b>・買うもの<b>${nItems}品</b></div>`;
+  h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"メイン表示":"全部表示"} ⇄</button>`;
+  h+='</div>';
   h+='<div class="daylist">';
   DAYS.forEach((w,i)=>{
     const dt=dates[i]; const isT=dt.toDateString()===todayStr;
@@ -759,13 +772,25 @@ function rWeek(){
         h+='<div class="dmain mealcols">';
         ms.forEach(m=>{
           const names=(wk[i][m.k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
-          h+=`<div class="mealcol ${m.k}" onclick="event.stopPropagation();openDayMeal(${i},'${m.k}')"><div class="mlabel">${m.label}</div><div class="mnames">${names.length?esc(names.join("・")):"＋"}</div></div>`;
+          let body;
+          if(!names.length) body='<div class="mnames empty">＋</div>';
+          else if(S.weekView==="main"){
+            body=`<div class="mnames big">${esc(names[0])}</div>`;
+            if(names.length>1) body+=`<div class="more">ほか${names.length-1}品</div>`;
+          } else {
+            body=`<div class="mnames">${esc(names.join("・"))}</div>`;
+          }
+          h+=`<div class="mealcol ${m.k}" onclick="event.stopPropagation();openDayMeal(${i},'${m.k}')"><div class="mlabel">${m.label}</div>${body}</div>`;
         });
         h+='</div>';
       } else {
         const names=(wk[i][ms[0].k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
-        h+=`<div class="dmain"><div class="dtitle">${esc(names[0]||"")}</div>`;
-        if(names.length>1) h+=`<div class="dsub">${esc(names.slice(1).join("・"))}</div>`;
+        h+=`<div class="dmain"><div class="dtitle mnames big">${esc(names[0]||"")}</div>`;
+        if(names.length>1){
+          h+=(S.weekView==="main")
+            ? `<div class="more">ほか${names.length-1}品</div>`
+            : `<div class="dsub">${esc(names.slice(1).join("・"))}</div>`;
+        }
         h+='</div>';
       }
       h+='<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><span class="chev">›</span>';
@@ -788,7 +813,16 @@ function rWeek(){
   h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
   return h;
 }
-function setFamily(d){ S.family=Math.min(12,Math.max(1,S.family+d)); save(); }
+function setFamily(d){
+  const before=S.family;
+  S.family=Math.min(12,Math.max(1,S.family+d));
+  /* 人数が変わったら、作成済みの買い物リストの分量も更新する（チェックは保持） */
+  if(S.family!==before&&S.list&&S.list.items.length){
+    const r=syncList(aggregate());
+    if(r.updated) flash("買い物リストの分量を"+S.family+"人分に更新しました");
+  }
+  save();
+}
 function openFamily(){ showModal(); renderFamily(); }
 function renderFamily(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>設定</b></div>';
@@ -875,7 +909,7 @@ function syncList(ag){
   S.goods.forEach(g=>{                                 /* 定番（選択中＋⭐毎回）が消えていたら補充 */
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
     if(S.list.items.some(it=>it.n===g)) return;
-    S.list.items.push({n:g, q:"", u:"", stock:false, done:false, store:S.storeMap[g]||"", daily:true}); added++;
+    S.list.items.push({n:g, q:goodsQtyOf(g), u:goodsUnitOf(g), stock:false, done:false, store:S.storeMap[g]||"", daily:true}); added++;
   });
   /* 常備品・除外品コーナーも今週の献立に合わせて更新（「買う」の選択は保持） */
   const need=pantryNeeded();
@@ -992,8 +1026,12 @@ function renderPicker(){
     if(pickDetail){
       const dd=dish(pickDetail);
       if(dd&&slot.includes(pickDetail)){
-        h+=`<div class="card" style="margin-top:-2px"><div class="kindhead" style="margin-top:0">${esc(dd.name)}の材料（${dd.sv||3}人分の目安）</div>`;
-        dd.ing.forEach(g=>{ h+=`<div class="sdrow"><span>${esc(g.n)}</span><span class="sdq">${fmtQ(g.q)}${esc(g.u)}</span></div>`; });
+        const fam=S.family, base=dd.sv||3, fct=fam/base;
+        h+=`<div class="card" style="margin-top:-2px"><div class="kindhead" style="margin-top:0">${esc(dd.name)}の材料（${fam}人分${fam!==base?`／テンプレは${base}人分`:""}）</div>`;
+        dd.ing.forEach(g=>{
+          const q=(typeof g.q==="number")?roundQ(g.q*fct,g.u):g.q;
+          h+=`<div class="sdrow"><span>${esc(g.n)}</span><span class="sdq">${fmtQ(q)}${esc(g.u)}</span></div>`;
+        });
         if(dd.memo) h+=`<p class="note">📝 ${esc(dd.memo)}</p>`;
         if(dd.url&&/^https?:\/\//.test(dd.url)) h+=`<a href="${esc(dd.url)}" target="_blank" rel="noopener" class="linkbtn" style="display:inline-block;margin-top:6px">🔗 レシピを開く</a>`;
         h+=`<div class="ctalink small" onclick="openEditor('${pickDetail}')">この献立を編集</div></div>`;
@@ -1259,7 +1297,13 @@ function rGoods(){
     h+=`<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>`;
     h+=`<div class="dbody" onclick="${goodsEdit?`togStar('${esc(g)}')`:`togGoods('${esc(g)}')`}"><div class="nm">${star?"⭐ ":""}${esc(g)}</div><div class="ings">${esc(goodsCat(g))}${star?"・毎回追加":sel?"・選択中":""}</div></div>`;
     if(goodsEdit) h+=`<span class="arrow" onclick="event.stopPropagation();delGoods(${i})" style="color:var(--danger);font-size:16px">✕</span>`;
-    else h+=`<span class="ckb2" onclick="${goodsEdit?"":`togGoods('${esc(g)}')`}">${active?"✓":""}</span>`;
+    else if(active){
+      const u=goodsUnitOf(g);
+      h+=`<span class="minusbtn" onclick="event.stopPropagation();goodsQtyAdd('${esc(g)}',-1)">−</span>`;
+      h+=`<span class="qtylabel">${goodsQtyOf(g)}${esc(u)}</span>`;
+      h+=`<span class="paddbtn" onclick="event.stopPropagation();goodsQtyAdd('${esc(g)}',1)">＋</span>`;
+    }
+    else h+=`<span class="ckb2" onclick="event.stopPropagation();togGoods('${esc(g)}')"></span>`;
     h+='</div>';
   });
   h+='</div>';
@@ -1285,7 +1329,21 @@ function addGoodsHere(){
   }
   save(); render(); flash(nm+" を定番に追加しました");
 }
-function togGoods(g){ S.goodsSel[g]=!S.goodsSel[g]; save(); render(); }
+/* 定番の個数（未設定なら1）と単位（カタログから） */
+function goodsQtyOf(g){ const v=Number(S.goodsQty&&S.goodsQty[g]); return v>0?v:1; }
+function goodsUnitOf(g){ return (catInfo(g).unit)||""; }
+function togGoods(g){
+  S.goodsSel[g]=!S.goodsSel[g];
+  if(S.goodsSel[g]&&!S.goodsQty[g]) S.goodsQty[g]=1;
+  save(); render();
+}
+function goodsQtyAdd(g,d){
+  const now=goodsQtyOf(g)+d;
+  if(now<1){ S.goodsSel[g]=false; delete S.goodsQty[g]; save(); render(); return; }
+  S.goodsQty[g]=now;
+  if(!S.goodsSel[g]&&!S.goodsStar[g]) S.goodsSel[g]=true;
+  save(); render();
+}
 function addGoods(){
   const n=prompt("品名を入れてください（例：猫のえさ）"); if(!n||!n.trim()) return;
   const nm=n.trim();
@@ -1299,7 +1357,7 @@ function addSelGoods(){
   let added=0;
   S.goods.forEach(g=>{
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
-    const gi={n:g, q:"", u:"", stock:false, done:false, store:S.storeMap[g]||"", daily:true};
+    const gi={n:g, q:goodsQtyOf(g), u:goodsUnitOf(g), stock:false, done:false, store:S.storeMap[g]||"", daily:true};
     const dup=S.list.items.findIndex(it=>it.n===g);
     if(dup>=0){ if(!S.list.items[dup].daily){ const old=S.list.items[dup]; gi.done=old.done; gi.stock=old.stock; if(old.store) gi.store=old.store; S.list.items[dup]=gi; } }
     else { S.list.items.push(gi); added++; }
@@ -1456,7 +1514,7 @@ function aggregate(){
   /* 定番（選択中＋⭐毎回）。献立材料と同名なら統合し、商品単位（1本など）の定番側を優先 */
   S.goods.forEach(g=>{
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
-    const gi={n:g, q:"", u:"", stock:false, done:false, store:S.storeMap[g]||"", daily:true};
+    const gi={n:g, q:goodsQtyOf(g), u:goodsUnitOf(g), stock:false, done:false, store:S.storeMap[g]||"", daily:true};
     const dup=items.findIndex(it=>it.n===g);
     if(dup>=0) items[dup]=gi; else items.push(gi);
   });
