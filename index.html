@@ -132,6 +132,15 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .edday.has{border-color:var(--green); background:#eef7ef;}
 .edday.today{box-shadow:0 0 0 2px var(--or-bg);}
 .edday.today .edw{color:var(--or-d);}
+.edtap{display:flex; flex-direction:column; align-items:center; cursor:pointer;}
+.edrow2{display:flex; align-items:center; justify-content:center; gap:3px; margin-top:3px;}
+.edminus{color:var(--danger); font-weight:bold; font-size:15px; padding:1px 5px; border-radius:6px; background:#fdecec; cursor:pointer;}
+.edplusS{color:var(--or); font-weight:bold; font-size:14px; padding:1px 5px; border-radius:6px; background:var(--or-bg); cursor:pointer;}
+/* 一覧行の「−」と個数バッジ */
+.minusbtn{width:30px; height:30px; border-radius:50%; background:#fdecec; color:var(--danger); font-size:18px; font-weight:bold; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;}
+.cntbadge{min-width:22px; text-align:center; font-size:13px; font-weight:bold; color:var(--green);}
+.catrow.sel,.pickrow.sel{background:#eef7ef; border-radius:10px;}
+.iq.editable{cursor:pointer; border:1px dashed #d9cdb8; border-radius:8px; padding:3px 7px;}
 .dishrow.selrow .ckb2{background:var(--green); border-color:var(--green);}
 /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
@@ -536,7 +545,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-13";
+const APP_VERSION="0721-14";
 let S=null;
 function newState(){
   return {
@@ -1005,12 +1014,21 @@ function renderPicker(){
     const ig=d.ing.slice(0,3).map(x=>x.n).join("・");
     const cnt=slot.filter(x=>x===d.id).length;
     const sel=cnt>0;
-    h+=`<div class="pickrow ${sel?"sel":""}" onclick="pickAdd('${d.id}')"><div><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div><span class="paddbtn ${sel?"on":""}">${sel?"✓"+(cnt>1?cnt:""):"＋"}</span></div>`;
+    h+=`<div class="pickrow ${sel?"sel":""}"><div class="dbody" onclick="pickAdd('${d.id}')"><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div>`;
+    if(sel) h+=`<span class="minusbtn" onclick="event.stopPropagation();pickRemoveOne('${d.id}')">−</span><span class="cntbadge">${cnt}</span>`;
+    h+=`<span class="paddbtn" onclick="event.stopPropagation();pickAdd('${d.id}')">＋</span></div>`;
   });
   document.getElementById("modal").innerHTML=h;
   enableSort(document.querySelector("#modal .selrows"), commitWeekOrder, false);
 }
 function rmPick(j){ curWeek(true)[pickDay][pickMeal].splice(j,1); if(!curWeek()[pickDay][pickMeal].length) pickDetail=""; save(); renderPicker(); }
+function pickRemoveOne(id){
+  const slot=curWeek(true)[pickDay][pickMeal];
+  const i=slot.lastIndexOf(id);
+  if(i>=0){ slot.splice(i,1); flash(dish(id).name+" を1つ減らしました"); }
+  if(!slot.length) pickDetail="";
+  save(); renderPicker();
+}
 function pickAdd(id){
   curWeek(true)[pickDay][pickMeal].push(id);
   S.recent=[id,...S.recent.filter(x=>x!==id)].slice(0,10);
@@ -1055,6 +1073,24 @@ function openEditor(id){
 /* 編集画面から直接カレンダーに入れる */
 function edShiftWeek(d){ edWeekOff+=d; renderEditor(); }
 function edSetMeal(k){ edMeal=k; renderEditor(); }
+function regIngToCatalog(i){
+  const g=editTarget.ing[i]; if(!g||!g.n.trim()) return;
+  const nm=g.n.trim();
+  if(allCatalog().some(x=>x.name===nm)){ flash("すでにカタログにあります"); return; }
+  S.customCatalog.push({name:nm, alias:"", unit:(g.u||"").trim(), cat:"その他"});
+  save(); renderEditor(); flash(nm+" をカタログに登録しました");
+}
+function edRemoveFromDay(i){
+  const id=editTarget.id; if(!id) return;
+  const slot=weekAt(keyAt(edWeekOff),true)[i][edMeal];
+  const j=slot.lastIndexOf(id);
+  if(j>=0){
+    slot.splice(j,1);
+    const dt=datesAt(edWeekOff)[i];
+    save(); renderEditor();
+    flash(`${dt.getMonth()+1}/${dt.getDate()}(${DAYS[i]}) から1つ減らしました`);
+  }
+}
 function edAddToDay(i){
   const id=editTarget.id; if(!id) return;
   weekAt(keyAt(edWeekOff),true)[i][edMeal].push(id);
@@ -1083,7 +1119,10 @@ function edCalendar(){
     const dt=dates[i];
     const has=(wk[i][edMeal]||[]).filter(x=>x===editTarget.id).length;
     const isT=dt.toDateString()===todayStr;
-    h+=`<button class="edday ${has?"has":""} ${isT?"today":""}" onclick="edAddToDay(${i})"><span class="edw">${w}</span><span class="edd">${dt.getMonth()+1}/${dt.getDate()}</span>${has?`<span class="edchk">✓${has>1?has:""}</span>`:'<span class="edplus">＋</span>'}</button>`;
+    h+=`<div class="edday ${has?"has":""} ${isT?"today":""}"><div class="edtap" onclick="edAddToDay(${i})"><span class="edw">${w}</span><span class="edd">${dt.getMonth()+1}/${dt.getDate()}</span></div>`;
+    if(has) h+=`<div class="edrow2"><span class="edminus" onclick="edRemoveFromDay(${i})">−</span><span class="edchk">${has}</span><span class="edplusS" onclick="edAddToDay(${i})">＋</span></div>`;
+    else h+=`<div class="edrow2"><span class="edplus" onclick="edAddToDay(${i})">＋</span></div>`;
+    h+='</div>';
   });
   h+='</div><p class="note" style="margin:6px 0 0">曜日をタップすると、その日に追加されます。</p></div>';
   return h;
@@ -1102,6 +1141,10 @@ function renderEditor(){
     h+=`<input class="q" type="number" step="any" placeholder="数" value="${g.q}" oninput="editTarget.ing[${i}].q=this.value">`;
     h+=`<input class="u" type="text" placeholder="単位" value="${esc(g.u)}" oninput="editTarget.ing[${i}].u=this.value">`;
     h+=`<button class="rm" onclick="editTarget.ing.splice(${i},1);renderEditor()">✕</button></div>`;
+    /* カタログに無い材料は、その場で登録できるようにする */
+    if(g.n&&g.n.trim()&&!allCatalog().some(x=>x.name===g.n.trim())){
+      h+=`<div style="margin:-2px 0 8px 2px"><button class="btn sub small" onclick="regIngToCatalog(${i})">📖「${esc(g.n.trim())}」をカタログに登録</button></div>`;
+    }
   });
   h+='<div class="row2" style="margin-top:4px"><button class="btn sub small" onclick="openCatalogForIng()">📖 カタログから選ぶ</button><button class="btn sub small" onclick="editTarget.ing.push({n:\'\',q:\'\',u:\'\'});renderEditor()">＋ 手入力で追加</button></div>';
   h+=`<div style="margin-top:14px"><input type="text" style="width:100%" placeholder="参考レシピのURL（任意）" value="${esc(t.url)}" oninput="editTarget.url=this.value"></div>`;
@@ -1118,9 +1161,22 @@ function saveDish(){
   const t=editTarget;
   if(!t.name.trim()){ alert("料理名を入れてください"); return; }
   const sv=Math.max(1,Number(t.sv)||3);
-  if(t.id){ const d=dish(t.id); d.name=t.name.trim(); d.cat=t.cat; d.sv=sv; d.url=t.url.trim(); d.memo=t.memo.trim(); d.ing=cleanIng(); }
-  else { S.dishes.push({id:"u"+(S.nextId++), name:t.name.trim(), cat:t.cat, sv:sv, url:t.url.trim(), memo:t.memo.trim(), ing:cleanIng()}); }
-  save(); closeModal(); flash("保存しました");
+  const ing=cleanIng();
+  /* カタログに無い材料があれば、ついでに登録するか聞く */
+  const known=allCatalog().map(x=>x.name);
+  const unknown=ing.filter(g=>known.indexOf(g.n)<0).map(g=>g);
+  if(unknown.length){
+    const names=unknown.map(g=>"・"+g.n).join("\n");
+    if(confirm("カタログに無い材料があります：\n"+names+"\n\nカタログにも登録しますか？\n\n［OK］登録して保存（次から選ぶだけで使えます）\n［キャンセル］この献立にだけ保存")){
+      unknown.forEach(g=>{
+        if(!S.customCatalog.some(x=>x.name===g.n)) S.customCatalog.push({name:g.n, alias:"", unit:g.u||"", cat:"その他"});
+      });
+      flash(unknown.length+"品をカタログにも登録しました");
+    }
+  }
+  if(t.id){ const d=dish(t.id); d.name=t.name.trim(); d.cat=t.cat; d.sv=sv; d.url=t.url.trim(); d.memo=t.memo.trim(); d.ing=ing; }
+  else { S.dishes.push({id:"u"+(S.nextId++), name:t.name.trim(), cat:t.cat, sv:sv, url:t.url.trim(), memo:t.memo.trim(), ing:ing}); }
+  save(); closeModal(); if(!unknown.length) flash("保存しました");
 }
 function copyDish(){
   const t=editTarget;
@@ -1181,6 +1237,7 @@ function rGoods(){
   h+='<div class="stickytop">';
   h+='<div class="searchrow">';
   h+=`<input type="text" class="search" style="margin-bottom:0" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;render()">`;
+  h+='<button class="newbtn" onclick="addGoodsHere()">＋新規</button>';
   h+='</div>';
   h+='<div class="catbar">';
   h+=`<button class="fchip ${goodsFilter===""?"on":""}" onclick="goodsFilter='';render()">すべて</button>`;
@@ -1208,6 +1265,20 @@ function rGoods(){
   if(n&&!goodsEdit) h+=`<button class="btn" style="flex:1.5;margin:0;white-space:nowrap" onclick="addSelGoods()">🛒 リストに追加 ${n}</button>`;
   h+='</div>';
   return h;
+}
+/* 定番にその場で品物を追加（カタログにも登録するか選べる） */
+function addGoodsHere(){
+  const n=prompt("定番に追加する品名（例：猫のえさ）"); if(!n||!n.trim()) return;
+  const nm=n.trim();
+  if(!S.goods.includes(nm)) S.goods.push(nm);
+  S.goodsCatMap[nm]=(goodsFilter&&goodsFilter!=="その他")?goodsFilter:(CAT2GOODS[catInfo(nm).cat]||"その他");
+  S.goodsSel[nm]=true;
+  if(!allCatalog().some(x=>x.name===nm)){
+    if(confirm("「"+nm+"」をカタログにも登録しますか？\n\n［OK］登録する（他の画面からも選べます）\n［キャンセル］定番だけに追加")){
+      S.customCatalog.push({name:nm, alias:"", unit:"", cat:"その他"});
+    }
+  }
+  save(); render(); flash(nm+" を定番に追加しました");
 }
 function togGoods(g){ S.goodsSel[g]=!S.goodsSel[g]; save(); render(); }
 function addGoods(){
@@ -1268,7 +1339,10 @@ function renderCatalog(){
   const ingMode=(catMode==="ing");
   let h=`<div class="mhead back"><button class="backbtn" onclick="${ingMode?"backToEditor()":"closeModal()"}">←</button><b>${ingMode?"材料をカタログから選ぶ":"品物を追加"}</b></div>`;
   if(ingMode) h+=`<p class="note" style="margin-top:0">タップすると「${esc(editTarget?editTarget.name||"この献立":"")}」の材料に入ります（単位も自動）。</p>`;
-  h+=`<input type="text" class="search" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';renderCatalog()">`;
+  h+='<div class="searchrow">';
+  h+=`<input type="text" class="search" style="margin-bottom:0" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';renderCatalog()">`;
+  h+='<button class="newbtn" onclick="newCatalogItem()">＋新規</button>';
+  h+='</div>';
   if(!q){
     h+='<div class="catbar">';
     h+=`<button class="fchip ${catFilter===""?"on":""}" onclick="catFilter='';renderCatalog()">${(S.catRecent||[]).length?"最近":"すべて"}</button>`;
@@ -1284,7 +1358,10 @@ function renderCatalog(){
     const star=S.goodsStar[it.name];
     const inIng=ingMode&&editTarget&&editTarget.ing.some(g=>g.n===it.name);
     if(ingMode){
-      h+=`<div class="catrow" onclick="catAddIng('${esc(it.name)}')"><div class="dbody"><div class="nm">${esc(it.name)}</div><div class="ings">${esc(it.cat)}${it.unit?"・"+esc(it.unit):""}${inIng?"・追加済み":""}</div></div><span class="paddbtn ${inIng?"on":""}">${inIng?"✓":"＋"}</span></div>`;
+      const cnt=editTarget?editTarget.ing.filter(g=>g.n===it.name).length:0;
+      h+=`<div class="catrow ${cnt?"sel":""}"><div class="dbody" onclick="catAddIng('${esc(it.name)}')"><div class="nm">${esc(it.name)}</div><div class="ings">${esc(it.cat)}${it.unit?"・"+esc(it.unit):""}</div></div>`;
+      if(cnt) h+=`<span class="minusbtn" onclick="event.stopPropagation();catRemoveIng('${esc(it.name)}')">−</span><span class="cntbadge">${cnt}</span>`;
+      h+=`<span class="paddbtn" onclick="event.stopPropagation();catAddIng('${esc(it.name)}')">＋</span></div>`;
       return;
     }
     h+=`<div class="catrow" onclick="catToggle('${esc(it.name)}')"><div class="dbody"><div class="nm">${star?"⭐ ":""}${esc(it.name)}</div><div class="ings">${esc(it.cat)}${it.unit?"・"+esc(it.unit):""}${inGoods?"・定番":""}</div></div><span class="paddbtn ${open?"on":""}">${open?"×":"＋"}</span></div>`;
@@ -1300,9 +1377,27 @@ function renderCatalog(){
   if(q&&!list.some(x=>x.name===q)){
     h+=`<button class="btn sub wide" onclick="${ingMode?`catAddIng('${esc(q)}')`:`registerCatalog('${esc(q)}')`}">＋「${esc(q)}」を${ingMode?"材料に追加":"新しく登録"}</button>`;
   }
+  h+='<button class="btn sub wide" style="margin-top:8px" onclick="newCatalogItem()">📖 カタログに新しい品物を登録</button>';
   if(ingMode) h+='<button class="cta" style="margin-top:12px" onclick="backToEditor()">✓ 編集にもどる</button>';
   modalEl.innerHTML=h;
   modalEl.scrollTop=savedScroll; /* 追加しても見ていた位置を保つ */
+}
+function catRemoveIng(name){
+  if(!editTarget) return;
+  const i=editTarget.ing.map(g=>g.n).lastIndexOf(name);
+  if(i>=0){ editTarget.ing.splice(i,1); flash(name+" を材料から外しました"); }
+  renderCatalog();
+}
+/* カタログに新しい品物を登録（検索語がなくても使える） */
+function newCatalogItem(){
+  const n=prompt("カタログに登録する品名（例：えごま油）"); if(!n||!n.trim()) return;
+  const nm=n.trim();
+  if(allCatalog().some(x=>x.name===nm)){ flash("すでにカタログにあります"); catSearch=nm; renderCatalog(); return; }
+  const u=prompt("買うときの単位（例：本／袋／個。空でもOK）","")||"";
+  const cat=catFilter||"その他";
+  S.customCatalog.push({name:nm, alias:"", unit:u.trim(), cat:cat});
+  catSearch=""; catFilter=cat; save(); renderCatalog();
+  flash(nm+" をカタログに登録しました");
 }
 function catToggle(name){ catOpenName=(catOpenName===name?"":name); renderCatalog(); }
 function catPushRecent(name){ S.catRecent=[name,...(S.catRecent||[]).filter(x=>x!==name)].slice(0,20); }
@@ -1368,12 +1463,41 @@ function roundQ(q,u){
   if(u==="g"||u==="ml") return Math.round(q/5)*5||Math.round(q)||q;
   return Math.round(q*4)/4;
 }
+/* 買い物リストの数量・単位をその場で編集 */
+let qtyIdx=0;
+function openQtyEdit(i){ qtyIdx=i; showModal(); renderQtyEdit(); }
+function renderQtyEdit(){
+  const it=S.list.items[qtyIdx]; if(!it){ closeModal(); return; }
+  let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${esc(it.n)}</b></div>`;
+  h+='<p class="note" style="margin-top:0">買う量を直しても、献立の材料は変わりません。</p>';
+  h+='<div style="display:flex;gap:8px;align-items:center;margin:10px 0 4px">';
+  h+=`<input id="qi" type="number" step="any" inputmode="decimal" style="flex:1;font-size:22px;text-align:center" value="${it.q===""||it.q==null?"":it.q}" placeholder="数量">`;
+  h+=`<input id="ui" type="text" style="width:90px;font-size:18px;text-align:center" value="${esc(it.u||"")}" placeholder="単位">`;
+  h+='</div>';
+  h+='<div class="aropts" style="margin-bottom:10px">';
+  [1,2,3,4,5].forEach(n=>{ h+=`<button class="sopt" onclick="setQty(${n})">${n}</button>`; });
+  h+='</div>';
+  h+='<div class="aropts" style="margin-bottom:12px">';
+  ["個","本","袋","g","ml","パック","枚","束"].forEach(u=>{ h+=`<button class="sopt" onclick="setUnit('${u}')">${u}</button>`; });
+  h+='</div>';
+  h+='<button class="cta" onclick="saveQty()">保存</button>';
+  document.getElementById("modal").innerHTML=h;
+}
+function setQty(n){ const el=document.getElementById("qi"); if(el) el.value=n; }
+function setUnit(u){ const el=document.getElementById("ui"); if(el) el.value=u; }
+function saveQty(){
+  const it=S.list.items[qtyIdx]; if(!it) return;
+  const qv=document.getElementById("qi").value;
+  it.q=(qv===""?"":Number(qv));
+  it.u=document.getElementById("ui").value.trim();
+  save(); closeModal(); flash(it.n+" の量を更新しました");
+}
 function itemRow(i,withStock){
   const it=S.list.items[i];
   let r=`<div class="item ${it.done?"done":(it.stock&&withStock?"stocked":"")}">`;
   r+=`<span class="ckb" onclick="togDone(${i})">${it.done?"✓":""}</span>`;
   r+=`<div class="info"><div class="inm">${esc(it.n)}</div></div>`;
-  r+=`<span class="iq">${fmtQ(it.q)}${esc(it.u)}</span>`;
+  r+=`<span class="iq editable" onclick="openQtyEdit(${i})">${(it.q===""||it.q==null)?"数量":fmtQ(it.q)+esc(it.u)} ✎</span>`;
   r+=`<button class="storebtn ${it.store?"":"unset"}" onclick="openStoreModal(${i})">${esc(it.store||"未定")} ▾</button>`;
   if(withStock) r+=`<button class="stockbtn ${it.stock?"on":""}" onclick="togStock(${i})">在庫${it.stock?"あり":"？"}</button>`;
   r+='</div>';
@@ -1631,19 +1755,20 @@ function resetAll(){
 }
 
 /* ===== モーダル ===== */
-let modalOpen=false;
+let modalOpen=false, modalClosing=false;
 function showModal(){
   document.getElementById("overlay").classList.add("show");
-  if(!modalOpen){ modalOpen=true; history.pushState({modal:1,tab:TAB},""); }
+  if(!modalOpen){ modalOpen=true; modalClosing=false; history.pushState({modal:1,tab:TAB},""); }
 }
 function closeModal(){
-  if(modalOpen){ history.back(); }  /* 履歴を1つ戻す → 下のpopstateで実際に閉じる */
-  else { document.getElementById("overlay").classList.remove("show"); render(); }
+  /* modalClosing で二重呼び出しを防ぐ（二重に history.back() するとアプリごと閉じてしまう） */
+  if(modalOpen&&!modalClosing){ modalClosing=true; history.back(); return; }
+  if(!modalOpen){ document.getElementById("overlay").classList.remove("show"); render(); }
 }
 window.addEventListener("popstate",function(e){
   /* まずモーダルが開いていれば閉じる */
   if(modalOpen){
-    modalOpen=false;
+    modalOpen=false; modalClosing=false;
     document.getElementById("overlay").classList.remove("show");
     const st=e.state; if(st&&st.tab) TAB=st.tab;
     render(); return;
