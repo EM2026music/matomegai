@@ -131,7 +131,7 @@ input:focus,select:focus{outline:2px solid var(--or);}
 /* モーダル */
 #overlay{position:fixed; inset:0; background:rgba(60,45,25,.45); z-index:20; display:none; align-items:flex-end; justify-content:center;}
 #overlay.show{display:flex;}
-#modal{background:#fff; width:100%; max-width:640px; max-height:88vh; border-radius:22px 22px 0 0; padding:18px 16px; overflow-y:auto;}
+#modal{background:#fff; width:100%; max-width:640px; max-height:88vh; min-height:0; border-radius:22px 22px 0 0; padding:18px 16px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;}
 .mhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
 .mhead.back{justify-content:flex-start; gap:12px;}
 .mhead b{font-size:16px;}
@@ -470,7 +470,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0720-8";
+const APP_VERSION="0720-9";
 let S=null;
 function newState(){
   return {
@@ -1004,25 +1004,28 @@ function allCatalog(){
 function catInfo(name){ return allCatalog().find(x=>x.name===name)||{name:name, alias:"", unit:"", cat:"その他"}; }
 function openCatalog(){ catSearch=""; catFilter=""; catOpenName=""; showModal(); renderCatalog(); }
 function renderCatalog(){
+  const modalEl=document.getElementById("modal");
+  const savedScroll=modalEl?modalEl.scrollTop:0;
   const all=allCatalog();
   const q=catSearch.trim();
-  let list;
+  let list, showingAll=false;
   if(q){ list=all.filter(x=>x.name.includes(q)||x.alias.includes(q)); }
   else if(catFilter){ list=all.filter(x=>x.cat===catFilter); }
-  else { list=(S.catRecent||[]).map(n=>all.find(x=>x.name===n)).filter(Boolean); }
+  else {
+    list=(S.catRecent||[]).map(n=>all.find(x=>x.name===n)).filter(Boolean);
+    if(!list.length){ list=all; showingAll=true; } /* 最近が空なら全部出す＝必ずスクロールできる */
+  }
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>品物を追加</b></div>';
   h+=`<input type="text" class="search" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';renderCatalog()">`;
   if(!q){
     h+='<div class="catbar">';
-    h+=`<button class="fchip ${catFilter===""?"on":""}" onclick="catFilter='';renderCatalog()">最近</button>`;
+    h+=`<button class="fchip ${catFilter===""?"on":""}" onclick="catFilter='';renderCatalog()">${(S.catRecent||[]).length?"最近":"すべて"}</button>`;
     CATALOG_CATS.forEach(c=>{ h+=`<button class="fchip ${catFilter===c?"on":""}" onclick="catFilter='${esc(c)}';renderCatalog()">${esc(c)}</button>`; });
     h+='</div>';
   }
+  if(showingAll) h+='<p class="note" style="margin-top:0">全カタログ表示中。カテゴリで絞るか検索でどうぞ。</p>';
   h+='<div class="card listcard">';
-  if(!list.length){
-    if(!q&&!catFilter) h+='<p class="note">最近使った品物がここに出ます。カテゴリか検索から選んでね。</p>';
-    else h+='<p class="note">見つかりません</p>';
-  }
+  if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(it=>{
     const open=catOpenName===it.name;
     const inGoods=S.goods.includes(it.name);
@@ -1040,7 +1043,8 @@ function renderCatalog(){
   if(q&&!list.some(x=>x.name===q)){
     h+=`<button class="btn sub wide" onclick="registerCatalog('${esc(q)}')">＋「${esc(q)}」を新しく登録</button>`;
   }
-  document.getElementById("modal").innerHTML=h;
+  modalEl.innerHTML=h;
+  modalEl.scrollTop=savedScroll; /* 追加しても見ていた位置を保つ */
 }
 function catToggle(name){ catOpenName=(catOpenName===name?"":name); renderCatalog(); }
 function catPushRecent(name){ S.catRecent=[name,...(S.catRecent||[]).filter(x=>x!==name)].slice(0,20); }
