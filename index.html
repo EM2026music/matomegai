@@ -88,6 +88,11 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .wlabel{flex:1; text-align:center;}
 .wlabel b{font-size:16px;}
 .wlabel span{display:block; font-size:12px; color:var(--sub); margin-top:1px;}
+.mealline{display:flex; align-items:baseline; gap:6px; margin-bottom:2px;}
+.mealline:last-child{margin-bottom:0;}
+.mealtag{font-size:12px; flex-shrink:0;}
+.mealnames{font-size:13px; color:var(--sub); line-height:1.35;}
+.mealnames.main{font-size:16px; font-weight:bold; color:var(--ink);}
 .dishrow.selrow .ckb2{background:var(--green); border-color:var(--green);}
 /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
@@ -393,7 +398,7 @@ const SEED=[
 ["汁物","キャベツスープ",[["キャベツ",0.25,"個"],["ベーコン",50,"g"],["コンソメ",2,"個"]]],
 ["汁物","コーンポタージュ",[["コーンクリーム缶",1,"缶"],["玉ねぎ",0.5,"個"],["牛乳",300,"ml"],["バター",20,"g"],["コンソメ",1,"個"]]]
 ];
-const CATS=["主食","肉","魚","おかず","汁物","副菜","麺"];
+const CATS=["主食","肉","魚","おかず","汁物","副菜","麺","朝ごはん"];
 /* ===== 品物マスター（カタログ）: "名前|別名(空白区切り)|単位" ===== */
 const CATALOG_RAW={
 "野菜・きのこ":["じゃがいも|ジャガイモ 馬鈴薯 ポテト|個","にんじん|人参 ニンジン|本","玉ねぎ|たまねぎ 玉葱 タマネギ|個","長ねぎ|ねぎ 葱 ネギ 青ねぎ|本","キャベツ||個","もやし|モヤシ|袋","ほうれん草|ホウレンソウ ほうれんそう|束","小松菜|こまつな コマツナ|束","白菜|はくさい ハクサイ|個","レタス||個","きゅうり|キュウリ 胡瓜|本","トマト||個","ミニトマト|プチトマト|パック","なす|ナス 茄子|本","ピーマン||個","パプリカ||個","かぼちゃ|カボチャ 南瓜|個","大根|だいこん ダイコン|本","ごぼう|ゴボウ 牛蒡|本","れんこん|レンコン 蓮根|節","さつまいも|サツマイモ さつま芋|本","里芋|さといも サトイモ|個","長芋|ながいも 山芋 とろろ|本","しめじ|シメジ|パック","えのき|エノキ|袋","しいたけ|椎茸 シイタケ|パック","まいたけ|舞茸 マイタケ|パック","エリンギ||パック","なめこ|ナメコ|袋","ブロッコリー||株","カリフラワー||株","アスパラ|アスパラガス|束","とうもろこし|トウモロコシ コーン|本","枝豆|えだまめ エダマメ|袋","いんげん|インゲン 隠元|袋","オクラ||袋","ズッキーニ||本","にんにく|ニンニク 大蒜|個","しょうが|生姜 ショウガ|かけ","にら|ニラ 韮|束","春菊|しゅんぎく シュンギク|束","三つ葉|みつば ミツバ|束","大葉|しそ 紫蘇 シソ|枚","みょうが|茗荷|パック","セロリ||本","水菜|みずな ミズナ|束","チンゲン菜|青梗菜 チンゲンサイ|株","ゴーヤ|にがうり|本","かぶ|カブ 蕪|個","豆苗|とうみょう|パック","貝割れ|かいわれ|パック","サニーレタス||個"],
@@ -418,9 +423,14 @@ const CATALOG_RAW={
 /* カタログのカテゴリ → 定番タブのカテゴリ */
 const CAT2GOODS={"野菜・きのこ":"食品・調味料","果物":"食品・調味料","肉":"食品・調味料","魚介":"食品・調味料","卵・乳製品":"食品・調味料","豆腐・大豆":"食品・調味料","米・パン・麺":"食品・調味料","缶詰・乾物":"食品・調味料","冷凍・加工":"食品・調味料","調味料・油":"食品・調味料","粉・その他":"食品・調味料","朝ごはん":"朝ごはん","おやつ":"おやつ・飲み物","飲み物":"おやつ・飲み物","キッチン":"キッチン","洗濯・掃除":"洗面・お風呂","洗面・お風呂":"洗面・お風呂","衛生・その他":"その他"};
 const CATALOG_CATS=Object.keys(CATALOG_RAW);
-const CATS_OLDS=[["主食","麺","肉","魚","おかず","副菜","汁物"],["主食","麺","肉","魚","おかず","汁物","副菜"]];
+const CATS_OLDS=[["主食","麺","肉","魚","おかず","副菜","汁物"],["主食","麺","肉","魚","おかず","汁物","副菜"],["主食","肉","魚","おかず","汁物","副菜","麺"]];
 const GOODS_SEED=["トイレットペーパー","ボックスティッシュ","キッチンペーパー","ラップ","アルミホイル","ゴミ袋","洗濯洗剤","柔軟剤","食器用洗剤","スポンジ","ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ","マスク","電池","卵","牛乳","食パン","米","サラダ油","しょうゆ","みそ","砂糖","塩"];
 const DAYS=["月","火","水","木","金","土","日"];
+const MEALS=[{k:"b",label:"朝",icon:"🍞"},{k:"l",label:"昼",icon:"🍱"},{k:"d",label:"夜",icon:"🌙"}];
+function emptyDay(){ return {b:[],l:[],d:[]}; }
+function emptyWeek(){ return [emptyDay(),emptyDay(),emptyDay(),emptyDay(),emptyDay(),emptyDay(),emptyDay()]; }
+function onMeals(){ return MEALS.filter(m=>S.meals&&S.meals[m.k]); }
+function dayIds(dayObj){ let a=[]; onMeals().forEach(m=>{ a=a.concat(dayObj[m.k]||[]); }); return a; }
 const STORE_COLORS=["#e05a5a","#4a7ab5","#6aa84f","#b58a4a","#8a5ab5","#4ab5a8","#777777"];
 const GOODS_CATS={
   "おやつ・飲み物":["チョコレート","スナック菓子","アイス","トマトジュース","コーラ","お茶","コーヒー"],
@@ -464,7 +474,7 @@ function excludeUnit(name){ return (S.excludeList||[]).find(x=>x.n===name); }
 /* 今週の献立で実際に使う常備品・除外品 */
 function pantryNeeded(){
   const pset=new Set(), eset=new Set();
-  curWeek().forEach(day=>day.forEach(id=>{
+  curWeek().forEach(day=>dayIds(day).forEach(id=>{
     const d=dish(id); if(!d) return;
     d.ing.forEach(g=>{ if(excludeUnit(g.n)) eset.add(g.n); else if(pantryUnit(g.n)) pset.add(g.n); });
   }));
@@ -507,6 +517,15 @@ function load(){
   if(!S.customCatalog) S.customCatalog=[];
   if(!S.pantryList) S.pantryList=Object.keys(PANTRY).map(n=>({n:n, q:PANTRY[n].q, u:PANTRY[n].u}));
   if(!S.excludeList) S.excludeList=[{n:"米", q:1, u:"袋"}];
+  if(!S.meals) S.meals={b:false, l:false, d:true};
+  /* 旧形式（1日＝配列）を朝昼夜スロットへ移行。既存の献立はすべて「夜」に入る */
+  Object.keys(S.plans||{}).forEach(k=>{
+    S.plans[k]=(S.plans[k]||[]).map(day=>{
+      if(Array.isArray(day)) return {b:[], l:[], d:day};
+      return {b:day.b||[], l:day.l||[], d:day.d||[]};
+    });
+    while(S.plans[k].length<7) S.plans[k].push(emptyDay());
+  });
   if(!S.cats||!S.cats.length) S.cats=CATS.slice();
   else if(CATS_OLDS.some(o=>S.cats.join(",")===o.join(","))) S.cats=CATS.slice(); /* 未編集なら新しい順番に更新 */
   if(!S.plans){ S.plans={}; if(Array.isArray(S.week)) S.plans[keyOf(mondayOf(new Date()))]=S.week; }
@@ -543,7 +562,7 @@ function curMonday(){ const m=mondayOf(new Date()); m.setDate(m.getDate()+weekOf
 function curKey(){ return keyOf(curMonday()); }
 function curWeek(create){
   const k=curKey();
-  if(!S.plans[k]){ if(!create) return [[],[],[],[],[],[],[]]; S.plans[k]=[[],[],[],[],[],[],[]]; }
+  if(!S.plans[k]){ if(!create) return emptyWeek(); S.plans[k]=emptyWeek(); }
   return S.plans[k];
 }
 function weekDates(){ const m=curMonday(); return DAYS.map((_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
@@ -629,13 +648,14 @@ function commitDayOrder(ids){
   S.plans[curKey()]=newW;
   save(); render();
 }
-function commitWeekOrder(ids){ curWeek(true)[pickDay]=ids.slice(); save(); }
+function commitWeekOrder(ids){ curWeek(true)[pickDay][pickMeal]=ids.slice(); save(); }
 
 /* ===== 献立表（週） ===== */
 function rWeek(){
   const dates=weekDates(); const todayStr=new Date().toDateString();
   const wk=curWeek();
-  const decided=wk.filter(d=>d.length).length;
+  const decided=wk.filter(d=>dayIds(d).length).length;
+  const ms=onMeals();
   const nItems=aggregate().length;
   const label=weekOffset===0?"今週":weekOffset===-1?"先週":weekOffset===1?"来週":(weekOffset<0?weekOffset+"週":"+"+weekOffset+"週");
   let h='<div class="pagehead"><div class="ptitle">献立表</div>';
@@ -651,13 +671,18 @@ function rWeek(){
   DAYS.forEach((w,i)=>{
     const dt=dates[i]; const isT=dt.toDateString()===todayStr;
     const cls=(i===5?"sat ":i===6?"sun ":"")+(isT?"today":"");
-    const ds=wk[i].map(id=>dish(id)).filter(Boolean);
+    const total=dayIds(wk[i]).length;
     h+=`<div class="dayrow ${cls}" data-id="${i}" onclick="openDay(${i})">`;
     h+=`<div class="dcol"><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
-    if(ds.length){
-      h+=`<div class="dmain"><div class="dtitle">${esc(ds[0].name)}</div>`;
-      if(ds.length>1) h+=`<div class="dsub">${esc(ds.slice(1).map(x=>x.name).join("・"))}</div>`;
-      h+=`</div><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><span class="chev">›</span>`;
+    if(total){
+      h+='<div class="dmain">';
+      ms.forEach(m=>{
+        const names=(wk[i][m.k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
+        if(!names.length) return;
+        const multi=ms.length>1;
+        h+=`<div class="mealline"><span class="mealtag">${multi?m.icon:""}</span><span class="mealnames ${m.k==="d"||!multi?"main":""}">${esc(names.join("・"))}</span></div>`;
+      });
+      h+='</div><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><span class="chev">›</span>';
     } else {
       h+=`<div class="dmain dempty">献立を追加</div><span class="dplus">＋</span>`;
     }
@@ -674,15 +699,32 @@ function rWeek(){
 function setFamily(d){ S.family=Math.min(12,Math.max(1,S.family+d)); save(); }
 function openFamily(){ showModal(); renderFamily(); }
 function renderFamily(){
-  let h='<div class="mhead"><b>家族の人数</b><button class="btn small gray" onclick="closeModal()">閉じる</button></div>';
-  h+='<div style="display:flex;align-items:center;justify-content:center;gap:26px;padding:10px 0 16px;">';
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>設定</b></div>';
+  h+='<div class="kindhead" style="margin-top:0">家族の人数</div>';
+  h+='<div style="display:flex;align-items:center;justify-content:center;gap:26px;padding:6px 0 10px;">';
   h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(-1);renderFamily()">−</button>';
   h+=`<b style="font-size:26px">${S.family}人</b>`;
   h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(1);renderFamily()">＋</button></div>';
-  h+='<p class="note" style="text-align:center">献立テンプレの基準人数から、この人数に分量を自動換算します</p>';
+  h+='<p class="note" style="text-align:center;margin-top:0">献立テンプレの基準人数から、この人数に分量を自動換算します</p>';
+  h+='<div class="kindhead">献立表に出す食事</div>';
+  h+='<p class="note" style="margin-top:0">使う食事だけONにすると、ホームがすっきりします。</p>';
+  h+='<div class="goodsgrid">';
+  MEALS.forEach(m=>{
+    const on=S.meals&&S.meals[m.k];
+    h+=`<button class="gbtn ${on?"sel":""}" onclick="togMeal('${m.k}')">${m.icon} ${m.label}${on?'<span class="gchk">✓</span>':''}</button>`;
+  });
+  h+='</div>';
+  h+='<p class="note">OFFにしても、その食事に入れた献立は消えません（またONにすれば戻ります）。</p>';
   document.getElementById("modal").innerHTML=h;
 }
-function clearWeek(){ if(confirm("この週の献立をすべて消しますか？")){ S.plans[curKey()]=[[],[],[],[],[],[],[]]; save(); render(); } }
+function togMeal(k){
+  if(!S.meals) S.meals={b:false,l:false,d:true};
+  const on=Object.keys(S.meals).filter(x=>S.meals[x]);
+  if(S.meals[k]&&on.length<=1){ flash("最低1つは必要です"); return; }
+  S.meals[k]=!S.meals[k];
+  save(); renderFamily();
+}
+function clearWeek(){ if(confirm("この週の献立をすべて消しますか？")){ S.plans[curKey()]=emptyWeek(); save(); render(); } }
 function newList(){
   const need=pantryNeeded();
   return {items:aggregate(), pantry:need.names.map(n=>({n:n, buy:false})), excluded:need.excludedNames.map(n=>({n:n, buy:false})), at:Date.now()};
@@ -808,16 +850,27 @@ function rebuildList(){
 }
 
 /* ===== 献立ピッカー（日ごと） ===== */
-let pickDay=0, pickSearch="", pickCat="", pickDetail="";
-function openDay(d){ pickDay=d; pickSearch=""; pickCat=""; pickDetail=""; showModal(); renderPicker(); }
+let pickDay=0, pickSearch="", pickCat="", pickDetail="", pickMeal="d";
+function openDay(d){ pickDay=d; pickSearch=""; pickCat=""; pickDetail=""; pickMeal=(onMeals()[0]||{k:"d"}).k; showModal(); renderPicker(); }
 function togSelDetail(id){ pickDetail=(pickDetail===id?"":id); renderPicker(); }
 function renderPicker(){
   const dt=weekDates()[pickDay];
   let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b></div>`;
   const wk=curWeek();
-  if(wk[pickDay].length){
-    h+='<div class="selbox"><div class="selttl">✓ この日の献立（'+wk[pickDay].length+'品）</div><div class="selrows">';
-    wk[pickDay].forEach((id,j)=>{
+  const ms=onMeals();
+  if(!ms.some(m=>m.k===pickMeal)) pickMeal=(ms[0]||{k:"d"}).k;
+  if(ms.length>1){
+    h+='<div class="catbar" style="margin-bottom:8px">';
+    ms.forEach(m=>{
+      const n=(wk[pickDay][m.k]||[]).length;
+      h+=`<button class="fchip ${pickMeal===m.k?"on":""}" onclick="pickMeal='${m.k}';pickDetail='';renderPicker()">${m.icon} ${m.label}${n?`(${n})`:""}</button>`;
+    });
+    h+='</div>';
+  }
+  const slot=wk[pickDay][pickMeal]||[];
+  if(slot.length){
+    h+='<div class="selbox"><div class="selttl">✓ '+(ms.length>1?MEALS.find(m=>m.k===pickMeal).label+"の":"この日の")+'献立（'+slot.length+'品）</div><div class="selrows">';
+    slot.forEach((id,j)=>{
       const ds=dish(id); if(!ds) return;
       const ig=ds.ing.slice(0,4).map(x=>x.n).join("・");
       h+=`<div class="selbig" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="sbmain" onclick="togSelDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span></div>`;
@@ -825,7 +878,7 @@ function renderPicker(){
     h+='</div></div>';
     if(pickDetail){
       const dd=dish(pickDetail);
-      if(dd&&wk[pickDay].includes(pickDetail)){
+      if(dd&&slot.includes(pickDetail)){
         h+=`<div class="card" style="margin-top:-2px"><div class="kindhead" style="margin-top:0">${esc(dd.name)}の材料（${dd.sv||3}人分の目安）</div>`;
         dd.ing.forEach(g=>{ h+=`<div class="sdrow"><span>${esc(g.n)}</span><span class="sdq">${fmtQ(g.q)}${esc(g.u)}</span></div>`; });
         if(dd.memo) h+=`<p class="note">📝 ${esc(dd.memo)}</p>`;
@@ -847,16 +900,16 @@ function renderPicker(){
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(d=>{
     const ig=d.ing.slice(0,3).map(x=>x.n).join("・");
-    const cnt=wk[pickDay].filter(x=>x===d.id).length;
+    const cnt=slot.filter(x=>x===d.id).length;
     const sel=cnt>0;
     h+=`<div class="pickrow ${sel?"sel":""}" onclick="pickAdd('${d.id}')"><div><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div><span class="paddbtn ${sel?"on":""}">${sel?"✓"+(cnt>1?cnt:""):"＋"}</span></div>`;
   });
   document.getElementById("modal").innerHTML=h;
   enableSort(document.querySelector("#modal .selrows"), commitWeekOrder, false);
 }
-function rmPick(j){ curWeek(true)[pickDay].splice(j,1); if(!curWeek()[pickDay].length) pickDetail=""; save(); renderPicker(); }
+function rmPick(j){ curWeek(true)[pickDay][pickMeal].splice(j,1); if(!curWeek()[pickDay][pickMeal].length) pickDetail=""; save(); renderPicker(); }
 function pickAdd(id){
-  curWeek(true)[pickDay].push(id);
+  curWeek(true)[pickDay][pickMeal].push(id);
   S.recent=[id,...S.recent.filter(x=>x!==id)].slice(0,10);
   save(); flash(dish(id).name+" を追加"); renderPicker();
 }
@@ -934,7 +987,7 @@ function delDish(){
   if(!confirm("この献立を削除しますか？")) return;
   const id=editTarget.id;
   S.dishes=S.dishes.filter(d=>d.id!==id);
-  Object.keys(S.plans).forEach(k=>{ S.plans[k]=S.plans[k].map(day=>day.filter(x=>x!==id)); });
+  Object.keys(S.plans).forEach(k=>{ S.plans[k]=S.plans[k].map(day=>({b:(day.b||[]).filter(x=>x!==id), l:(day.l||[]).filter(x=>x!==id), d:(day.d||[]).filter(x=>x!==id)})); });
   S.recent=S.recent.filter(x=>x!==id);
   save(); closeModal();
 }
@@ -1121,7 +1174,7 @@ function registerCatalog(name){
 let shopFilter="all";
 function aggregate(){
   const map=new Map();
-  curWeek().forEach(day=>day.forEach(id=>{
+  curWeek().forEach(day=>dayIds(day).forEach(id=>{
     const d=dish(id); if(!d) return;
     const f=S.family/(d.sv||3);
     d.ing.forEach(g=>{
