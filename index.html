@@ -363,6 +363,25 @@ function goodsCat(g){
   for(const c in GOODS_CATS){ if(GOODS_CATS[c].includes(g)) return c; }
   return "その他";
 }
+/* 調味料・常備品の辞書（品目名の完全一致。買う時の単位付き） */
+const PANTRY={
+  "みそ":{q:1,u:"個"},"赤みそ":{q:1,u:"個"},"酢":{q:1,u:"本"},"すし酢":{q:1,u:"本"},
+  "めんつゆ":{q:1,u:"本"},"ポン酢":{q:1,u:"本"},"ケチャップ":{q:1,u:"本"},"マヨネーズ":{q:1,u:"本"},
+  "ウスターソース":{q:1,u:"本"},"オイスターソース":{q:1,u:"本"},"甜麺醤":{q:1,u:"個"},"豆板醤":{q:1,u:"個"},
+  "カレー粉":{q:1,u:"個"},"小麦粉":{q:1,u:"袋"},"片栗粉":{q:1,u:"袋"},"パン粉":{q:1,u:"袋"},"天ぷら粉":{q:1,u:"袋"},
+  "白ごま":{q:1,u:"袋"},"黒ごま":{q:1,u:"袋"},"白すりごま":{q:1,u:"袋"},"青のり":{q:1,u:"個"},
+  "刻みのり":{q:1,u:"袋"},"乾燥わかめ":{q:1,u:"袋"},"塩昆布":{q:1,u:"袋"},"はちみつ":{q:1,u:"本"},
+  "粒マスタード":{q:1,u:"個"},"鶏がらスープの素":{q:1,u:"個"},"コンソメ":{q:1,u:"箱"},"バター":{q:1,u:"個"}
+};
+/* 今週の献立で実際に使う常備品と米の有無 */
+function pantryNeeded(){
+  const set=new Set(); let rice=false;
+  S.week.forEach(day=>day.forEach(id=>{
+    const d=dish(id); if(!d) return;
+    d.ing.forEach(g=>{ if(g.n==="米") rice=true; else if(PANTRY[g.n]) set.add(g.n); });
+  }));
+  return {names:[...set], rice:rice};
+}
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
@@ -464,6 +483,10 @@ function renderFamily(){
   document.getElementById("modal").innerHTML=h;
 }
 function clearWeek(){ if(confirm("今週の献立表をすべて消しますか？")){ S.week=[[],[],[],[],[],[],[]]; save(); render(); } }
+function newList(){
+  const need=pantryNeeded();
+  return {items:aggregate(), pantry:need.names.map(n=>({n:n, buy:false})), riceUsed:need.rice, riceBuy:false, at:Date.now()};
+}
 function makeListGo(){
   const ag=aggregate();
   if(!ag.length&&!(S.list&&S.list.items.length)){ flash("先に献立か日用品を選んでね"); return; }
@@ -472,7 +495,7 @@ function makeListGo(){
     save();
     if(r.added||r.removed||r.updated) flash(`リストを更新：追加${r.added}・削除${r.removed}・数量変更${r.updated}（チェックは保持）`);
   } else {
-    S.list={items:ag, at:Date.now()}; save();
+    S.list=newList(); save();
   }
   shopFilter="all"; go('shop');
 }
@@ -482,7 +505,7 @@ function syncList(ag){
   const agMap=new Map(ag.filter(x=>!x.daily).map(x=>[key(x),x]));
   let added=0, removed=0, updated=0;
   S.list.items=S.list.items.filter(it=>{
-    if(it.daily||it.manual) return true;              /* 日用品・手動追加は触らない */
+    if(it.daily||it.manual||it.pantry) return true;    /* 日用品・手動追加・常備品は触らない */
     const nw=agMap.get(key(it));
     if(nw){                                            /* 引き続き必要 → 数量だけ最新に */
       if(typeof nw.q==="number"&&it.q!==nw.q){ it.q=nw.q; updated++; }
@@ -498,12 +521,55 @@ function syncList(ag){
       S.list.items.push({n:g, q:"", u:"", stock:false, done:false, store:S.storeMap[g]||"", daily:true}); added++;
     }
   });
+  /* 常備品コーナーも今週の献立に合わせて更新（「買う」の選択は保持） */
+  const need=pantryNeeded();
+  const old=S.list.pantry||[];
+  S.list.pantry=need.names.map(n=>{ const o=old.find(x=>x.n===n); return {n:n, buy:o?o.buy:false}; });
+  old.forEach(o=>{
+    if(o.buy&&!need.names.includes(o.n)){
+      const idx=S.list.items.findIndex(it=>it.pantry&&it.n===o.n&&!it.done);
+      if(idx>=0){ S.list.items.splice(idx,1); removed++; }
+    }
+  });
+  S.list.riceUsed=need.rice;
+  if(!need.rice&&S.list.riceBuy){
+    const idx=S.list.items.findIndex(it=>it.pantry&&it.n==="米"&&!it.done);
+    if(idx>=0){ S.list.items.splice(idx,1); removed++; }
+    S.list.riceBuy=false;
+  }
   return {added, removed, updated};
+}
+/* 常備品の「買う」切替（再タップで取り消し） */
+function togPantry(idx){
+  const p=S.list.pantry[idx];
+  if(!p.buy){
+    p.buy=true;
+    const d=PANTRY[p.n]||{q:1,u:"個"};
+    S.list.items.push({n:p.n, q:d.q, u:d.u, stock:false, done:false, store:S.storeMap[p.n]||"", pantry:true});
+    flash(p.n+" "+fmtQ(d.q)+d.u+" をリストに追加");
+  } else {
+    p.buy=false;
+    const i=S.list.items.findIndex(it=>it.pantry&&it.n===p.n);
+    if(i>=0) S.list.items.splice(i,1);
+  }
+  save(); render();
+}
+function togRice(){
+  if(!S.list.riceBuy){
+    S.list.riceBuy=true;
+    S.list.items.push({n:"米", q:1, u:"袋", stock:false, done:false, store:S.storeMap["米"]||"", pantry:true});
+    flash("米 1袋 をリストに追加");
+  } else {
+    S.list.riceBuy=false;
+    const i=S.list.items.findIndex(it=>it.pantry&&it.n==="米");
+    if(i>=0) S.list.items.splice(i,1);
+  }
+  save(); render();
 }
 /* ゼロから作り直し（チェックも消える） */
 function rebuildList(){
   if(!confirm("リストをゼロから作り直しますか？（購入済みチェック・在庫チェックも消えます）")) return;
-  S.list={items:aggregate(), at:Date.now()};
+  S.list=newList();
   shopFilter="all"; save(); render(); flash("作り直しました");
 }
 
@@ -667,6 +733,7 @@ function aggregate(){
     const d=dish(id); if(!d) return;
     const f=S.family/(d.sv||3);
     d.ing.forEach(g=>{
+      if(g.n==="米"||PANTRY[g.n]) return; /* 米と常備品はリストに出さない（下部の確認コーナーへ） */
       const k=g.n+"|"+g.u;
       const q=typeof g.q==="number"?g.q*f:g.q;
       if(map.has(k)){ const m=map.get(k); if(typeof q==="number"&&typeof m.q==="number") m.q+=q; }
@@ -721,6 +788,21 @@ function rShop(){
       groups[k].forEach(i=>{ h+=itemRow(i,true); });
       h+='</div>';
     });
+    const pn=S.list.pantry||[];
+    if(pn.length||S.list.riceUsed){
+      h+='<div class="kindhead">調味料・常備品（家にあるか確認）</div><div class="card">';
+      if(pn.length){
+        h+='<div class="goodsgrid">';
+        pn.forEach((p,idx)=>{
+          h+=`<button class="gbtn ${p.buy?"sel":""}" onclick="togPantry(${idx})">${esc(p.n)}${p.buy?'<span class="gchk">✓</span>':''}</button>`;
+        });
+        h+='</div>';
+      }
+      if(S.list.riceUsed){
+        h+=`<div style="display:flex;align-items:center;gap:10px;margin-top:${pn.length?"10px":"0"};font-size:13px;color:var(--sub)">除外中：<b style="color:var(--ink)">米</b><button class="btn small ${S.list.riceBuy?"":"sub"}" onclick="togRice()">${S.list.riceBuy?"今週は買う ✓":"今週は買う"}</button></div>`;
+      }
+      h+='<p class="note" style="margin-bottom:0">今週の献立で使うものだけ表示。タップすると「1本・1袋」として上のリストに入ります。もう一度押すと取り消し。</p></div>';
+    }
     h+='<p class="note">チェックすると、店に関係なく購入済みになります。「在庫あり」にすると買うものから外れます。</p>';
     h+='<button class="btn sub wide" onclick="addManual()">＋ リストに直接追加</button>';
     h+='<div class="ctalink small" onclick="rebuildList()">リストをゼロから作り直す</div>';
