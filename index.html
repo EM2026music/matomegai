@@ -137,7 +137,17 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .mhead b{font-size:16px;}
 .backbtn{border:none; background:#f4ece0; color:var(--ink); font-size:19px; width:40px; height:40px; border-radius:12px; cursor:pointer; flex-shrink:0;}
 .selbox{background:#eef7ef; border:1px solid #cfe6d3; border-radius:12px; padding:10px; margin-bottom:12px;}
-.selbox .selttl{font-size:12px; color:var(--green); font-weight:bold; margin-bottom:7px;}
+.selbox .selttl{font-size:12px; color:var(--green); font-weight:bold; margin-bottom:8px;}
+.selrows{display:flex; flex-direction:column; gap:8px;}
+.selbig{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #cfe6d3; border-radius:12px; padding:12px 12px;}
+.selbig .draghandle{color:#9cc7a3; padding:6px 4px 6px 0;}
+.sbmain{flex:1; min-width:0; cursor:pointer;}
+.sbname{font-size:17px; font-weight:bold; color:#2f7d3a; line-height:1.25;}
+.sbig{font-size:12px; color:var(--sub); margin-top:3px;}
+.sbx{color:#c2ddc6; font-size:22px; font-weight:bold; cursor:pointer; padding:2px 4px; flex-shrink:0;}
+.sdrow{display:flex; justify-content:space-between; padding:6px 2px; border-bottom:1px solid var(--line); font-size:14px;}
+.sdrow:last-child{border-bottom:none;}
+.sdq{color:var(--sub); font-size:13px;}
 .selchips{display:flex; flex-wrap:wrap; gap:7px;}
 .chip{background:var(--green); border:none; color:#fff; border-radius:16px; padding:7px 11px; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:7px;}
 .chip .x{color:#fff; opacity:.85; font-weight:bold; cursor:pointer; padding:0 2px 0 3px; border-left:1px solid rgba(255,255,255,.4);}
@@ -460,7 +470,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0720-6";
+const APP_VERSION="0720-7";
 let S=null;
 function newState(){
   return {
@@ -746,16 +756,31 @@ function rebuildList(){
 }
 
 /* ===== 献立ピッカー（日ごと） ===== */
-let pickDay=0, pickSearch="", pickCat="";
-function openDay(d){ pickDay=d; pickSearch=""; pickCat=""; showModal(); renderPicker(); }
+let pickDay=0, pickSearch="", pickCat="", pickDetail="";
+function openDay(d){ pickDay=d; pickSearch=""; pickCat=""; pickDetail=""; showModal(); renderPicker(); }
+function togSelDetail(id){ pickDetail=(pickDetail===id?"":id); renderPicker(); }
 function renderPicker(){
   const dt=weekDates()[pickDay];
   let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b></div>`;
   const wk=curWeek();
   if(wk[pickDay].length){
-    h+='<div class="selbox"><div class="selttl">✓ この日に選んだ献立（'+wk[pickDay].length+'品）</div><div class="selchips">';
-    wk[pickDay].forEach((id,j)=>{ const ds=dish(id); if(ds) h+=`<span class="chip" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">⠿</span>${esc(ds.name)}<span class="x" onclick="rmPick(${j})">×</span></span>`; });
+    h+='<div class="selbox"><div class="selttl">✓ この日の献立（'+wk[pickDay].length+'品）</div><div class="selrows">';
+    wk[pickDay].forEach((id,j)=>{
+      const ds=dish(id); if(!ds) return;
+      const ig=ds.ing.slice(0,4).map(x=>x.n).join("・");
+      h+=`<div class="selbig" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">⠿</span><div class="sbmain" onclick="togSelDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span></div>`;
+    });
     h+='</div></div>';
+    if(pickDetail){
+      const dd=dish(pickDetail);
+      if(dd&&wk[pickDay].includes(pickDetail)){
+        h+=`<div class="card" style="margin-top:-2px"><div class="kindhead" style="margin-top:0">${esc(dd.name)}の材料（${dd.sv||3}人分の目安）</div>`;
+        dd.ing.forEach(g=>{ h+=`<div class="sdrow"><span>${esc(g.n)}</span><span class="sdq">${fmtQ(g.q)}${esc(g.u)}</span></div>`; });
+        if(dd.memo) h+=`<p class="note">📝 ${esc(dd.memo)}</p>`;
+        if(dd.url&&/^https?:\/\//.test(dd.url)) h+=`<a href="${esc(dd.url)}" target="_blank" rel="noopener" class="linkbtn" style="display:inline-block;margin-top:6px">🔗 レシピを開く</a>`;
+        h+=`<div class="ctalink small" onclick="openEditor('${pickDetail}')">この献立を編集</div></div>`;
+      }
+    }
   }
   h+=`<input type="text" class="search" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
   h+='<div class="catbar">';
@@ -775,9 +800,9 @@ function renderPicker(){
     h+=`<div class="pickrow ${sel?"sel":""}" onclick="pickAdd('${d.id}')"><div><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div><span class="paddbtn ${sel?"on":""}">${sel?"✓"+(cnt>1?cnt:""):"＋"}</span></div>`;
   });
   document.getElementById("modal").innerHTML=h;
-  enableSort(document.querySelector("#modal .selchips"), commitWeekOrder, true);
+  enableSort(document.querySelector("#modal .selrows"), commitWeekOrder, false);
 }
-function rmPick(j){ curWeek(true)[pickDay].splice(j,1); save(); renderPicker(); }
+function rmPick(j){ curWeek(true)[pickDay].splice(j,1); if(!curWeek()[pickDay].length) pickDetail=""; save(); renderPicker(); }
 function pickAdd(id){
   curWeek(true)[pickDay].push(id);
   S.recent=[id,...S.recent.filter(x=>x!==id)].slice(0,10);
