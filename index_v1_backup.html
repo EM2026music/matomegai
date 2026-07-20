@@ -6,139 +6,100 @@
 <title>まとめ買いリスト</title>
 <style>
 :root{
-  --or:#e8873c; --or-d:#c96f28; --or-bg:#fdf1e5;
-  --bg:#faf4ec; --card:#fff; --ink:#3a3228; --sub:#9a8d7c;
-  --line:#f0e5d6; --green:#5ba463; --danger:#d9534f;
+  --bg:#faf7f2; --card:#ffffff; --ink:#333; --sub:#888;
+  --main:#e8873c; --main-d:#c96f28; --green:#6aa84f; --line:#eee2d5;
+  --danger:#d9534f;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
-body{margin:0; font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; background:var(--bg); color:var(--ink); padding-bottom:88px;}
-main{max-width:640px; margin:0 auto; padding:18px 14px 10px;}
-h2{font-size:15px; margin:14px 2px 8px; color:var(--or-d);}
-/* ページ見出し */
-.pagehead{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;}
-.ptitle{font-size:22px; font-weight:800;}
-.pill{border:1.5px solid #e8ddcb; background:#fff; border-radius:12px; padding:8px 12px; font-size:13px; font-weight:bold; color:var(--ink); cursor:pointer;}
-.summary{font-size:14px; margin:0 2px 12px;}
-.summary b{font-size:16px;}
-/* 献立表 */
-.daylist{background:var(--card); border-radius:18px; overflow:hidden; box-shadow:0 1px 5px rgba(120,90,50,.07);}
-.dayrow{display:flex; align-items:center; gap:12px; padding:13px 14px; border-bottom:1px solid var(--line); cursor:pointer;}
-.dayrow:last-child{border-bottom:none;}
-.dcol{width:46px; text-align:center; border-right:2px solid var(--line); padding-right:10px; flex-shrink:0;}
-.ddate{font-size:12px; color:var(--sub);}
-.dw{font-size:18px; font-weight:800;}
-.dayrow.sat .dw{color:#4a7ab5;}
-.dayrow.sun .dw{color:#c05555;}
-.dayrow.today .ddate,.dayrow.today .dw{color:var(--or-d);}
-.dmain{flex:1; min-width:0;}
-.dtitle{font-size:16px; font-weight:800;}
-.dsub{font-size:13px; color:var(--sub); margin-top:2px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-.dempty{color:#c2b6a2; font-size:15px;}
-.chev{color:#d5c8b2; font-size:20px;}
-.dplus{width:36px; height:36px; border-radius:50%; background:#f4ece0; color:#8a7d69; font-size:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
-/* 大ボタン */
-.cta{display:flex; align-items:center; justify-content:center; gap:10px; width:100%; border:none; background:var(--or); color:#fff; border-radius:16px; padding:16px; font-size:16px; font-weight:800; margin-top:14px; cursor:pointer; box-shadow:0 3px 10px rgba(232,135,60,.3);}
-.ctalink{text-align:center; padding:12px; font-size:14px; cursor:pointer;}
-.ctalink.small{font-size:12px; color:var(--sub); padding:5px;}
-/* 共通 */
-.card{background:var(--card); border-radius:16px; padding:12px; margin-bottom:10px; box-shadow:0 1px 5px rgba(120,90,50,.06);}
-.listcard{padding:2px 12px;}
-.btn{display:inline-block; border:none; border-radius:12px; padding:10px 16px; font-size:14px; cursor:pointer; background:var(--or); color:#fff; font-weight:bold;}
-.btn.sub{background:#fff; color:var(--or-d); border:1.5px solid var(--or);}
-.btn.gray{background:#f0e9dd; color:#8a7d69; font-weight:normal;}
+body{margin:0; font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; background:var(--bg); color:var(--ink); padding-bottom:70px;}
+header{position:sticky; top:0; z-index:10; background:var(--main); color:#fff; padding:12px 16px; font-size:18px; font-weight:bold; box-shadow:0 2px 6px rgba(0,0,0,.12);}
+main{max-width:640px; margin:0 auto; padding:12px;}
+nav{position:fixed; bottom:0; left:0; right:0; z-index:10; display:flex; background:#fff; border-top:1px solid var(--line); box-shadow:0 -2px 8px rgba(0,0,0,.06);}
+nav button{flex:1; border:none; background:none; padding:8px 0 10px; font-size:11px; color:var(--sub); cursor:pointer;}
+nav button .ic{display:block; font-size:20px; margin-bottom:2px;}
+nav button.on{color:var(--main); font-weight:bold;}
+h2{font-size:15px; margin:14px 2px 8px; color:var(--main-d);}
+.card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; margin-bottom:10px;}
+.btn{display:inline-block; border:none; border-radius:10px; padding:10px 16px; font-size:14px; cursor:pointer; background:var(--main); color:#fff; font-weight:bold;}
+.btn.sub{background:#fff; color:var(--main-d); border:1.5px solid var(--main);}
+.btn.gray{background:#f0ebe3; color:#777; font-weight:normal;}
 .btn.danger{background:#fff; color:var(--danger); border:1.5px solid var(--danger);}
-.btn.small{padding:6px 10px; font-size:12px; border-radius:9px;}
-.btn.wide{display:block; width:100%; text-align:center; margin-top:10px;}
-input[type=text],input[type=number],select{font-size:15px; padding:8px; border:1.5px solid #e0d5c2; border-radius:10px; background:#fff; color:var(--ink);}
-input:focus,select:focus{outline:2px solid var(--or);}
-.search{width:100%; padding:11px 14px; border-radius:12px; margin-bottom:10px;}
-.catbar{display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:4px;}
-.fchip{flex-shrink:0; border:1.5px solid #e8ddcb; background:#fff; color:#6f6354; border-radius:20px; padding:7px 13px; font-size:13px; cursor:pointer;}
-.fchip.on{background:var(--or); border-color:var(--or); color:#fff; font-weight:bold;}
-.kindhead{font-size:13px; font-weight:800; color:#7d6f5c; margin:14px 2px 7px;}
-.note{font-size:12px; color:var(--sub); margin:6px 2px;}
-.row2{display:flex; gap:8px; margin-top:10px;}
-.row2 .btn{flex:1; text-align:center;}
+.btn.small{padding:6px 10px; font-size:12px; border-radius:8px;}
+.btn.wide{display:block; width:100%; text-align:center;}
+input[type=text],input[type=number],select{font-size:15px; padding:8px; border:1px solid #ddd; border-radius:8px; background:#fff; color:var(--ink);}
+input:focus,select:focus{outline:2px solid var(--main);}
+.search{width:100%; margin-bottom:8px;}
+/* 献立表(週) */
+.day{display:flex; align-items:flex-start; gap:8px; padding:9px 0; border-bottom:1px dashed var(--line);}
+.day:last-child{border-bottom:none;}
+.day .dname{width:34px; height:34px; border-radius:50%; background:#f6ede1; color:var(--main-d); font-weight:bold; display:flex; align-items:center; justify-content:center; flex-shrink:0; font-size:14px;}
+.day.sat .dname{background:#e3edf7; color:#4a7ab5;}
+.day.sun .dname{background:#f9e3e3; color:#c05555;}
+.day .chips{flex:1; display:flex; flex-wrap:wrap; gap:6px; align-items:center; min-height:34px;}
+.chip{background:#fdf3e7; border:1px solid #f0d9bd; border-radius:16px; padding:5px 10px; font-size:13px; display:inline-flex; align-items:center; gap:6px;}
+.chip .x{color:#c9a; cursor:pointer; font-weight:bold; padding:0 2px;}
+.addbtn{width:34px; height:34px; border-radius:50%; border:1.5px dashed var(--main); background:none; color:var(--main); font-size:18px; cursor:pointer; flex-shrink:0;}
 /* 献立一覧 */
-.dishrow{display:flex; justify-content:space-between; align-items:center; padding:12px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
+.catbar{display:flex; gap:6px; overflow-x:auto; padding-bottom:6px; margin-bottom:6px;}
+.catbar .btn{flex-shrink:0;}
+.dishrow{display:flex; justify-content:space-between; align-items:center; padding:10px 4px; border-bottom:1px solid var(--line); cursor:pointer;}
 .dishrow:last-child{border-bottom:none;}
-.nm{font-size:15px; font-weight:bold;}
-.ings{font-size:12px; color:var(--sub); margin-top:2px;}
-.arrow{color:#d5c8b2; font-size:18px;}
+.dishrow .nm{font-size:14px;}
+.dishrow .ings{font-size:11px; color:var(--sub); margin-top:2px;}
+.dishrow .arrow{color:#ccb; font-size:16px;}
 /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
-.gbtn{border:1.5px solid #eadfce; background:#fff; border-radius:12px; padding:10px 12px; font-size:13px; cursor:pointer; color:#5c5245;}
-.gbtn.sel{background:var(--or-bg); border-color:var(--or); color:var(--or-d); font-weight:bold;}
-.gchk{display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; margin-left:6px; border-radius:50%; background:var(--or); color:#fff; font-size:11px;}
+.gbtn{border:1.5px solid #ddd; background:#fff; border-radius:20px; padding:9px 14px; font-size:14px; cursor:pointer; color:#555;}
+.gbtn.sel{background:var(--green); border-color:var(--green); color:#fff; font-weight:bold;}
 .gbtn .del{margin-left:6px; color:var(--danger); font-weight:bold;}
 /* 買い物リスト */
-.seg{display:flex; background:#fff; border:1.5px solid #e8ddcb; border-radius:12px; padding:4px; margin-bottom:12px;}
-.seg button{flex:1; border:none; background:none; border-radius:9px; padding:9px 0; font-size:13px; font-weight:bold; color:#8d8172; cursor:pointer;}
-.seg button.on{background:var(--or); color:#fff;}
-.pmeta{font-size:13px; color:var(--sub); margin:2px 2px 6px;}
-.pmeta b{color:var(--ink); font-size:15px;}
-.pbar{height:7px; border-radius:4px; background:#f0e4d3; margin:2px 0 8px; overflow:hidden;}
-.pfill{height:100%; background:var(--or); border-radius:4px;}
-.item{display:flex; align-items:center; gap:9px; padding:10px 2px; border-bottom:1px solid var(--line);}
+.item{display:flex; align-items:center; gap:8px; padding:9px 2px; border-bottom:1px solid var(--line);}
 .item:last-child{border-bottom:none;}
-.ckb{width:26px; height:26px; border:2px solid #ddd0bb; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; cursor:pointer;}
-.item.done .ckb{background:var(--green); border-color:var(--green);}
-.info{flex:1; min-width:0;}
-.inm{font-size:15px; font-weight:600;}
-.iq{font-size:13px; color:var(--sub); flex-shrink:0;}
-.item.stocked .inm,.item.stocked .iq,.item.done .inm,.item.done .iq{color:#c9bda9; text-decoration:line-through;}
-.storechip{border:none; border-radius:9px; padding:6px 8px; font-size:11px; font-weight:bold; color:#fff; flex-shrink:0; min-width:46px; cursor:pointer;}
-.stockbtn{border:1.5px solid #eadfce; background:#fff; border-radius:10px; padding:6px 8px; font-size:11px; color:#b3a692; cursor:pointer; flex-shrink:0;}
-.stockbtn.on{background:var(--or-bg); border-color:var(--or); color:var(--or-d); font-weight:bold;}
-.linkbtn{font-size:13px; font-weight:bold; color:var(--or-d); cursor:pointer;}
-.storebtn{border:1.5px solid var(--or); background:#fff; color:var(--or-d); border-radius:10px; padding:6px 9px; font-size:12px; font-weight:bold; flex-shrink:0; cursor:pointer; white-space:nowrap;}
-.storebtn.unset{border-color:#d8ccb8; color:#a2967f;}
-.radiorow{display:flex; align-items:center; gap:12px; padding:11px 6px; font-size:15px; cursor:pointer; border-bottom:1px solid var(--line);}
-.radiorow:last-child{border-bottom:none;}
-.radio{width:20px; height:20px; border:2px solid #ddd0bb; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--or); flex-shrink:0;}
-.radiorow.on .radio{border-color:var(--or);}
-.item select{font-size:13px; padding:6px; max-width:150px;}
+.item .info{flex:1; min-width:0;}
+.item .inm{font-size:14px;}
+.item .iq{font-size:12px; color:var(--sub);}
+.item.stocked .inm,.item.stocked .iq{text-decoration:line-through; color:#bbb;}
+.item.done .inm,.item.done .iq{text-decoration:line-through; color:#bbb;}
+.storechip{border:none; border-radius:8px; padding:6px 9px; font-size:12px; cursor:pointer; font-weight:bold; color:#fff; flex-shrink:0; min-width:52px;}
+.stockbtn{border:1px solid #ddd; background:#fff; border-radius:8px; padding:6px 8px; font-size:11px; color:#999; cursor:pointer; flex-shrink:0;}
+.stockbtn.on{background:#8a8a8a; color:#fff; border-color:#8a8a8a;}
+.checkbox{width:24px; height:24px; border:2px solid #ccc; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:15px; cursor:pointer;}
+.item.done .checkbox{background:var(--green); border-color:var(--green);}
+.storehead{font-size:14px; font-weight:bold; color:#fff; padding:6px 12px; border-radius:8px; margin:14px 0 4px; display:inline-block;}
+.note{font-size:12px; color:var(--sub); margin:6px 2px;}
 /* モーダル */
-#overlay{position:fixed; inset:0; background:rgba(60,45,25,.45); z-index:20; display:none; align-items:flex-end; justify-content:center;}
+#overlay{position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:20; display:none; align-items:flex-end; justify-content:center;}
 #overlay.show{display:flex;}
-#modal{background:#fff; width:100%; max-width:640px; max-height:88vh; border-radius:22px 22px 0 0; padding:18px 16px; overflow-y:auto;}
+#modal{background:#fff; width:100%; max-width:640px; max-height:85vh; border-radius:16px 16px 0 0; padding:16px; overflow-y:auto;}
 .mhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
 .mhead b{font-size:16px;}
-.selchips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
-.chip{background:var(--or-bg); border:1px solid #f2d9bd; border-radius:16px; padding:6px 10px; font-size:13px; display:inline-flex; align-items:center; gap:6px;}
-.chip .x{color:#cf9a63; font-weight:bold; cursor:pointer; padding:0 2px;}
-.pickrow{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
-.pnm{font-size:15px; font-weight:600;}
-.pig{font-size:12px; color:var(--sub); margin-top:2px;}
-.paddbtn{width:30px; height:30px; border-radius:50%; background:var(--or); color:#fff; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
 .ingrow{display:flex; gap:6px; margin-bottom:6px;}
 .ingrow input.n{flex:1; min-width:0;}
 .ingrow input.q{width:64px;}
 .ingrow input.u{width:64px;}
 .ingrow .rm{border:none; background:none; color:var(--danger); font-size:18px; cursor:pointer; padding:0 4px;}
-/* 下タブ */
-nav{position:fixed; bottom:0; left:0; right:0; z-index:10; display:flex; background:#fff; border-top:1px solid var(--line); padding:6px 8px 10px;}
-nav button{flex:1; border:none; background:none; font-size:11px; color:#a2967f; cursor:pointer; font-weight:600;}
-nav button .ic{display:block; font-size:20px; margin:0 auto 3px; padding:3px 0; border-radius:12px; width:54px;}
-nav button.on{color:var(--or-d); font-weight:bold;}
-nav button.on .ic{background:#f7e7d4;}
-.flash{position:fixed; bottom:86px; left:50%; transform:translateX(-50%); background:#3a3228; color:#fff; padding:8px 18px; border-radius:20px; font-size:13px; z-index:30; opacity:0; transition:opacity .3s; pointer-events:none; max-width:90%; text-align:center;}
-.flash.show{opacity:.93;}
+.pickrow{padding:11px 4px; border-bottom:1px solid var(--line); font-size:14px; cursor:pointer; display:flex; justify-content:space-between;}
+.pickrow .added{color:var(--green); font-weight:bold;}
+.flash{position:fixed; bottom:80px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:8px 18px; border-radius:20px; font-size:13px; z-index:30; opacity:0; transition:opacity .3s; pointer-events:none;}
+.flash.show{opacity:.92;}
+.row2{display:flex; gap:8px; margin-top:8px;}
+.row2 .btn{flex:1; text-align:center;}
 </style>
 </head>
 <body>
+<header>🛒 まとめ買いリスト</header>
 <main id="view"></main>
 <nav>
-  <button id="nav-week" onclick="go('week')"><span class="ic">🗓️</span>献立表</button>
-  <button id="nav-dish" onclick="go('dish')"><span class="ic">🍲</span>献立</button>
-  <button id="nav-goods" onclick="go('goods')"><span class="ic">🧴</span>日用品</button>
+  <button id="nav-week" onclick="go('week')"><span class="ic">📅</span>献立表</button>
+  <button id="nav-dish" onclick="go('dish')"><span class="ic">🍳</span>献立</button>
+  <button id="nav-goods" onclick="go('goods')"><span class="ic">🧻</span>日用品</button>
   <button id="nav-shop" onclick="go('shop')"><span class="ic">🛒</span>買い物</button>
 </nav>
 <div id="overlay" onclick="if(event.target===this)closeModal()"><div id="modal"></div></div>
 <div id="flash" class="flash"></div>
 
 <script>
-/* ===== 献立テンプレ（初期データ・基準3人分の目安） =====
+/* ===== 献立テンプレ（初期データ・約3〜4人分の目安） =====
    [カテゴリ, 料理名, [[材料,数量,単位],...]] */
 const SEED=[
 /* --- 主食（ごはん・その他） --- */
@@ -343,24 +304,6 @@ const CATS=["主食","麺","肉","魚","おかず","副菜","汁物"];
 const GOODS_SEED=["トイレットペーパー","ボックスティッシュ","キッチンペーパー","ラップ","アルミホイル","ゴミ袋","洗濯洗剤","柔軟剤","食器用洗剤","スポンジ","ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ","マスク","電池","卵","牛乳","食パン","米","サラダ油","しょうゆ","みそ","砂糖","塩"];
 const DAYS=["月","火","水","木","金","土","日"];
 const STORE_COLORS=["#e05a5a","#4a7ab5","#6aa84f","#b58a4a","#8a5ab5","#4ab5a8","#777777"];
-const GOODS_CATS={
-  "キッチン":["キッチンペーパー","ラップ","アルミホイル","ゴミ袋","食器用洗剤","スポンジ"],
-  "洗面・お風呂":["トイレットペーパー","ボックスティッシュ","洗濯洗剤","柔軟剤","ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ"],
-  "食品・調味料":["卵","牛乳","食パン","米","サラダ油","しょうゆ","みそ","砂糖","塩"]
-};
-const KW_OTHER=["牛乳","の素","ルー","スープ","冷凍","コロッケ","たれ","つゆ","ドレッシング"];
-const KW_VEG=["じゃがいも","にんじん","玉ねぎ","キャベツ","もやし","ほうれん草","ねぎ","きゅうり","トマト","レタス","白菜","ピーマン","なす","かぼちゃ","大根","ごぼう","れんこん","小松菜","にら","しそ","春菊","せり","三つ葉","ブロッコリー","セロリ","いんげん","里芋","さつまいも","マッシュルーム","舞茸","しいたけ","きのこ","なめこ","たけのこ","レモン","にんにく","しょうが","きくらげ"];
-const KW_MEAT=["肉","鶏","豚","牛","ひき","ベーコン","ウインナー","ハム","チャーシュー","鮭","シャケ","さば","サバ","あじ","アジ","いか","イカ","えび","エビ","ぶり","ブリ","かつお","まぐろ","ししゃも","さんま","ほっけ","カジキ","さわら","白身魚","きびなご","レバー","ささみ","手羽","たらこ","いくら","じゃこ","かまぼこ","ちくわ","シーフード","あさり","魚"];
-function kindOf(n){
-  if(KW_OTHER.some(k=>n.includes(k))) return "その他";
-  if(KW_VEG.some(k=>n.includes(k))) return "野菜";
-  if(KW_MEAT.some(k=>n.includes(k))) return "肉・魚";
-  return "その他";
-}
-function goodsCat(g){
-  for(const c in GOODS_CATS){ if(GOODS_CATS[c].includes(g)) return c; }
-  return "その他";
-}
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
@@ -375,7 +318,6 @@ function newState(){
     stores:["ツルハ","ビッグ","その他"],
     storeMap:{},
     list:null,
-    recent:[],
     nextId:1
   };
 }
@@ -383,7 +325,6 @@ function load(){
   try{const j=localStorage.getItem(KEY); if(j) S=JSON.parse(j);}catch(e){}
   if(!S||!S.dishes) S=newState();
   if(!S.family) S.family=3;
-  if(!S.recent) S.recent=[];
   S.dishes.forEach(d=>{ if(!d.sv) d.sv=3; });
 }
 function save(){ localStorage.setItem(KEY,JSON.stringify(S)); }
@@ -395,16 +336,12 @@ function fmtQ(q){
 }
 function flash(msg){
   const f=document.getElementById("flash"); f.textContent=msg; f.classList.add("show");
-  clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove("show"),1400);
+  clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove("show"),1200);
 }
 function dish(id){ return S.dishes.find(d=>d.id===id); }
 function storeColor(name){
   const i=S.stores.indexOf(name);
-  return i<0 ? "#b9ad99" : STORE_COLORS[i%STORE_COLORS.length];
-}
-function weekDates(){
-  const t=new Date(); const off=(t.getDay()+6)%7;
-  return DAYS.map((_,i)=>{ const d=new Date(t); d.setDate(t.getDate()-off+i); return d; });
+  return i<0 ? "#aaaaaa" : STORE_COLORS[i%STORE_COLORS.length];
 }
 
 /* ===== タブ切り替え ===== */
@@ -422,116 +359,75 @@ function render(){
 
 /* ===== 献立表（週） ===== */
 function rWeek(){
-  const dates=weekDates(); const todayStr=new Date().toDateString();
-  const decided=S.week.filter(d=>d.length).length;
-  const nItems=aggregate().length;
-  let h='<div class="pagehead"><div class="ptitle">今週の献立</div>';
-  h+=`<button class="pill" onclick="openFamily()">👥 ${S.family}人分 ▾</button></div>`;
-  h+=`<div class="summary"><b>${decided}日</b>決定・未定<b>${7-decided}日</b>・買うもの<b>${nItems}品</b></div>`;
-  h+='<div class="daylist">';
-  DAYS.forEach((w,i)=>{
-    const dt=dates[i]; const isT=dt.toDateString()===todayStr;
-    const cls=(i===5?"sat ":i===6?"sun ":"")+(isT?"today":"");
-    const ds=S.week[i].map(id=>dish(id)).filter(Boolean);
-    h+=`<div class="dayrow ${cls}" onclick="openDay(${i})">`;
-    h+=`<div class="dcol"><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
-    if(ds.length){
-      h+=`<div class="dmain"><div class="dtitle">${esc(ds[0].name)}</div>`;
-      if(ds.length>1) h+=`<div class="dsub">${esc(ds.slice(1).map(x=>x.name).join("・"))}</div>`;
-      h+=`</div><span class="chev">›</span>`;
-    } else {
-      h+=`<div class="dmain dempty">献立を追加</div><span class="dplus">＋</span>`;
-    }
-    h+='</div>';
+  let h='<h2>家族の人数</h2>';
+  h+='<div class="card" style="display:flex;align-items:center;gap:12px;">';
+  h+='<button class="btn sub" style="width:44px;padding:8px 0;text-align:center;" onclick="setFamily(-1)">−</button>';
+  h+=`<b style="font-size:18px;">${S.family}人</b>`;
+  h+='<button class="btn sub" style="width:44px;padding:8px 0;text-align:center;" onclick="setFamily(1)">＋</button>';
+  h+='<span class="note" style="margin:0;">テンプレの基準人数から自動で分量を換算します</span></div>';
+  h+='<h2>今週の献立表</h2><div class="card">';
+  DAYS.forEach((d,i)=>{
+    const cls=i===5?"sat":i===6?"sun":"";
+    h+=`<div class="day ${cls}"><div class="dname">${d}</div><div class="chips">`;
+    S.week[i].forEach((id,j)=>{
+      const ds=dish(id); if(!ds) return;
+      h+=`<span class="chip">${esc(ds.name)}<span class="x" onclick="rmWeek(${i},${j})">×</span></span>`;
+    });
+    h+=`</div><button class="addbtn" onclick="openPicker(${i})">＋</button></div>`;
   });
   h+='</div>';
-  h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
-  h+='<div class="ctalink" onclick="go(\'shop\')">在庫を確認する ›</div>';
-  h+='<div class="ctalink small" onclick="clearWeek()">献立表をクリア</div>';
+  h+='<div class="row2"><button class="btn sub" onclick="clearWeek()">献立表をクリア</button><button class="btn" onclick="go(\'shop\')">🛒 買い物リストへ</button></div>';
+  h+='<p class="note">＋を押して献立を選んでいくと、材料を自動で合算して買い物リストを作れます。</p>';
   return h;
 }
-function setFamily(d){ S.family=Math.min(12,Math.max(1,S.family+d)); save(); }
-function openFamily(){ showModal(); renderFamily(); }
-function renderFamily(){
-  let h='<div class="mhead"><b>家族の人数</b><button class="btn small gray" onclick="closeModal()">閉じる</button></div>';
-  h+='<div style="display:flex;align-items:center;justify-content:center;gap:26px;padding:10px 0 16px;">';
-  h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(-1);renderFamily()">−</button>';
-  h+=`<b style="font-size:26px">${S.family}人</b>`;
-  h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(1);renderFamily()">＋</button></div>';
-  h+='<p class="note" style="text-align:center">献立テンプレの基準人数から、この人数に分量を自動換算します</p>';
-  document.getElementById("modal").innerHTML=h;
-}
+function setFamily(d){ S.family=Math.min(12,Math.max(1,S.family+d)); save(); render(); }
+function rmWeek(d,j){ S.week[d].splice(j,1); save(); render(); }
 function clearWeek(){ if(confirm("今週の献立表をすべて消しますか？")){ S.week=[[],[],[],[],[],[],[]]; save(); render(); } }
-function makeListGo(){
-  const ag=aggregate();
-  if(!ag.length){ flash("先に献立か日用品を選んでね"); return; }
-  if(S.list&&S.list.items.length){
-    if(confirm("買い物リストを最新の献立で作り直しますか？（今のチェックは消えます）")) S.list={items:ag, at:Date.now()};
-  } else {
-    S.list={items:ag, at:Date.now()};
-  }
-  shopFilter="all"; save(); go('shop');
-}
 
-/* ===== 献立ピッカー（日ごと） ===== */
-let pickDay=0, pickSearch="", pickCat="おすすめ";
-function openDay(d){ pickDay=d; pickSearch=""; pickCat="おすすめ"; showModal(); renderPicker(); }
+/* 献立ピッカー */
+let pickDay=0, pickSearch="";
+function openPicker(d){ pickDay=d; pickSearch=""; showModal(); renderPicker(); }
 function renderPicker(){
-  const dt=weekDates()[pickDay];
-  let h=`<div class="mhead"><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b><button class="btn small gray" onclick="closeModal()">閉じる</button></div>`;
-  if(S.week[pickDay].length){
-    h+='<div class="selchips">';
-    S.week[pickDay].forEach((id,j)=>{ const ds=dish(id); if(ds) h+=`<span class="chip">${esc(ds.name)}<span class="x" onclick="rmPick(${j})">×</span></span>`; });
-    h+='</div>';
-  }
-  h+=`<input type="text" class="search" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
-  h+='<div class="catbar">';
-  ["おすすめ",...CATS].forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${c}';renderPicker()">${c}</button>`; });
-  h+='</div>';
+  let h=`<div class="mhead"><b>${DAYS[pickDay]}曜日に追加</b><button class="btn small gray" onclick="closeModal()">閉じる</button></div>`;
+  h+=`<input type="text" class="search" placeholder="料理名で検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
   const q=pickSearch.trim();
-  let list;
-  if(q) list=S.dishes.filter(d=>d.name.includes(q)||d.ing.some(i=>i.n.includes(q)));
-  else if(pickCat==="おすすめ"){ list=S.recent.map(id=>dish(id)).filter(Boolean); if(!list.length) list=S.dishes.slice(0,8); }
-  else list=S.dishes.filter(d=>d.cat===pickCat);
-  if(!list.length) h+='<p class="note">見つかりません</p>';
-  list.forEach(d=>{
-    const ig=d.ing.slice(0,3).map(x=>x.n).join("・");
-    h+=`<div class="pickrow" onclick="pickAdd('${d.id}')"><div><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div><span class="paddbtn">＋</span></div>`;
+  CATS.forEach(c=>{
+    const ds=S.dishes.filter(d=>d.cat===c&&(!q||d.name.includes(q)));
+    if(!ds.length) return;
+    h+=`<h2>${c}</h2>`;
+    ds.forEach(d=>{
+      const n=S.week[pickDay].filter(x=>x===d.id).length;
+      h+=`<div class="pickrow" onclick="pickAdd('${d.id}')"><span>${esc(d.name)}</span>${n?`<span class="added">✓${n>1?"×"+n:""}</span>`:""}</div>`;
+    });
   });
   document.getElementById("modal").innerHTML=h;
 }
-function rmPick(j){ S.week[pickDay].splice(j,1); save(); renderPicker(); }
-function pickAdd(id){
-  S.week[pickDay].push(id);
-  S.recent=[id,...S.recent.filter(x=>x!==id)].slice(0,10);
-  save(); flash(dish(id).name+" を追加"); renderPicker();
-}
+function pickAdd(id){ S.week[pickDay].push(id); save(); flash(dish(id).name+" を追加"); renderPicker(); }
 
 /* ===== 献立（テンプレ管理） ===== */
 function rDish(){
-  let h='<div class="pagehead"><div class="ptitle">献立</div></div>';
-  h+=`<input type="text" class="search" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;render()">`;
-  h+='<div class="catbar">';
-  h+=`<button class="fchip ${dishCat===""?"on":""}" onclick="dishCat='';render()">すべて</button>`;
-  CATS.forEach(c=>{ h+=`<button class="fchip ${dishCat===c?"on":""}" onclick="dishCat='${c}';render()">${c}</button>`; });
+  let h='<h2>献立テンプレ（タップで材料を編集）</h2>';
+  h+=`<input type="text" class="search" placeholder="料理名・材料名で検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;render()">`;
+  h+='<div class="catbar"><button class="btn small '+(dishCat===""?"":"gray")+'" onclick="dishCat=\'\';render()">全部</button>';
+  CATS.forEach(c=>{ h+=`<button class="btn small ${dishCat===c?"":"gray"}" onclick="dishCat='${c}';render()">${c}</button>`; });
   h+='</div>';
   const q=dishSearch.trim();
   const list=S.dishes.filter(d=>(!dishCat||d.cat===dishCat)&&(!q||d.name.includes(q)||d.ing.some(i=>i.n.includes(q))));
-  h+='<div class="card listcard">';
+  h+='<div class="card">';
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(d=>{
-    h+=`<div class="dishrow" onclick="openEditor('${d.id}')"><div><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="arrow">›</span></div>`;
+    h+=`<div class="dishrow" onclick="openEditor('${d.id}')"><div><div class="nm">${esc(d.name)}</div><div class="ings">${esc(d.ing.map(i=>i.n).join("・"))||"材料未設定"}</div></div><span class="arrow">›</span></div>`;
   });
   h+='</div>';
   h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい献立を作る</button>';
   h+='<div class="row2"><button class="btn sub small" onclick="exportData()">バックアップ保存</button><button class="btn sub small" onclick="document.getElementById(\'imp\').click()">読み込み</button><button class="btn danger small" onclick="resetAll()">初期化</button></div>';
   h+='<input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">';
-  h+='<p class="note">タップで材料・分量を編集。「コピーを作る」で食べ盛り版（増量版）も作れます。テンプレの分量は基準3人分の目安で、買い物リストでは「家族の人数」に合わせて自動換算します。</p>';
+  h+='<p class="note">「コピーを作る」で同じ料理の食べ盛り版（増量版）などが作れます。テンプレの分量は基準3人分の目安。買い物リストでは献立表タブの「家族の人数」に合わせて自動換算します。</p>';
   return h;
 }
 
 /* 献立エディタ */
-let editTarget=null;
+let editTarget=null; /* {id or null, name, cat, ing:[...]} */
 function openEditor(id){
   if(id){ const d=dish(id); editTarget={id:id, name:d.name, cat:d.cat, sv:d.sv||3, ing:d.ing.map(x=>({...x}))}; }
   else editTarget={id:null, name:"", cat:dishCat||"主食", sv:S.family||3, ing:[{n:"",q:"",u:""}]};
@@ -541,11 +437,11 @@ function renderEditor(){
   const t=editTarget;
   let h=`<div class="mhead"><b>${t.id?"献立を編集":"新しい献立"}</b><button class="btn small gray" onclick="closeModal()">閉じる</button></div>`;
   h+=`<div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" style="flex:1;min-width:0" placeholder="料理名" value="${esc(t.name)}" oninput="editTarget.name=this.value">`;
-  h+='<select onchange="editTarget.cat=this.value">';
+  h+=`<select onchange="editTarget.cat=this.value">`;
   CATS.forEach(c=>{ h+=`<option ${c===t.cat?"selected":""}>${c}</option>`; });
-  h+='</select></div>';
+  h+=`</select></div>`;
   h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;">下の分量は<input type="number" min="1" style="width:60px" value="${t.sv}" oninput="editTarget.sv=this.value">人分</div>`;
-  h+='<div style="font-size:12px;color:#9a8d7c;margin-bottom:4px;">材料　／　数量　／　単位（個・g・本など）</div>';
+  h+='<div style="font-size:12px;color:#888;margin-bottom:4px;">材料　／　数量　／　単位（個・g・本など）</div>';
   t.ing.forEach((g,i)=>{
     h+=`<div class="ingrow"><input class="n" type="text" placeholder="材料名" value="${esc(g.n)}" oninput="editTarget.ing[${i}].n=this.value">`;
     h+=`<input class="q" type="number" step="any" placeholder="数" value="${g.q}" oninput="editTarget.ing[${i}].q=this.value">`;
@@ -565,45 +461,36 @@ function saveDish(){
   const sv=Math.max(1,Number(t.sv)||3);
   if(t.id){ const d=dish(t.id); d.name=t.name.trim(); d.cat=t.cat; d.sv=sv; d.ing=cleanIng(); }
   else { S.dishes.push({id:"u"+(S.nextId++), name:t.name.trim(), cat:t.cat, sv:sv, ing:cleanIng()}); }
-  save(); closeModal(); flash("保存しました");
+  save(); closeModal(); render(); flash("保存しました");
 }
 function copyDish(){
   const t=editTarget;
   S.dishes.push({id:"u"+(S.nextId++), name:t.name.trim()+"（食べ盛り）", cat:t.cat, sv:Math.max(1,Number(t.sv)||3), ing:cleanIng()});
-  save(); closeModal(); flash("コピーを作りました。分量を調整してね");
+  save(); closeModal(); render(); flash("コピーを作りました。分量を調整してね");
 }
 function delDish(){
   if(!confirm("この献立を削除しますか？")) return;
   const id=editTarget.id;
   S.dishes=S.dishes.filter(d=>d.id!==id);
   S.week=S.week.map(day=>day.filter(x=>x!==id));
-  S.recent=S.recent.filter(x=>x!==id);
-  save(); closeModal();
+  save(); closeModal(); render();
 }
 
 /* ===== 日用品 ===== */
 let goodsEdit=false;
 function rGoods(){
-  let h='<div class="pagehead"><div class="ptitle">日用品</div>';
-  h+=`<button class="pill" onclick="goodsEdit=!goodsEdit;render()">${goodsEdit?"編集おわり":"ボタン整理"}</button></div>`;
-  h+=`<p class="note">${goodsEdit?"消したいボタンをタップしてください":"買うものを選んでください"}</p>`;
-  const secs={};
-  S.goods.forEach((g,i)=>{ const c=goodsCat(g); (secs[c]=secs[c]||[]).push([g,i]); });
-  ["キッチン","洗面・お風呂","食品・調味料","その他"].forEach(sec=>{
-    if(!secs[sec]) return;
-    h+=`<div class="kindhead">${sec}</div><div class="goodsgrid">`;
-    secs[sec].forEach(([g,i])=>{
-      const sel=S.goodsSel[g];
-      h+=`<button class="gbtn ${sel&&!goodsEdit?"sel":""}" onclick="${goodsEdit?`delGoods(${i})`:`togGoods('${esc(g)}')`}">${esc(g)}${sel&&!goodsEdit?'<span class="gchk">✓</span>':''}${goodsEdit?'<span class="del">✕</span>':''}</button>`;
-    });
-    h+='</div>';
+  let h='<h2>日用品・いつも買うもの</h2>';
+  h+='<p class="note">買いたいものをポンポン押して緑にする → 買い物リストに入ります。</p>';
+  h+='<div class="card"><div class="goodsgrid">';
+  S.goods.forEach((g,i)=>{
+    const sel=S.goodsSel[g];
+    h+=`<button class="gbtn ${sel?"sel":""}" onclick="${goodsEdit?`delGoods(${i})`:`togGoods('${esc(g)}')`}">${esc(g)}${goodsEdit?'<span class="del">✕</span>':''}</button>`;
   });
-  h+='<button class="btn sub wide" onclick="addGoods()">＋ ボタンを追加</button>';
+  h+='</div></div>';
+  h+='<div class="row2"><button class="btn sub" onclick="addGoods()">＋ ボタンを追加</button>';
+  h+=`<button class="btn ${goodsEdit?"":"gray"}" onclick="goodsEdit=!goodsEdit;render()">${goodsEdit?"編集おわり":"ボタンを整理"}</button></div>`;
   const n=Object.keys(S.goodsSel).filter(k=>S.goodsSel[k]).length;
-  if(n&&!goodsEdit){
-    h+=`<p class="note" style="text-align:center;color:var(--or-d);font-weight:bold;font-size:14px">${n}個 選択中</p>`;
-    h+='<button class="cta" onclick="addSelGoods()">買い物リストに追加</button>';
-  }
+  if(n) h+=`<p class="note">✅ ${n}個 選択中 → <b>買い物タブでリスト作成</b></p>`;
   return h;
 }
 function togGoods(g){ S.goodsSel[g]=!S.goodsSel[g]; save(); render(); }
@@ -613,20 +500,9 @@ function addGoods(){
   save(); render();
 }
 function delGoods(i){ const g=S.goods[i]; if(confirm(`「${g}」のボタンを消しますか？`)){ delete S.goodsSel[g]; S.goods.splice(i,1); save(); render(); } }
-function addSelGoods(){
-  if(!S.list) S.list={items:[], at:Date.now()};
-  let added=0;
-  Object.keys(S.goodsSel).forEach(g=>{
-    if(S.goodsSel[g]&&!S.list.items.some(it=>it.n===g)){
-      S.list.items.push({n:g, q:"", u:"", stock:false, done:false, store:S.storeMap[g]||"", daily:true});
-      added++;
-    }
-  });
-  save(); go('shop'); flash(added?added+"個をリストに追加しました":"もうリストに入っています");
-}
 
 /* ===== 買い物リスト ===== */
-let shopFilter="all";
+let shopMode=false; /* false=チェック編集 true=店ごと買い物モード */
 function aggregate(){
   const map=new Map();
   S.week.forEach(day=>day.forEach(id=>{
@@ -650,159 +526,98 @@ function roundQ(q,u){
   if(u==="g"||u==="ml") return Math.round(q/5)*5||Math.round(q)||q;
   return Math.round(q*4)/4;
 }
-function itemRow(i,withStock){
-  const it=S.list.items[i];
-  let r=`<div class="item ${it.done?"done":(it.stock&&withStock?"stocked":"")}">`;
-  r+=`<span class="ckb" onclick="togDone(${i})">${it.done?"✓":""}</span>`;
-  r+=`<div class="info"><div class="inm">${esc(it.n)}</div></div>`;
-  r+=`<span class="iq">${fmtQ(it.q)}${esc(it.u)}</span>`;
-  r+=`<button class="storebtn ${it.store?"":"unset"}" onclick="openStoreModal(${i})">${esc(it.store||"未定")} ▾</button>`;
-  if(withStock) r+=`<button class="stockbtn ${it.stock?"on":""}" onclick="togStock(${i})">在庫${it.stock?"あり":"？"}</button>`;
-  r+='</div>';
-  return r;
+function makeList(){
+  if(S.list&&S.list.items.length&&!confirm("今のリストを作り直しますか？（チェックは消えます）")) return;
+  S.list={items:aggregate(), at:Date.now()};
+  shopMode=false; save(); render();
+  flash("リストを作りました："+S.list.items.length+"品");
 }
 function rShop(){
-  let h='<div class="pagehead"><div class="ptitle">買い物リスト</div><span class="linkbtn" onclick="openStoreSettings()">購入先設定</span></div>';
+  let h='<h2>買い物リスト</h2>';
+  h+='<button class="btn wide" onclick="makeList()">📝 献立表＋日用品からリストを作る</button>';
   if(!S.list||!S.list.items.length){
-    h+='<div class="card" style="text-align:center;padding:26px 12px;"><p class="note" style="font-size:14px;margin:0">まだリストがありません。<br>献立表と日用品を選んで作りましょう。</p></div>';
-    h+='<button class="cta" onclick="makeListGo()">📝 献立表からリストを作る</button>';
+    h+='<p class="note">献立表と日用品を選んでからこのボタンを押してね。</p>';
+    h+=rStores();
     return h;
   }
   const items=S.list.items;
-  const buy=items.filter(x=>!x.stock);
-  const doneN=buy.filter(x=>x.done).length;
-  h+=`<div class="pmeta">購入済み <b>${doneN} / ${buy.length}</b></div>`;
-  h+=`<div class="pbar"><div class="pfill" style="width:${buy.length?Math.round(doneN/buy.length*100):0}%"></div></div>`;
-  h+='<div class="catbar">';
-  h+=`<button class="fchip ${shopFilter==="all"?"on":""}" onclick="shopFilter='all';render()">すべて</button>`;
-  S.stores.forEach(s=>{ h+=`<button class="fchip ${shopFilter===s?"on":""}" onclick="shopFilter='${esc(s)}';render()">${esc(s)}</button>`; });
-  h+=`<button class="fchip ${shopFilter==="未定"?"on":""}" onclick="shopFilter='未定';render()">未定</button>`;
-  h+='</div>';
-  if(shopFilter==="all"){
-    const groups={};
-    items.forEach((it,i)=>{ const k=it.daily?"日用品":kindOf(it.n); (groups[k]=groups[k]||[]).push(i); });
-    ["野菜","肉・魚","その他","日用品"].forEach(k=>{
-      if(!groups[k]) return;
-      h+=`<div class="kindhead">${k}</div><div class="card listcard">`;
-      groups[k].forEach(i=>{ h+=itemRow(i,true); });
+  h+=`<div class="row2"><button class="btn ${shopMode?"sub":""}" onclick="shopMode=false;render()">✔ 在庫チェック</button><button class="btn ${shopMode?"":"sub"}" onclick="shopMode=true;render()">🏪 店ごとに買い物</button></div>`;
+  if(!shopMode){
+    h+='<p class="note">家にあるものは「在庫あり」でグレーに。店ボタンを押すと行き先が切り替わります。</p>';
+    h+='<div class="card">';
+    items.forEach((it,i)=>{
+      const st=it.store||"未定";
+      h+=`<div class="item ${it.stock?"stocked":""}">`;
+      h+=`<button class="storechip" style="background:${it.store?storeColor(it.store):"#aaa"}" onclick="cycStore(${i})">${esc(st)}</button>`;
+      h+=`<div class="info"><div class="inm">${esc(it.n)}</div><div class="iq">${fmtQ(it.q)}${esc(it.u)}${it.daily?"（日用品）":""}</div></div>`;
+      h+=`<button class="stockbtn ${it.stock?"on":""}" onclick="togStock(${i})">在庫${it.stock?"あり":"？"}</button>`;
       h+='</div>';
     });
-    h+='<p class="note">チェックすると、店に関係なく購入済みになります。「在庫あり」にすると買うものから外れます。</p>';
-    h+='<button class="btn sub wide" onclick="addManual()">＋ リストに直接追加</button>';
-    h+='<div class="ctalink small" onclick="makeListGo()">献立表からリストを作り直す</div>';
-  } else {
-    const sel=shopFilter;
-    const idxs=[];
-    items.forEach((it,i)=>{ if(!it.stock&&((it.store||"未定")===sel)) idxs.push(i); });
-    h+=`<div class="pmeta" style="margin-top:4px">${esc(sel)}で買う予定　<b>${idxs.length}品</b></div>`;
-    h+='<div class="card listcard">';
-    if(!idxs.length) h+='<p class="note">この店で買う予定のものはありません</p>';
-    idxs.forEach(i=>{ h+=itemRow(i,false); });
     h+='</div>';
-    h+='<p class="note">ほかの店で買った場合も、そのままチェックでOK。</p>';
+    h+='<button class="btn sub wide" onclick="addManual()">＋ リストに直接追加</button>';
+  } else {
+    const buy=items.filter(it=>!it.stock);
+    const groups={};
+    buy.forEach(it=>{ const s=it.store||"未定"; (groups[s]=groups[s]||[]).push(it); });
+    const order=[...S.stores.filter(s=>groups[s]),"未定"].filter((s,i,a)=>groups[s]&&a.indexOf(s)===i);
+    if(!buy.length) h+='<p class="note">買うものがありません。</p>';
+    order.forEach(s=>{
+      h+=`<div class="storehead" style="background:${s==="未定"?"#aaa":storeColor(s)}">${esc(s)}（${groups[s].filter(x=>!x.done).length}）</div><div class="card">`;
+      groups[s].forEach(it=>{
+        const i=items.indexOf(it);
+        h+=`<div class="item ${it.done?"done":""}" onclick="togDone(${i})"><div class="checkbox">${it.done?"✓":""}</div><div class="info"><div class="inm">${esc(it.n)}</div><div class="iq">${fmtQ(it.q)}${esc(it.u)}</div></div></div>`;
+      });
+      h+='</div>';
+    });
+    const rest=buy.filter(x=>!x.done).length;
+    h+=rest?`<p class="note">あと ${rest} 品！</p>`:'<p class="note">🎉 全部買えました！おつかれさま！</p>';
   }
-  if(buy.length&&doneN>=buy.length) h+='<p class="note" style="text-align:center;font-size:15px">🎉 全部買えました！おつかれさま！</p>';
-  h+='<button class="cta" onclick="finishTrip()">買い物を完了</button>';
+  h+=rStores();
   return h;
 }
-function togStock(i){ const it=S.list.items[i]; it.stock=!it.stock; if(it.stock) it.done=false; save(); render(); }
+function rStores(){
+  let h='<h2>お店の設定</h2><div class="card"><div class="goodsgrid">';
+  S.stores.forEach((s,i)=>{
+    h+=`<button class="gbtn" style="border-color:${storeColor(s)};color:${storeColor(s)};font-weight:bold" onclick="renameStore(${i})">${esc(s)}</button>`;
+  });
+  h+='<button class="gbtn" onclick="addStore()">＋ 店を追加</button>';
+  h+='</div><p class="note">店をタップで名前変更・削除。一度選んだ店は品物ごとに記憶して、次回から自動で振り分けます。</p></div>';
+  return h;
+}
+function cycStore(i){
+  const it=S.list.items[i];
+  const cur=it.store?S.stores.indexOf(it.store):-1;
+  it.store=cur+1>=S.stores.length?"":S.stores[cur+1];
+  if(it.store) S.storeMap[it.n]=it.store; else delete S.storeMap[it.n];
+  save(); render();
+}
+function togStock(i){ S.list.items[i].stock=!S.list.items[i].stock; save(); render(); }
 function togDone(i){ S.list.items[i].done=!S.list.items[i].done; save(); render(); }
 function addManual(){
   const n=prompt("追加する品名（例：ケチャップ）"); if(!n||!n.trim()) return;
   S.list.items.push({n:n.trim(), q:"", u:"", stock:false, done:false, store:S.storeMap[n.trim()]||""});
   save(); render();
 }
-function finishTrip(){
-  if(!confirm("買い物おつかれさま！リストを空にしますか？（日用品の選択もリセットされます）")) return;
-  S.list=null; S.goodsSel={}; shopFilter="all";
-  save(); render(); flash("完了！おつかれさまでした🎉");
-}
-
-/* 店変更モーダル（今回だけ／標準にする） */
-let smIdx=0, smSel="";
-function openStoreModal(i){ smIdx=i; smSel=S.list.items[i].store||""; showModal(); renderStoreModal(); }
-function renderStoreModal(){
-  const it=S.list.items[smIdx];
-  let h=`<div class="mhead"><b>${esc(it.n)}はどこで買う？</b></div>`;
-  const opts=S.stores.map(s=>[s,s]); opts.push(["","未定"]);
-  opts.forEach(o=>{
-    h+=`<div class="radiorow ${smSel===o[0]?"on":""}" onclick="smSel='${esc(o[0])}';renderStoreModal()"><span class="radio">${smSel===o[0]?"●":""}</span>${esc(o[1])}</div>`;
-  });
-  const lbl=smSel||"未定";
-  h+=`<button class="cta" style="margin-top:14px" onclick="applyStore(false)">今回だけ${esc(lbl)}にする</button>`;
-  if(smSel) h+=`<button class="btn sub wide" onclick="applyStore(true)">今後も${esc(lbl)}を標準にする</button>`;
-  h+='<p class="note" style="text-align:center">今回だけ変更しても、いつもの購入先は変わりません。</p>';
-  h+='<div class="ctalink" onclick="closeModal()">キャンセル</div>';
-  document.getElementById("modal").innerHTML=h;
-}
-function applyStore(asDefault){
-  const it=S.list.items[smIdx];
-  it.store=smSel;
-  if(asDefault){
-    if(smSel) S.storeMap[it.n]=smSel; else delete S.storeMap[it.n];
-    flash("「"+it.n+"」のいつもの購入先を設定しました");
-  } else {
-    flash(smSel?("今回は"+smSel+"で買います"):"未定にしました");
-  }
-  save(); closeModal();
-}
-
-/* 購入先設定（店の管理＋品物ごとの標準店） */
-let psSearch="";
-function openStoreSettings(){ psSearch=""; showModal(); renderStoreSettings(); }
-function renderStoreSettings(){
-  let h='<div class="mhead"><b>いつもの購入先</b><button class="btn small gray" onclick="closeModal()">閉じる</button></div>';
-  h+='<div class="kindhead" style="margin-top:0">1. 店の管理</div><div class="card listcard">';
-  S.stores.forEach((s,i)=>{
-    h+=`<div class="item"><div class="info"><div class="inm">${esc(s)}</div></div><button class="btn small gray" onclick="renStore(${i})">✏️ 変更</button><button class="btn small danger" onclick="delStore(${i})">削除</button></div>`;
-  });
-  h+='</div><button class="btn sub wide" onclick="addStore()">＋ 店を追加</button>';
-  h+='<div class="kindhead">2. 品物ごとのいつもの購入先</div>';
-  h+=`<input type="text" class="search" placeholder="🔍 品物を検索" value="${esc(psSearch)}" oninput="psSearch=this.value;renderStoreSettings()">`;
-  const q=psSearch.trim();
-  const names=[...new Set([...(S.list?S.list.items.map(x=>x.n):[]), ...Object.keys(S.storeMap), ...S.goods])].filter(n=>!q||n.includes(q));
-  h+='<div class="card listcard">';
-  if(!names.length) h+='<p class="note">見つかりません</p>';
-  names.slice(0,80).forEach(n=>{
-    const cur=S.storeMap[n]||"";
-    h+=`<div class="item"><div class="info"><div class="inm">${esc(n)}</div></div><select onchange="setDefaultStore('${esc(n)}',this.value)">`;
-    h+=`<option value="" ${cur===""?"selected":""}>未設定</option>`;
-    S.stores.forEach(s=>{ h+=`<option ${cur===s?"selected":""}>${esc(s)}</option>`; });
-    h+='</select></div>';
-  });
-  h+='</div>';
-  h+='<p class="note">ここで設定した店が、次回の買い物リストに自動表示されます。</p>';
-  h+='<button class="cta" onclick="closeModal();flash(\'保存しました\')">設定を保存</button>';
-  document.getElementById("modal").innerHTML=h;
-}
-function setDefaultStore(n,v){
-  if(v) S.storeMap[n]=v; else delete S.storeMap[n];
-  if(S.list) S.list.items.forEach(it=>{ if(it.n===n&&!it.done) it.store=v; });
-  save();
-}
 function addStore(){
   const n=prompt("店の名前（例：セブン）"); if(!n||!n.trim()) return;
   if(!S.stores.includes(n.trim())) S.stores.push(n.trim());
-  save();
-  if(document.getElementById("overlay").classList.contains("show")) renderStoreSettings(); else render();
+  save(); render();
 }
-function renStore(i){
-  const n=prompt("店名を変更", S.stores[i]); if(!n||!n.trim()) return;
-  const old=S.stores[i], nn=n.trim();
-  S.stores[i]=nn;
-  Object.keys(S.storeMap).forEach(k=>{ if(S.storeMap[k]===old) S.storeMap[k]=nn; });
-  if(S.list) S.list.items.forEach(it=>{ if(it.store===old) it.store=nn; });
-  if(shopFilter===old) shopFilter=nn;
-  save(); renderStoreSettings();
-}
-function delStore(i){
+function renameStore(i){
   const old=S.stores[i];
-  if(!confirm("「"+old+"」を削除しますか？この店に振り分けた品物は「未定」になります。")) return;
-  S.stores.splice(i,1);
-  Object.keys(S.storeMap).forEach(k=>{ if(S.storeMap[k]===old) delete S.storeMap[k]; });
-  if(S.list) S.list.items.forEach(it=>{ if(it.store===old) it.store=""; });
-  if(shopFilter===old) shopFilter="all";
-  save(); renderStoreSettings();
+  const n=prompt("店名を変更（空にすると削除）",old);
+  if(n===null) return;
+  if(!n.trim()){
+    if(!confirm(`「${old}」を削除しますか？`)) return;
+    S.stores.splice(i,1);
+    Object.keys(S.storeMap).forEach(k=>{ if(S.storeMap[k]===old) delete S.storeMap[k]; });
+    if(S.list) S.list.items.forEach(it=>{ if(it.store===old) it.store=""; });
+  } else {
+    S.stores[i]=n.trim();
+    Object.keys(S.storeMap).forEach(k=>{ if(S.storeMap[k]===old) S.storeMap[k]=n.trim(); });
+    if(S.list) S.list.items.forEach(it=>{ if(it.store===old) it.store=n.trim(); });
+  }
+  save(); render();
 }
 
 /* ===== バックアップ・初期化 ===== */
@@ -814,10 +629,9 @@ function exportData(){
 function importData(inp){
   const f=inp.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.dishes){ S=d; load2(); save(); render(); flash("読み込みました"); } else alert("ファイルが違うみたい"); }catch(e){ alert("読み込めませんでした"); } };
+  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.dishes){ S=d; save(); render(); flash("読み込みました"); } else alert("ファイルが違うみたい"); }catch(e){ alert("読み込めませんでした"); } };
   r.readAsText(f);
 }
-function load2(){ if(!S.family)S.family=3; if(!S.recent)S.recent=[]; S.dishes.forEach(d=>{ if(!d.sv)d.sv=3; }); }
 function resetAll(){
   if(!confirm("すべてのデータを初期状態に戻します。自分で作った献立や設定も消えます。いいですか？")) return;
   if(!confirm("本当に初期化しますか？（バックアップ保存をおすすめします）")) return;
@@ -826,7 +640,7 @@ function resetAll(){
 
 /* ===== モーダル ===== */
 function showModal(){ document.getElementById("overlay").classList.add("show"); }
-function closeModal(){ document.getElementById("overlay").classList.remove("show"); render(); }
+function closeModal(){ document.getElementById("overlay").classList.remove("show"); }
 
 load(); render();
 </script>
