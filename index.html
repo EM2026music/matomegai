@@ -497,7 +497,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-3";
+const APP_VERSION="0721-4";
 let S=null;
 function newState(){
   return {
@@ -1348,10 +1348,17 @@ function applyStore(asDefault){
 }
 
 /* お店をまとめて決める画面（ポンポン割り当て＋一括ボタン） */
+let assignRemember=true; /* true=いつもの店として記憶 / false=今回だけ */
+function togAssignRemember(){ assignRemember=!assignRemember; renderAssignAll(); }
 function openAssignAll(){ showModal(); renderAssignAll(); }
 function renderAssignAll(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>お店をまとめて決める</b></div>';
-  h+='<p class="note" style="margin-top:0">品物の下のお店をタップ。押した店は次回から自動で振り分けます。</p>';
+  h+='<p class="note" style="margin-top:0">品物の下のお店をタップして選びます。</p>';
+  h+='<div class="card" style="padding:10px 12px;margin-bottom:10px">';
+  h+='<div style="font-size:12px;color:var(--sub);margin-bottom:6px">選んだ店の扱い</div><div class="aropts">';
+  h+=`<button class="sopt" style="${assignRemember?"background:var(--or);border-color:var(--or);color:#fff":""}" onclick="if(!assignRemember)togAssignRemember()">⭐ 次回からも自動</button>`;
+  h+=`<button class="sopt" style="${!assignRemember?"background:var(--or);border-color:var(--or);color:#fff":""}" onclick="if(assignRemember)togAssignRemember()">今回だけ</button>`;
+  h+='</div></div>';
   h+='<div class="kindhead" style="margin-top:4px">全部いっぺんに</div><div class="aropts" style="margin-bottom:6px">';
   S.stores.forEach(s=>{ h+=`<button class="sopt" style="border-color:${storeColor(s)};color:${storeColor(s)}" onclick="assignAll('${esc(s)}')">全部 ${esc(s)}</button>`; });
   h+='<button class="sopt" onclick="assignAll(\'\')">全部 未定に</button>';
@@ -1370,8 +1377,12 @@ function renderAssignAll(){
 }
 function assignOne(i,s){
   const it=S.list.items[i]; it.store=s;
-  if(s){ S.storeMap[it.n]=s; flash(it.n+" → "+s+"（次回から自動）"); }
-  else { delete S.storeMap[it.n]; flash(it.n+" の店を未定に戻しました"); }
+  if(assignRemember){
+    if(s) S.storeMap[it.n]=s; else delete S.storeMap[it.n];
+    flash(s?(it.n+" → "+s+"（次回から自動）"):(it.n+" を未定に（記憶も解除）"));
+  } else {
+    flash(s?(it.n+" → "+s+"（今回だけ）"):(it.n+" を今回だけ未定に"));
+  }
   save(); renderAssignAll();
 }
 function addStoreHere(){
@@ -1381,8 +1392,13 @@ function addStoreHere(){
   S.stores.push(nm); save(); renderAssignAll(); flash(nm+" を追加しました");
 }
 function assignAll(s){
-  S.list.items.forEach(it=>{ if(it.stock) return; it.store=s; if(s) S.storeMap[it.n]=s; else delete S.storeMap[it.n]; });
-  save(); renderAssignAll(); flash(s?("全部 "+s+" にしました"):"全部 未定にしました");
+  S.list.items.forEach(it=>{
+    if(it.stock) return;
+    it.store=s;
+    if(assignRemember){ if(s) S.storeMap[it.n]=s; else delete S.storeMap[it.n]; }
+  });
+  save(); renderAssignAll();
+  flash((s?("全部 "+s+" に"):"全部 未定に")+(assignRemember?"（次回からも自動）":"（今回だけ）"));
 }
 
 /* 購入先設定（店の管理＋品物ごとの標準店） */
