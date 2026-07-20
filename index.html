@@ -103,6 +103,12 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .radio{width:20px; height:20px; border:2px solid #ddd0bb; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--or); flex-shrink:0;}
 .radiorow.on .radio{border-color:var(--or);}
 .item select{font-size:13px; padding:6px; max-width:150px;}
+.assignrow{padding:10px 4px; border-bottom:1px solid var(--line);}
+.assignrow:last-child{border-bottom:none;}
+.arname{font-size:14px; font-weight:600; margin-bottom:6px;}
+.arq{font-size:12px; color:var(--sub); font-weight:normal; margin-left:6px;}
+.aropts{display:flex; flex-wrap:wrap; gap:6px;}
+.sopt{border:1.5px solid #ddd0bb; background:#fff; color:var(--sub); border-radius:16px; padding:6px 12px; font-size:13px; font-weight:600; cursor:pointer;}
 /* モーダル */
 #overlay{position:fixed; inset:0; background:rgba(60,45,25,.45); z-index:20; display:none; align-items:flex-end; justify-content:center;}
 #overlay.show{display:flex;}
@@ -880,6 +886,8 @@ function rShop(){
   S.stores.forEach(s=>{ h+=`<button class="fchip ${shopFilter===s?"on":""}" onclick="shopFilter='${esc(s)}';render()">${esc(s)}</button>`; });
   h+=`<button class="fchip ${shopFilter==="未定"?"on":""}" onclick="shopFilter='未定';render()">未定</button>`;
   h+='</div>';
+  const undf=items.filter(x=>!x.stock&&!x.store).length;
+  h+=`<button class="btn sub wide" onclick="openAssignAll()" style="margin-bottom:6px">🏪 お店をまとめて決める${undf?`（未定 ${undf}品）`:""}</button>`;
   if(shopFilter==="all"){
     const groups={};
     items.forEach((it,i)=>{ const k=it.daily?"日用品":kindOf(it.n); (groups[k]=groups[k]||[]).push(i); });
@@ -962,6 +970,32 @@ function applyStore(asDefault){
     flash(smSel?("今回は"+smSel+"で買います"):"未定にしました");
   }
   save(); closeModal();
+}
+
+/* お店をまとめて決める画面（ポンポン割り当て＋一括ボタン） */
+function openAssignAll(){ showModal(); renderAssignAll(); }
+function renderAssignAll(){
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>お店をまとめて決める</b></div>';
+  h+='<p class="note" style="margin-top:0">品物の下のお店をタップ。押した店は次回から自動で振り分けます。</p>';
+  h+='<div class="kindhead" style="margin-top:4px">全部いっぺんに</div><div class="aropts" style="margin-bottom:6px">';
+  S.stores.forEach(s=>{ h+=`<button class="sopt" style="border-color:${storeColor(s)};color:${storeColor(s)}" onclick="assignAll('${esc(s)}')">全部 ${esc(s)}</button>`; });
+  h+='<button class="sopt" onclick="assignAll(\'\')">全部 未定に</button></div>';
+  const buy=[]; S.list.items.forEach((it,i)=>{ if(!it.stock) buy.push(i); });
+  h+='<div class="kindhead">品物ごと</div><div class="card listcard">';
+  if(!buy.length) h+='<p class="note">買うものがありません</p>';
+  buy.forEach(i=>{
+    const it=S.list.items[i];
+    h+=`<div class="assignrow"><div class="arname">${esc(it.n)}<span class="arq">${fmtQ(it.q)}${esc(it.u)}</span></div><div class="aropts">`;
+    S.stores.forEach(s=>{ const on=it.store===s; h+=`<button class="sopt" style="${on?`background:${storeColor(s)};border-color:${storeColor(s)};color:#fff`:`border-color:${storeColor(s)};color:${storeColor(s)}`}" onclick="assignOne(${i},'${esc(s)}')">${esc(s)}</button>`; });
+    h+='</div></div>';
+  });
+  h+='</div><button class="cta" onclick="closeModal()">できた</button>';
+  document.getElementById("modal").innerHTML=h;
+}
+function assignOne(i,s){ const it=S.list.items[i]; it.store=s; if(s) S.storeMap[it.n]=s; else delete S.storeMap[it.n]; save(); renderAssignAll(); }
+function assignAll(s){
+  S.list.items.forEach(it=>{ if(it.stock) return; it.store=s; if(s) S.storeMap[it.n]=s; else delete S.storeMap[it.n]; });
+  save(); renderAssignAll(); flash(s?("全部 "+s+" にしました"):"全部 未定にしました");
 }
 
 /* 購入先設定（店の管理＋品物ごとの標準店） */
