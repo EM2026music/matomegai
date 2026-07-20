@@ -545,7 +545,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-14";
+const APP_VERSION="0721-15";
 let S=null;
 function newState(){
   return {
@@ -811,6 +811,11 @@ function renderFamily(){
   h+='<div class="row2"><button class="btn sub small" onclick="exportData()">バックアップ保存</button><button class="btn sub small" onclick="document.getElementById(\'imp\').click()">読み込み</button></div>';
   h+='<input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">';
   h+='<p class="note">機種変更や、ご家族に渡すときに使えます。</p>';
+  h+='<div class="kindhead">アプリの更新</div>';
+  h+=`<p class="note" style="margin-top:0">今のバージョン：<b>v${APP_VERSION}</b></p>`;
+  h+='<button class="btn sub wide" onclick="forceUpdate()">🔄 アプリを最新に更新する</button>';
+  h+='<p class="note">画面が古いままのときはこれを押してください。データは消えません。</p>';
+  h+='<div class="kindhead">危険な操作</div>';
   h+='<button class="btn danger small" onclick="resetAll()">すべて初期化</button>';
   document.getElementById("modal").innerHTML=h;
 }
@@ -1785,10 +1790,30 @@ history.replaceState({tab:"week"},"");
 render();
 
 /* アプリとしてインストール＆オフライン対応（http/https のときだけ） */
+let swReloaded=false;
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
   window.addEventListener("load",function(){
-    navigator.serviceWorker.register("sw.js").catch(function(){});
+    navigator.serviceWorker.register("sw.js").then(function(reg){
+      reg.update();                       /* 起動のたびに新版がないか確認 */
+      setInterval(function(){ reg.update(); }, 60*60*1000);
+    }).catch(function(){});
+    /* 新しいService Workerに入れ替わったら1度だけ読み込み直す＝常に最新画面 */
+    navigator.serviceWorker.addEventListener("controllerchange",function(){
+      if(swReloaded) return; swReloaded=true; location.reload();
+    });
   });
+}
+/* 設定から呼ぶ「アプリを最新に更新」 */
+function forceUpdate(){
+  if(!confirm("アプリを最新版に更新します。\n（献立や買い物リストのデータは消えません）")) return;
+  const done=function(){ location.replace(location.pathname+"?u="+Date.now()); };
+  if(!("serviceWorker" in navigator)){ done(); return; }
+  caches.keys().then(function(keys){ return Promise.all(keys.map(function(k){ return caches.delete(k); })); })
+    .catch(function(){})
+    .then(function(){ return navigator.serviceWorker.getRegistrations(); })
+    .then(function(regs){ return Promise.all((regs||[]).map(function(r){ return r.unregister(); })); })
+    .catch(function(){})
+    .then(done, done);
 }
 </script>
 </body>
