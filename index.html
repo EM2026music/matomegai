@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>まとめ買いリスト</title>
 <style>
 :root{
@@ -425,6 +428,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
+const APP_VERSION="0720-1";
 let S=null;
 function newState(){
   return {
@@ -594,6 +598,7 @@ function rWeek(){
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
   h+='<div class="ctalink" onclick="go(\'shop\')">在庫を確認する ›</div>';
   h+='<div class="ctalink small" onclick="clearWeek()">献立表をクリア</div>';
+  h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
   return h;
 }
 function setFamily(d){ S.family=Math.min(12,Math.max(1,S.family+d)); save(); }
