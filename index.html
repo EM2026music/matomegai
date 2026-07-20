@@ -106,13 +106,18 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .mhead.back{justify-content:flex-start; gap:12px;}
 .mhead b{font-size:16px;}
 .backbtn{border:none; background:#f4ece0; color:var(--ink); font-size:19px; width:40px; height:40px; border-radius:12px; cursor:pointer; flex-shrink:0;}
-.selchips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:10px;}
-.chip{background:var(--or-bg); border:1px solid #f2d9bd; border-radius:16px; padding:6px 10px; font-size:13px; display:inline-flex; align-items:center; gap:6px;}
-.chip .x{color:#cf9a63; font-weight:bold; cursor:pointer; padding:0 2px;}
+.selbox{background:#eef7ef; border:1px solid #cfe6d3; border-radius:12px; padding:10px; margin-bottom:12px;}
+.selbox .selttl{font-size:12px; color:var(--green); font-weight:bold; margin-bottom:7px;}
+.selchips{display:flex; flex-wrap:wrap; gap:7px;}
+.chip{background:var(--green); border:none; color:#fff; border-radius:16px; padding:7px 11px; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:7px;}
+.chip .x{color:#fff; opacity:.85; font-weight:bold; cursor:pointer; padding:0 2px 0 3px; border-left:1px solid rgba(255,255,255,.4);}
 .pickrow{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
+.pickrow.sel{background:#eef7ef; border-radius:10px; padding:11px 8px; border-bottom:1px solid transparent;}
 .pnm{font-size:15px; font-weight:600;}
+.pickrow.sel .pnm{color:var(--green);}
 .pig{font-size:12px; color:var(--sub); margin-top:2px;}
 .paddbtn{width:30px; height:30px; border-radius:50%; background:var(--or); color:#fff; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.paddbtn.on{background:var(--green); font-size:13px; font-weight:bold;}
 .ingrow{display:flex; gap:6px; margin-bottom:6px;}
 .ingrow input.n{flex:1; min-width:0;}
 .ingrow input.q{width:64px;}
@@ -318,6 +323,13 @@ const SEED=[
 ["汁物","わかめのみそしる",[["乾燥わかめ",5,"g"],["豆腐",1,"丁"],["みそ",3,"大さじ"],["だしの素","","適量"]]],
 ["汁物","豚汁",[["豚バラ肉",200,"g"],["大根",0.25,"本"],["にんじん",0.5,"本"],["ごぼう",0.5,"本"],["こんにゃく",1,"枚"],["長ねぎ",1,"本"],["みそ",4,"大さじ"],["だしの素","","適量"]]],
 ["汁物","みそ汁",[["豆腐",1,"丁"],["乾燥わかめ",3,"g"],["みそ",3,"大さじ"],["だしの素","","適量"]]],
+["汁物","具だくさんみそ汁",[["大根",0.25,"本"],["にんじん",0.5,"本"],["油揚げ",1,"枚"],["長ねぎ",1,"本"],["豆腐",0.5,"丁"],["みそ",4,"大さじ"],["だしの素","","適量"]]],
+["汁物","なすのみそ汁",[["なす",2,"本"],["油揚げ",1,"枚"],["みそ",3,"大さじ"],["だしの素","","適量"]]],
+["汁物","じゃがいものみそ汁",[["じゃがいも",2,"個"],["玉ねぎ",1,"個"],["みそ",3,"大さじ"],["だしの素","","適量"]]],
+["汁物","あさりのみそ汁",[["あさり",200,"g"],["長ねぎ",0.5,"本"],["みそ",3,"大さじ"]]],
+["汁物","キャベツと油揚げのみそ汁",[["キャベツ",0.2,"個"],["油揚げ",1,"枚"],["みそ",3,"大さじ"],["だしの素","","適量"]]],
+["汁物","うちのみそ汁①",[["みそ",3,"大さじ"],["だしの素","","適量"]]],
+["汁物","うちのみそ汁②",[["みそ",3,"大さじ"],["だしの素","","適量"]]],
 ["汁物","野菜スープ（韓国）",[["もやし",1,"袋"],["にら",0.5,"束"],["にんじん",0.5,"本"],["豆板醤",1,"小さじ"],["鶏がらスープの素",1,"大さじ"],["ごま油","","適量"]]],
 ["汁物","呉汁",[["大豆水煮",1,"袋"],["大根",0.25,"本"],["にんじん",0.5,"本"],["油揚げ",1,"枚"],["みそ",4,"大さじ"],["だしの素","","適量"]]],
 ["汁物","オニオンスープ",[["玉ねぎ",2,"個"],["コンソメ",2,"個"],["バター","","適量"]]],
@@ -592,29 +604,32 @@ function rebuildList(){
 }
 
 /* ===== 献立ピッカー（日ごと） ===== */
-let pickDay=0, pickSearch="", pickCat="おすすめ";
-function openDay(d){ pickDay=d; pickSearch=""; pickCat="おすすめ"; showModal(); renderPicker(); }
+let pickDay=0, pickSearch="", pickCat="";
+function openDay(d){ pickDay=d; pickSearch=""; pickCat=""; showModal(); renderPicker(); }
 function renderPicker(){
   const dt=weekDates()[pickDay];
   let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b></div>`;
   if(S.week[pickDay].length){
-    h+='<div class="selchips">';
+    h+='<div class="selbox"><div class="selttl">✓ この日に選んだ献立（'+S.week[pickDay].length+'品）</div><div class="selchips">';
     S.week[pickDay].forEach((id,j)=>{ const ds=dish(id); if(ds) h+=`<span class="chip">${esc(ds.name)}<span class="x" onclick="rmPick(${j})">×</span></span>`; });
-    h+='</div>';
+    h+='</div></div>';
   }
   h+=`<input type="text" class="search" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
   h+='<div class="catbar">';
-  ["おすすめ",...CATS].forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${c}';renderPicker()">${c}</button>`; });
+  h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
+  CATS.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${c}';renderPicker()">${c}</button>`; });
   h+='</div>';
   const q=pickSearch.trim();
   let list;
   if(q) list=S.dishes.filter(d=>d.name.includes(q)||d.ing.some(i=>i.n.includes(q)));
-  else if(pickCat==="おすすめ"){ list=S.recent.map(id=>dish(id)).filter(Boolean); if(!list.length) list=S.dishes.slice(0,8); }
+  else if(pickCat==="") list=S.dishes;
   else list=S.dishes.filter(d=>d.cat===pickCat);
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(d=>{
     const ig=d.ing.slice(0,3).map(x=>x.n).join("・");
-    h+=`<div class="pickrow" onclick="pickAdd('${d.id}')"><div><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div><span class="paddbtn">＋</span></div>`;
+    const cnt=S.week[pickDay].filter(x=>x===d.id).length;
+    const sel=cnt>0;
+    h+=`<div class="pickrow ${sel?"sel":""}" onclick="pickAdd('${d.id}')"><div><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div><span class="paddbtn ${sel?"on":""}">${sel?"✓"+(cnt>1?cnt:""):"＋"}</span></div>`;
   });
   document.getElementById("modal").innerHTML=h;
 }
