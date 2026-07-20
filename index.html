@@ -65,6 +65,11 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .nm{font-size:15px; font-weight:bold;}
 .ings{font-size:12px; color:var(--sub); margin-top:2px;}
 .arrow{color:#d5c8b2; font-size:18px;}
+.draghandle{color:#cdbfa8; font-size:17px; padding:2px 10px 2px 0; touch-action:none; -webkit-user-select:none; user-select:none; flex-shrink:0; cursor:grab;}
+.chip .draghandle{color:rgba(255,255,255,.8); padding:0 4px 0 0; font-size:14px;}
+.dbody{flex:1; min-width:0;}
+.dishrow.dragging,.chip.dragging{opacity:.5;}
+.dishrow.dragging{background:var(--or-bg); border-radius:10px;}
 /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
 .gbtn{border:1.5px solid #eadfce; background:#fff; border-radius:12px; padding:10px 12px; font-size:13px; cursor:pointer; color:#5c5245;}
@@ -458,15 +463,68 @@ function weekDates(){
 /* ===== タブ切り替え ===== */
 let TAB="week";
 let dishSearch="", dishCat="";
-function go(t){ TAB=t; render(); }
+function go(t){
+  if(t===TAB){ render(); return; }
+  if(t!=="week"){
+    if(TAB==="week") history.pushState({tab:t},"");
+    else history.replaceState({tab:t},"");
+    TAB=t; render();
+  } else {
+    history.back(); /* サブタブ→ホームは履歴を戻す（popstateでホーム描画） */
+  }
+}
 function render(){
   ["week","dish","goods","shop"].forEach(t=>document.getElementById("nav-"+t).classList.toggle("on",t===TAB));
   const v=document.getElementById("view");
   if(TAB==="week") v.innerHTML=rWeek();
-  else if(TAB==="dish") v.innerHTML=rDish();
+  else if(TAB==="dish"){ v.innerHTML=rDish(); enableSort(v.querySelector(".listcard"), commitDishOrder, false); }
   else if(TAB==="goods") v.innerHTML=rGoods();
   else v.innerHTML=rShop();
 }
+/* 指ドラッグで並べ替え（ポインタ＝タッチ/マウス両対応）。horiz=true は横並びチップ用 */
+function enableSort(container, commit, horiz){
+  if(!container) return;
+  container.querySelectorAll("[data-sort]").forEach(handle=>{
+    handle.addEventListener("pointerdown", function(e){
+      e.preventDefault(); e.stopPropagation();
+      const item=handle.closest("[data-id]"); if(!item) return;
+      item.classList.add("dragging");
+      try{ handle.setPointerCapture(e.pointerId); }catch(_){}
+      function move(ev){
+        const others=[...container.querySelectorAll("[data-id]")].filter(x=>x!==item);
+        let target=null;
+        for(const o of others){
+          const r=o.getBoundingClientRect();
+          if(horiz){
+            const past=(ev.clientY>r.bottom)||(ev.clientY>=r.top&&ev.clientX>r.left+r.width/2);
+            if(!past){ target=o; break; }
+          } else {
+            if(ev.clientY<r.top+r.height/2){ target=o; break; }
+          }
+        }
+        if(target) container.insertBefore(item,target); else container.appendChild(item);
+      }
+      function up(){
+        try{ handle.releasePointerCapture(e.pointerId); }catch(_){}
+        handle.removeEventListener("pointermove",move);
+        handle.removeEventListener("pointerup",up);
+        handle.removeEventListener("pointercancel",up);
+        item.classList.remove("dragging");
+        commit([...container.querySelectorAll("[data-id]")].map(x=>x.getAttribute("data-id")));
+      }
+      handle.addEventListener("pointermove",move);
+      handle.addEventListener("pointerup",up);
+      handle.addEventListener("pointercancel",up);
+    });
+  });
+}
+function commitDishOrder(ids){
+  const map={}; S.dishes.forEach(d=>map[d.id]=d);
+  const pos=[]; S.dishes.forEach((d,i)=>{ if(ids.indexOf(d.id)>=0) pos.push(i); });
+  ids.forEach((id,k)=>{ if(map[id]) S.dishes[pos[k]]=map[id]; });
+  save();
+}
+function commitWeekOrder(ids){ S.week[pickDay]=ids.slice(); save(); }
 
 /* ===== 献立表（週） ===== */
 function rWeek(){
@@ -611,7 +669,7 @@ function renderPicker(){
   let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b></div>`;
   if(S.week[pickDay].length){
     h+='<div class="selbox"><div class="selttl">✓ この日に選んだ献立（'+S.week[pickDay].length+'品）</div><div class="selchips">';
-    S.week[pickDay].forEach((id,j)=>{ const ds=dish(id); if(ds) h+=`<span class="chip">${esc(ds.name)}<span class="x" onclick="rmPick(${j})">×</span></span>`; });
+    S.week[pickDay].forEach((id,j)=>{ const ds=dish(id); if(ds) h+=`<span class="chip" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">⠿</span>${esc(ds.name)}<span class="x" onclick="rmPick(${j})">×</span></span>`; });
     h+='</div></div>';
   }
   h+=`<input type="text" class="search" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
@@ -632,6 +690,7 @@ function renderPicker(){
     h+=`<div class="pickrow ${sel?"sel":""}" onclick="pickAdd('${d.id}')"><div><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div><span class="paddbtn ${sel?"on":""}">${sel?"✓"+(cnt>1?cnt:""):"＋"}</span></div>`;
   });
   document.getElementById("modal").innerHTML=h;
+  enableSort(document.querySelector("#modal .selchips"), commitWeekOrder, true);
 }
 function rmPick(j){ S.week[pickDay].splice(j,1); save(); renderPicker(); }
 function pickAdd(id){
@@ -653,7 +712,7 @@ function rDish(){
   h+='<div class="card listcard">';
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(d=>{
-    h+=`<div class="dishrow" onclick="openEditor('${d.id}')"><div><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="arrow">›</span></div>`;
+    h+=`<div class="dishrow" data-id="${d.id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">⠿</span><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="arrow">›</span></div>`;
   });
   h+='</div>';
   h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい献立を作る</button>';
@@ -986,21 +1045,30 @@ function resetAll(){
 let modalOpen=false;
 function showModal(){
   document.getElementById("overlay").classList.add("show");
-  if(!modalOpen){ modalOpen=true; history.pushState({modal:1},""); }
+  if(!modalOpen){ modalOpen=true; history.pushState({modal:1,tab:TAB},""); }
 }
 function closeModal(){
   if(modalOpen){ history.back(); }  /* 履歴を1つ戻す → 下のpopstateで実際に閉じる */
   else { document.getElementById("overlay").classList.remove("show"); render(); }
 }
-window.addEventListener("popstate",function(){
+window.addEventListener("popstate",function(e){
+  /* まずモーダルが開いていれば閉じる */
   if(modalOpen){
     modalOpen=false;
     document.getElementById("overlay").classList.remove("show");
-    render();
+    const st=e.state; if(st&&st.tab) TAB=st.tab;
+    render(); return;
   }
+  /* サブタブにいる → 履歴の状態に合わせて描画。ホームまで戻す */
+  const st=e.state;
+  if(st&&st.tab&&st.tab!=="week"){ TAB=st.tab; render(); return; }
+  if(TAB!=="week"){ TAB="week"; render(); return; }
+  /* ホームでさらに戻る → 何もしない＝アプリが閉じる */
 });
 
-load(); render();
+load();
+history.replaceState({tab:"week"},"");
+render();
 </script>
 </body>
 </html>
