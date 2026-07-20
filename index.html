@@ -114,6 +114,20 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .listweek{background:#f2ece2; color:var(--ink); font-size:13px; font-weight:bold; padding:9px 12px; border-radius:10px; margin-bottom:10px;}
 .listweek.other{background:#fdf1e5; color:#c96f28;}
 .lwnote{display:block; font-size:11px; font-weight:normal; margin-top:2px;}
+.edcal{background:#f7f1e7; border-radius:14px; padding:10px;}
+.edcalhead{display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; font-size:14px;}
+.edarrow{border:1px solid var(--line); background:#fff; width:34px; height:34px; border-radius:10px; color:var(--or-d); cursor:pointer;}
+.edmeals{display:flex; gap:6px; margin-bottom:8px;}
+.edmeals .mchip{flex:1;}
+.eddays{display:flex; gap:4px;}
+.edday{flex:1; min-width:0; border:1.5px solid #e2d6c2; background:#fff; border-radius:10px; padding:7px 2px; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:1px;}
+.edday .edw{font-size:13px; font-weight:bold; color:var(--ink);}
+.edday .edd{font-size:9px; color:var(--sub);}
+.edday .edplus{font-size:13px; color:var(--or);}
+.edday .edchk{font-size:12px; color:#fff; background:var(--green); border-radius:8px; padding:0 5px; font-weight:bold;}
+.edday.has{border-color:var(--green); background:#eef7ef;}
+.edday.today{box-shadow:0 0 0 2px var(--or-bg);}
+.edday.today .edw{color:var(--or-d);}
 .dishrow.selrow .ckb2{background:var(--green); border-color:var(--green);}
 /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
@@ -518,7 +532,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-9";
+const APP_VERSION="0721-10";
 let S=null;
 function newState(){
   return {
@@ -607,7 +621,11 @@ function storeColor(name){
 let weekOffset=0; /* 0=今週 −1=先週 +1=来週 … */
 function mondayOf(d){ const t=new Date(d); const off=(t.getDay()+6)%7; t.setDate(t.getDate()-off); t.setHours(0,0,0,0); return t; }
 function keyOf(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
-function curMonday(){ const m=mondayOf(new Date()); m.setDate(m.getDate()+weekOffset*7); return m; }
+function mondayAt(off){ const m=mondayOf(new Date()); m.setDate(m.getDate()+off*7); return m; }
+function keyAt(off){ return keyOf(mondayAt(off)); }
+function datesAt(off){ const m=mondayAt(off); return DAYS.map((_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
+function weekAt(key,create){ if(!S.plans[key]){ if(!create) return emptyWeek(); S.plans[key]=emptyWeek(); } return S.plans[key]; }
+function curMonday(){ return mondayAt(weekOffset); }
 function curKey(){ return keyOf(curMonday()); }
 function curWeek(create){
   const k=curKey();
@@ -1023,11 +1041,48 @@ function rDish(){
 }
 
 /* 献立エディタ */
-let editTarget=null;
+let editTarget=null, edWeekOff=0, edMeal="d";
 function openEditor(id){
   if(id){ const d=dish(id); editTarget={id:id, name:d.name, cat:d.cat, sv:d.sv||3, url:d.url||"", memo:d.memo||"", ing:d.ing.map(x=>({...x}))}; }
   else editTarget={id:null, name:"", cat:dishCat||"主食", sv:S.family||3, url:"", memo:"", ing:[{n:"",q:"",u:""}]};
+  edWeekOff=weekOffset; edMeal=defaultMeal();
   showModal(); renderEditor();
+}
+/* 編集画面から直接カレンダーに入れる */
+function edShiftWeek(d){ edWeekOff+=d; renderEditor(); }
+function edSetMeal(k){ edMeal=k; renderEditor(); }
+function edAddToDay(i){
+  const id=editTarget.id; if(!id) return;
+  weekAt(keyAt(edWeekOff),true)[i][edMeal].push(id);
+  S.recent=[id,...S.recent.filter(x=>x!==id)].slice(0,10);
+  const dt=datesAt(edWeekOff)[i];
+  const ml=MEALS.find(m=>m.k===edMeal);
+  save(); renderEditor();
+  flash(`${dt.getMonth()+1}/${dt.getDate()}(${DAYS[i]})${onMeals().length>1?"の"+ml.label:""} に追加`);
+}
+function edCalendar(){
+  if(!editTarget.id) return '';
+  const ms=onMeals(); const dates=datesAt(edWeekOff); const wk=weekAt(keyAt(edWeekOff));
+  const todayStr=new Date().toDateString();
+  let h='<div class="kindhead" style="margin-top:16px">この献立を献立表に入れる</div>';
+  h+='<div class="edcal">';
+  h+='<div class="edcalhead"><button class="edarrow" onclick="edShiftWeek(-1)">◀</button>';
+  h+=`<b>${edWeekOff===0?"今週":edWeekOff===1?"来週":edWeekOff===-1?"先週":weekRangeLabel(keyAt(edWeekOff))}</b>`;
+  h+='<button class="edarrow" onclick="edShiftWeek(1)">▶</button></div>';
+  if(ms.length>1){
+    h+='<div class="edmeals">';
+    ms.forEach(m=>{ h+=`<button class="mchip ${m.k} ${edMeal===m.k?"on":""}" style="padding:7px 4px;font-size:13px" onclick="edSetMeal('${m.k}')">${m.icon} ${m.label}</button>`; });
+    h+='</div>';
+  }
+  h+='<div class="eddays">';
+  DAYS.forEach((w,i)=>{
+    const dt=dates[i];
+    const has=(wk[i][edMeal]||[]).filter(x=>x===editTarget.id).length;
+    const isT=dt.toDateString()===todayStr;
+    h+=`<button class="edday ${has?"has":""} ${isT?"today":""}" onclick="edAddToDay(${i})"><span class="edw">${w}</span><span class="edd">${dt.getMonth()+1}/${dt.getDate()}</span>${has?`<span class="edchk">✓${has>1?has:""}</span>`:'<span class="edplus">＋</span>'}</button>`;
+  });
+  h+='</div><p class="note" style="margin:6px 0 0">曜日をタップすると、その日に追加されます。</p></div>';
+  return h;
 }
 function renderEditor(){
   const t=editTarget;
@@ -1051,6 +1106,7 @@ function renderEditor(){
   h+='<div class="row2"><button class="btn" onclick="saveDish()">保存</button>';
   if(t.id) h+='<button class="btn sub" onclick="copyDish()">コピーを作る</button><button class="btn danger" onclick="delDish()">削除</button>';
   h+='</div>';
+  h+=edCalendar();
   document.getElementById("modal").innerHTML=h;
 }
 function cleanIng(){ return editTarget.ing.filter(g=>g.n.trim()).map(g=>({n:g.n.trim(), q:g.q===""?"":Number(g.q), u:g.u.trim()})); }
