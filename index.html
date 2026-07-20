@@ -75,6 +75,11 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .dbody{flex:1; min-width:0;}
 .dishrow.dragging,.chip.dragging{opacity:.5;}
 .dishrow.dragging{background:var(--or-bg); border-radius:10px;}
+.catrow{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
+.catrow:last-child{border-bottom:none;}
+.catacts{display:flex; flex-wrap:wrap; gap:6px; padding:2px 2px 12px;}
+.floatbar{position:fixed; left:0; right:0; bottom:calc(60px + env(safe-area-inset-bottom)); z-index:9; max-width:640px; margin:0 auto; padding:8px 12px; display:flex; gap:10px; align-items:center; background:rgba(250,244,236,.97); border-top:1px solid var(--line); box-shadow:0 -3px 10px rgba(0,0,0,.06);}
+.fbcount{font-size:12px; color:var(--or-d); font-weight:bold; text-align:center; line-height:1.2; flex-shrink:0;}
 .dishrow.selrow{background:#eef7ef; border-radius:10px;}
 .dishrow.selrow .nm{color:var(--green);}
 .ckb2{width:24px; height:24px; border:2px solid #d9cdb8; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; flex-shrink:0;}
@@ -379,6 +384,30 @@ const SEED=[
 ["汁物","コーンポタージュ",[["コーンクリーム缶",1,"缶"],["玉ねぎ",0.5,"個"],["牛乳",300,"ml"],["バター",20,"g"],["コンソメ",1,"個"]]]
 ];
 const CATS=["主食","肉","魚","おかず","汁物","副菜","麺"];
+/* ===== 品物マスター（カタログ）: "名前|別名(空白区切り)|単位" ===== */
+const CATALOG_RAW={
+"野菜・きのこ":["じゃがいも|ジャガイモ 馬鈴薯 ポテト|個","にんじん|人参 ニンジン|本","玉ねぎ|たまねぎ 玉葱 タマネギ|個","長ねぎ|ねぎ 葱 ネギ 青ねぎ|本","キャベツ||個","もやし|モヤシ|袋","ほうれん草|ホウレンソウ ほうれんそう|束","小松菜|こまつな コマツナ|束","白菜|はくさい ハクサイ|個","レタス||個","きゅうり|キュウリ 胡瓜|本","トマト||個","ミニトマト|プチトマト|パック","なす|ナス 茄子|本","ピーマン||個","パプリカ||個","かぼちゃ|カボチャ 南瓜|個","大根|だいこん ダイコン|本","ごぼう|ゴボウ 牛蒡|本","れんこん|レンコン 蓮根|節","さつまいも|サツマイモ さつま芋|本","里芋|さといも サトイモ|個","長芋|ながいも 山芋 とろろ|本","しめじ|シメジ|パック","えのき|エノキ|袋","しいたけ|椎茸 シイタケ|パック","まいたけ|舞茸 マイタケ|パック","エリンギ||パック","なめこ|ナメコ|袋","ブロッコリー||株","カリフラワー||株","アスパラ|アスパラガス|束","とうもろこし|トウモロコシ コーン|本","枝豆|えだまめ エダマメ|袋","いんげん|インゲン 隠元|袋","オクラ||袋","ズッキーニ||本","にんにく|ニンニク 大蒜|個","しょうが|生姜 ショウガ|かけ","にら|ニラ 韮|束","春菊|しゅんぎく シュンギク|束","三つ葉|みつば ミツバ|束","大葉|しそ 紫蘇 シソ|枚","みょうが|茗荷|パック","セロリ||本","水菜|みずな ミズナ|束","チンゲン菜|青梗菜 チンゲンサイ|株","ゴーヤ|にがうり|本","かぶ|カブ 蕪|個","豆苗|とうみょう|パック","貝割れ|かいわれ|パック","サニーレタス||個"],
+"果物":["りんご|リンゴ 林檎|個","バナナ||房","みかん|ミカン 蜜柑|個","オレンジ||個","いちご|イチゴ 苺|パック","ぶどう|ブドウ 葡萄|房","桃|もも モモ|個","梨|なし ナシ|個","柿|かき カキ|個","キウイ|キウイフルーツ|個","メロン||個","すいか|スイカ 西瓜|個","パイナップル|パイン|個","グレープフルーツ||個","レモン||個","ブルーベリー||パック","さくらんぼ|サクランボ|パック","マンゴー||個","アボカド||個"],
+"肉":["豚こま肉|豚こま 豚小間 豚こま切れ|g","豚バラ肉|豚ばら 豚バラ|g","豚ロース|豚ロース肉|g","豚ひき肉|豚挽き 豚ミンチ|g","鶏もも肉|鶏もも とりもも 鶏モモ|枚","鶏むね肉|鶏胸 とりむね 鶏ムネ|枚","鶏ささみ|ささみ ササミ|本","鶏ひき肉|鶏挽き 鶏ミンチ とりひき|g","手羽先|てば|本","手羽元|てばもと|本","牛こま肉|牛こま 牛小間|g","牛薄切り肉|牛うす切り|g","牛ステーキ肉|ステーキ肉|枚","合いびき肉|合い挽き 合挽 あいびき|g","ラム肉|羊肉|g","ベーコン||パック","ウインナー|ウィンナー ソーセージ|袋","ハム|ロースハム|パック","生ハム||パック","焼き豚|チャーシュー|パック","スペアリブ||g","豚レバー|レバー|g"],
+"魚介":["鮭|さけ サーモン シャケ|切れ","銀鮭||切れ","塩鮭|塩さけ|切れ","ぶり|ブリ 鰤|切れ","さば|サバ 鯖|切れ","あじ|アジ 鯵|尾","さんま|サンマ 秋刀魚|尾","いわし|イワシ 鰯|尾","たら|タラ 鱈|切れ","ほっけ|ホッケ|枚","かれい|カレイ 鰈|切れ","たい|タイ 鯛|切れ","まぐろ|マグロ 鮪 刺身|さく","かつお|カツオ 鰹|さく","かじき|カジキ|切れ","いか|イカ 烏賊|杯","たこ|タコ 蛸|パック","えび|エビ 海老|パック","むきえび|むき海老|パック","ほたて|ホタテ 帆立|パック","あさり|アサリ|パック","しじみ|シジミ|パック","牡蠣|かき カキ|パック","ちくわ|竹輪 チクワ|袋","かまぼこ|蒲鉾 カマボコ|本","はんぺん||枚","さつま揚げ|さつまあげ|袋","ししゃも|シシャモ|パック","しらす|シラス|パック","たらこ|タラコ|腹","明太子|めんたいこ メンタイコ|腹","カニカマ|かにかま|パック","笹かまぼこ|笹かま|袋"],
+"卵・乳製品":["卵|たまご 玉子 タマゴ|パック","牛乳|ミルク|本","ヨーグルト|プレーンヨーグルト|個","バター||個","チーズ||個","ピザ用チーズ|とろけるチーズ シュレッドチーズ|袋","スライスチーズ||袋","粉チーズ|パルメザン|個","生クリーム|ホイップ|パック","豆乳|とうにゅう|本","クリームチーズ||個","カマンベール||個"],
+"豆腐・大豆":["豆腐|とうふ トウフ|丁","絹豆腐|絹ごし|丁","木綿豆腐|もめん|丁","焼き豆腐||丁","厚揚げ|生揚げ あつあげ|枚","油揚げ|あぶらあげ 油あげ|枚","納豆|なっとう ナットウ|パック","大豆水煮|蒸し大豆 大豆|袋","おから||パック","高野豆腐|こうやどうふ|袋","がんもどき|がんも|袋"],
+"米・パン・麺":["米|お米 白米 こめ|kg","食パン|パン|袋","パックごはん|ごはんパック サトウのごはん|個","うどん||玉","そば|蕎麦|玉","そうめん|素麺 ソーメン|束","中華麺|ラーメン 中華めん|玉","焼きそば麺|やきそば 焼そば|玉","スパゲッティ|パスタ スパゲティ|g","マカロニ||g","春雨|はるさめ|袋","ビーフン||袋","もち|餅 モチ 切り餅|パック","餃子の皮|ぎょうざの皮|袋","春巻きの皮|春巻の皮|袋","ピザ生地|ピザクラスト|枚","ナン||枚","バゲット|フランスパン|本","白石うーめん|うーめん|束","ロールパン||袋","クロワッサン||個","ベーグル||個"],
+"缶詰・乾物":["ツナ缶|シーチキン ツナ|缶","トマト缶|カットトマト ホールトマト|缶","コーン缶|コーン とうもろこし缶|缶","さば缶|サバ缶 鯖缶|缶","鮭缶|さけ缶|缶","ミックスビーンズ|豆缶|缶","コーンクリーム缶|クリームコーン|缶","あさり水煮缶|あさり缶|缶","乾燥わかめ|わかめ ワカメ|袋","焼きのり|のり 海苔 ノリ|袋","ひじき|乾燥ひじき ヒジキ|袋","切り干し大根|切干大根|袋","かんぴょう||袋","昆布|こんぶ コンブ 出汁昆布|袋","煮干し|にぼし|袋","かつお節|鰹節 かつおぶし 削り節|パック","とろろ昆布||袋","桜えび|桜エビ|袋","きくらげ|キクラゲ|袋","干ししいたけ|干し椎茸|袋","すき昆布||袋","春雨|はるさめ|袋"],
+"冷凍・加工":["冷凍うどん||袋","冷凍餃子|冷凍ぎょうざ|袋","冷凍からあげ|冷凍から揚げ|袋","冷凍コロッケ||袋","冷凍ポテト|フライドポテト|袋","ミックスベジタブル|冷凍野菜|袋","冷凍ほうれん草||袋","冷凍ブロッコリー||袋","シーフードミックス||袋","冷凍チャーハン||袋","冷凍たこ焼き||袋","ピザ|冷凍ピザ|枚","むきえび冷凍||袋","冷凍うどん||袋"],
+"調味料・油":["しょうゆ|醤油 しょう油 ショウユ|本","みそ|味噌 ミソ|パック","塩|しお 食塩|袋","砂糖|さとう 上白糖|袋","酢|お酢 米酢|本","みりん|味醂 ミリン|本","料理酒|酒 日本酒 清酒|本","サラダ油|油 食用油|本","ごま油|ゴマ油|本","オリーブオイル|オリーブ油|本","ケチャップ|トマトケチャップ|本","マヨネーズ|マヨ|本","ウスターソース|ソース|本","中濃ソース||本","とんかつソース||本","ポン酢|ぽん酢|本","めんつゆ|麺つゆ つゆ|本","白だし||本","だしの素|だし ほんだし 出汁|袋","鶏がらスープの素|鶏ガラ 鶏がら|個","コンソメ||箱","オイスターソース||本","豆板醤|トウバンジャン|個","甜麺醤|テンメンジャン|個","コチュジャン||個","カレールー|カレー ルー|箱","ハヤシルー|ハヤシライスの素|箱","シチュールー|シチューの素|箱","焼肉のたれ|焼き肉のたれ|本","すき焼きのたれ|割り下|本","ドレッシング||本","はちみつ|蜂蜜 ハチミツ|本","味の素|うま味調味料|個","こしょう|胡椒 コショウ ブラックペッパー|個","塩こしょう|塩コショウ|個","七味唐辛子|七味 唐辛子|個","一味唐辛子|一味|個","わさび|ワサビ 山葵|本","からし|辛子 マスタード|本","粒マスタード||個","しょうがチューブ|生姜チューブ おろし生姜|本","にんにくチューブ|おろしにんにく|本","ラー油|ラーゆ|本","練りごま||個","カレー粉||個","ナンプラー||本","甘酒||本"],
+"粉・その他":["小麦粉|薄力粉 こむぎこ|袋","強力粉||袋","片栗粉|かたくり粉|袋","パン粉||袋","天ぷら粉|天ぷら粉|袋","お好み焼き粉||袋","ホットケーキミックス|ホットケーキの素|箱","ベーキングパウダー||個","パスタソース||袋","ミートソース缶|ミートソース|缶","ホワイトソース缶|ホワイトソース|缶","白ごま|ごま 胡麻 いりごま|袋","すりごま|すり胡麻|袋","黒ごま||袋","きな粉|きなこ|袋","のり佃煮|海苔の佃煮|個","ふりかけ||袋","お茶漬けの素||箱"],
+"朝ごはん":["ジャム|いちごジャム マーマレード|個","マーガリン||個","シリアル|グラノーラ|袋","コーンフレーク||箱","はちみつ|蜂蜜|本","バナナ||房","ヨーグルト||個","目玉焼き||個","ベビーチーズ||袋"],
+"おやつ":["チョコレート|チョコ|個","スナック菓子|ポテチ ポテトチップス お菓子|袋","せんべい|煎餅 おせんべい|袋","クッキー||袋","ビスケット||袋","アイス|アイスクリーム|個","プリン||個","ゼリー||個","ガム||個","あめ|飴 キャンディ|袋","ケーキ||個","ドーナツ||個","ポップコーン||袋","グミ||袋","ナッツ|アーモンド ミックスナッツ|袋","チョコレート菓子||袋","ヨーグルト飲料||本"],
+"飲み物":["お茶|緑茶 おちゃ 麦茶|本","麦茶|むぎ茶|本","コーヒー|珈琲 インスタントコーヒー|袋","紅茶|こうちゃ ティーバッグ|箱","ジュース||本","オレンジジュース|オレンジ|本","りんごジュース|アップルジュース|本","トマトジュース||本","コーラ||本","炭酸水|ソーダ|本","スポーツドリンク|ポカリ アクエリアス|本","水|ミネラルウォーター お水|本","ビール|発泡酒|本","日本酒|清酒|本","ワイン||本","乳酸菌飲料||本","青汁||箱"],
+"キッチン":["キッチンペーパー||個","ラップ|サランラップ|個","アルミホイル|アルミ箔|個","クッキングシート|クッキングペーパー|個","ジップ袋|フリーザーバッグ ジップロック|箱","ゴミ袋|ごみ袋|袋","食器用洗剤|食器洗剤|本","スポンジ|台所スポンジ|個","キッチン泡ハイター|キッチンハイター|本","排水口ネット|水切りネット|袋","竹串||袋","爪楊枝|つまようじ|箱","キッチン手袋|使い捨て手袋|箱","保存容器|タッパー|個","たわし||個","水切りゴミ袋||袋"],
+"洗濯・掃除":["洗濯洗剤|洗剤 洗濯用洗剤|本","柔軟剤||本","漂白剤|ハイター|本","洗濯ネット||個","掃除用洗剤|住居用洗剤|本","ウェットシート|掃除シート|袋","トイレ洗剤|トイレ用洗剤|本","クイックルワイパー|フロアシート|個","重曹||袋","クエン酸||袋","消臭スプレー|ファブリーズ|本","除菌スプレー||本"],
+"洗面・お風呂":["シャンプー||本","コンディショナー|リンス トリートメント|本","ボディソープ|ボディーソープ|本","石けん|石鹸 せっけん|個","歯ブラシ|歯刷子|本","歯みがき粉|歯磨き粉 ハミガキ|本","洗顔料|洗顔フォーム|本","化粧水||本","ハンドソープ||本","入浴剤||袋","カミソリ|髭剃り ひげそり|個","綿棒|めんぼう|箱","ヘアゴム||個","ドライヤー||個"],
+"衛生・その他":["トイレットペーパー|トイレット トイレ紙|袋","ボックスティッシュ|ティッシュ ティシュ|箱","ポケットティッシュ||個","マスク||箱","絆創膏|ばんそうこう バンドエイド|箱","常備薬|かぜ薬 頭痛薬|個","電池|乾電池 単三 単四|個","ウェットティッシュ|おしりふき|個","生理用品|ナプキン|袋","おむつ|オムツ|袋","除菌シート||個","消臭剤||個","カイロ|使い捨てカイロ|袋","虫よけ|虫除け|本","日焼け止め||本"]
+};
+/* カタログのカテゴリ → 定番タブのカテゴリ */
+const CAT2GOODS={"野菜・きのこ":"食品・調味料","果物":"食品・調味料","肉":"食品・調味料","魚介":"食品・調味料","卵・乳製品":"食品・調味料","豆腐・大豆":"食品・調味料","米・パン・麺":"食品・調味料","缶詰・乾物":"食品・調味料","冷凍・加工":"食品・調味料","調味料・油":"食品・調味料","粉・その他":"食品・調味料","朝ごはん":"朝ごはん","おやつ":"おやつ・飲み物","飲み物":"おやつ・飲み物","キッチン":"キッチン","洗濯・掃除":"洗面・お風呂","洗面・お風呂":"洗面・お風呂","衛生・その他":"その他"};
+const CATALOG_CATS=Object.keys(CATALOG_RAW);
 const CATS_OLDS=[["主食","麺","肉","魚","おかず","副菜","汁物"],["主食","麺","肉","魚","おかず","汁物","副菜"]];
 const GOODS_SEED=["トイレットペーパー","ボックスティッシュ","キッチンペーパー","ラップ","アルミホイル","ゴミ袋","洗濯洗剤","柔軟剤","食器用洗剤","スポンジ","ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ","マスク","電池","卵","牛乳","食パン","米","サラダ油","しょうゆ","みそ","砂糖","塩"];
 const DAYS=["月","火","水","木","金","土","日"];
@@ -431,7 +460,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0720-5";
+const APP_VERSION="0720-6";
 let S=null;
 function newState(){
   return {
@@ -447,6 +476,8 @@ function newState(){
     storeMap:{},
     list:null,
     recent:[],
+    catRecent:[],
+    customCatalog:[],
     nextId:1
   };
 }
@@ -457,6 +488,8 @@ function load(){
   if(!S.recent) S.recent=[];
   if(!S.goodsStar) S.goodsStar={};
   if(!S.goodsCatMap) S.goodsCatMap={};
+  if(!S.catRecent) S.catRecent=[];
+  if(!S.customCatalog) S.customCatalog=[];
   if(!S.cats||!S.cats.length) S.cats=CATS.slice();
   else if(CATS_OLDS.some(o=>S.cats.join(",")===o.join(","))) S.cats=CATS.slice(); /* 未編集なら新しい順番に更新 */
   if(!S.plans){ S.plans={}; if(Array.isArray(S.week)) S.plans[keyOf(mondayOf(new Date()))]=S.week; }
@@ -531,9 +564,8 @@ function enableSort(container, commit, horiz){
       item.classList.add("dragging");
       document.body.classList.add("dragging-active");
       if(window.getSelection){ try{ window.getSelection().removeAllRanges(); }catch(_){} }
-      try{ handle.setPointerCapture(e.pointerId); }catch(_){}
       function move(ev){
-        ev.preventDefault();
+        if(ev.cancelable) ev.preventDefault();
         const others=[...container.querySelectorAll("[data-id]")].filter(x=>x!==item);
         let target=null;
         for(const o of others){
@@ -548,17 +580,16 @@ function enableSort(container, commit, horiz){
         if(target) container.insertBefore(item,target); else container.appendChild(item);
       }
       function up(){
-        try{ handle.releasePointerCapture(e.pointerId); }catch(_){}
-        handle.removeEventListener("pointermove",move);
-        handle.removeEventListener("pointerup",up);
-        handle.removeEventListener("pointercancel",up);
+        window.removeEventListener("pointermove",move);
+        window.removeEventListener("pointerup",up);
+        window.removeEventListener("pointercancel",up);
         item.classList.remove("dragging");
         document.body.classList.remove("dragging-active");
         commit([...container.querySelectorAll("[data-id]")].map(x=>x.getAttribute("data-id")));
       }
-      handle.addEventListener("pointermove",move);
-      handle.addEventListener("pointerup",up);
-      handle.addEventListener("pointercancel",up);
+      window.addEventListener("pointermove",move,{passive:false});
+      window.addEventListener("pointerup",up);
+      window.addEventListener("pointercancel",up);
     });
   });
 }
@@ -892,11 +923,11 @@ function rGoods(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<button class="btn sub wide" onclick="addGoods()">＋ 品物を追加</button>';
+  h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから品物を追加</button>';
   const n=Object.keys(S.goodsSel).filter(k=>S.goodsSel[k]).length;
   if(n&&!goodsEdit){
-    h+=`<p class="note" style="text-align:center;color:var(--or-d);font-weight:bold;font-size:14px">${n}個 選択中</p>`;
-    h+='<button class="cta" onclick="addSelGoods()">買い物リストに追加</button>';
+    h+='<div style="height:66px"></div>';
+    h+=`<div class="floatbar"><div class="fbcount">${n}個<br>選択中</div><button class="btn" style="flex:1;margin:0" onclick="addSelGoods()">🛒 買い物リストに追加</button></div>`;
   }
   return h;
 }
@@ -920,6 +951,88 @@ function addSelGoods(){
     else { S.list.items.push(gi); added++; }
   });
   save(); go('shop'); flash(added?added+"個をリストに追加しました":"もうリストに入っています");
+}
+
+/* ===== 品物カタログ（共通の追加元） ===== */
+let catSearch="", catFilter="", catOpenName="";
+function allCatalog(){
+  const arr=[];
+  CATALOG_CATS.forEach(c=>{ CATALOG_RAW[c].forEach(s=>{ const p=s.split("|"); arr.push({name:p[0], alias:p[1]||"", unit:p[2]||"", cat:c}); }); });
+  (S.customCatalog||[]).forEach(it=>{ if(!arr.some(x=>x.name===it.name)) arr.push(it); });
+  return arr;
+}
+function catInfo(name){ return allCatalog().find(x=>x.name===name)||{name:name, alias:"", unit:"", cat:"その他"}; }
+function openCatalog(){ catSearch=""; catFilter=""; catOpenName=""; showModal(); renderCatalog(); }
+function renderCatalog(){
+  const all=allCatalog();
+  const q=catSearch.trim();
+  let list;
+  if(q){ list=all.filter(x=>x.name.includes(q)||x.alias.includes(q)); }
+  else if(catFilter){ list=all.filter(x=>x.cat===catFilter); }
+  else { list=(S.catRecent||[]).map(n=>all.find(x=>x.name===n)).filter(Boolean); }
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>品物を追加</b></div>';
+  h+=`<input type="text" class="search" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';renderCatalog()">`;
+  if(!q){
+    h+='<div class="catbar">';
+    h+=`<button class="fchip ${catFilter===""?"on":""}" onclick="catFilter='';renderCatalog()">最近</button>`;
+    CATALOG_CATS.forEach(c=>{ h+=`<button class="fchip ${catFilter===c?"on":""}" onclick="catFilter='${esc(c)}';renderCatalog()">${esc(c)}</button>`; });
+    h+='</div>';
+  }
+  h+='<div class="card listcard">';
+  if(!list.length){
+    if(!q&&!catFilter) h+='<p class="note">最近使った品物がここに出ます。カテゴリか検索から選んでね。</p>';
+    else h+='<p class="note">見つかりません</p>';
+  }
+  list.forEach(it=>{
+    const open=catOpenName===it.name;
+    const inGoods=S.goods.includes(it.name);
+    const star=S.goodsStar[it.name];
+    h+=`<div class="catrow" onclick="catToggle('${esc(it.name)}')"><div class="dbody"><div class="nm">${star?"⭐ ":""}${esc(it.name)}</div><div class="ings">${esc(it.cat)}${it.unit?"・"+esc(it.unit):""}${inGoods?"・定番":""}</div></div><span class="paddbtn ${open?"on":""}">${open?"×":"＋"}</span></div>`;
+    if(open){
+      h+='<div class="catacts">';
+      h+=`<button class="sopt" onclick="event.stopPropagation();catAdd('${esc(it.name)}','buy')">🛒 今回買う</button>`;
+      h+=`<button class="sopt" onclick="event.stopPropagation();catAdd('${esc(it.name)}','teiban')">${inGoods?"定番に入ってる":"⏳ 定番に追加"}</button>`;
+      h+=`<button class="sopt ${star?"on":""}" style="${star?"background:var(--or);border-color:var(--or);color:#fff":""}" onclick="event.stopPropagation();catAdd('${esc(it.name)}','star')">⭐ 毎回買う</button>`;
+      h+='</div>';
+    }
+  });
+  h+='</div>';
+  if(q&&!list.some(x=>x.name===q)){
+    h+=`<button class="btn sub wide" onclick="registerCatalog('${esc(q)}')">＋「${esc(q)}」を新しく登録</button>`;
+  }
+  document.getElementById("modal").innerHTML=h;
+}
+function catToggle(name){ catOpenName=(catOpenName===name?"":name); renderCatalog(); }
+function catPushRecent(name){ S.catRecent=[name,...(S.catRecent||[]).filter(x=>x!==name)].slice(0,20); }
+function catAdd(name,target){
+  const info=catInfo(name);
+  catPushRecent(name);
+  if(target==="buy"){
+    if(!S.list) S.list=newList();
+    if(!S.list.items.some(it=>it.n===name)){
+      S.list.items.push({n:name, q:info.unit?1:"", u:info.unit||"", stock:false, done:false, store:S.storeMap[name]||"", manual:true});
+    }
+    flash(name+" を今回の買い物に追加");
+  } else if(target==="teiban"){
+    if(!S.goods.includes(name)) S.goods.push(name);
+    S.goodsCatMap[name]=CAT2GOODS[info.cat]||"その他";
+    S.goodsSel[name]=true;
+    flash(name+" を定番に追加（選択中）");
+  } else if(target==="star"){
+    if(!S.goods.includes(name)) S.goods.push(name);
+    S.goodsCatMap[name]=CAT2GOODS[info.cat]||"その他";
+    S.goodsStar[name]=!S.goodsStar[name];
+    if(!S.goodsStar[name]) delete S.goodsStar[name];
+    flash(S.goodsStar[name]?name+" を⭐毎回買うに設定":name+" の⭐を解除");
+  }
+  catOpenName=""; save(); renderCatalog();
+}
+function registerCatalog(name){
+  name=name.trim(); if(!name) return;
+  const cat=catFilter||"その他";
+  if(!S.customCatalog.some(x=>x.name===name)) S.customCatalog.push({name:name, alias:"", unit:"", cat:cat});
+  catSearch=""; catFilter=cat; catOpenName=name; save(); renderCatalog();
+  flash(name+" をカタログに登録しました");
 }
 
 /* ===== 買い物リスト ===== */
@@ -1008,7 +1121,8 @@ function rShop(){
       h+='<p class="note" style="margin-bottom:0">今週の献立で使うものだけ表示。タップすると「1本・1袋」として上のリストに入ります。もう一度押すと取り消し。</p></div>';
     }
     h+='<p class="note">チェックすると、店に関係なく購入済みになります。「在庫あり」にすると買うものから外れます。</p>';
-    h+='<button class="btn sub wide" onclick="addManual()">＋ リストに直接追加</button>';
+    h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから追加</button>';
+    h+='<div class="ctalink small" onclick="addManual()">キーボードで直接入力して追加</div>';
     h+='<div class="ctalink small" onclick="rebuildList()">リストをゼロから作り直す</div>';
   } else {
     const sel=shopFilter;
