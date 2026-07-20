@@ -470,7 +470,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0720-7";
+const APP_VERSION="0720-8";
 let S=null;
 function newState(){
   return {
@@ -559,9 +559,9 @@ function go(t){
 function render(){
   ["week","dish","goods","shop"].forEach(t=>document.getElementById("nav-"+t).classList.toggle("on",t===TAB));
   const v=document.getElementById("view");
-  if(TAB==="week") v.innerHTML=rWeek();
+  if(TAB==="week"){ v.innerHTML=rWeek(); enableSort(v.querySelector(".daylist"), commitDayOrder, false); }
   else if(TAB==="dish"){ v.innerHTML=rDish(); enableSort(v.querySelector(".listcard"), commitDishOrder, false); }
-  else if(TAB==="goods") v.innerHTML=rGoods();
+  else if(TAB==="goods"){ v.innerHTML=rGoods(); enableSort(v.querySelector(".listcard"), commitGoodsOrder, false); }
   else v.innerHTML=rShop();
 }
 /* 指ドラッグで並べ替え（ポインタ＝タッチ/マウス両対応）。horiz=true は横並びチップ用 */
@@ -609,6 +609,19 @@ function commitDishOrder(ids){
   ids.forEach((id,k)=>{ if(map[id]) S.dishes[pos[k]]=map[id]; });
   save();
 }
+function commitGoodsOrder(ids){
+  const pos=[]; S.goods.forEach((g,i)=>{ if(ids.indexOf(g)>=0) pos.push(i); });
+  ids.forEach((name,k)=>{ S.goods[pos[k]]=name; });
+  save();
+}
+/* 曜日ごとの献立を入れ替え（日付は固定、中身が移動） */
+function commitDayOrder(ids){
+  const oldW=curWeek(true);
+  const order=ids.map(x=>+x);
+  const newW=order.map(i=>oldW[i]||[]);
+  S.plans[curKey()]=newW;
+  save(); render();
+}
 function commitWeekOrder(ids){ curWeek(true)[pickDay]=ids.slice(); save(); }
 
 /* ===== 献立表（週） ===== */
@@ -632,18 +645,19 @@ function rWeek(){
     const dt=dates[i]; const isT=dt.toDateString()===todayStr;
     const cls=(i===5?"sat ":i===6?"sun ":"")+(isT?"today":"");
     const ds=wk[i].map(id=>dish(id)).filter(Boolean);
-    h+=`<div class="dayrow ${cls}" onclick="openDay(${i})">`;
+    h+=`<div class="dayrow ${cls}" data-id="${i}" onclick="openDay(${i})">`;
     h+=`<div class="dcol"><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
     if(ds.length){
       h+=`<div class="dmain"><div class="dtitle">${esc(ds[0].name)}</div>`;
       if(ds.length>1) h+=`<div class="dsub">${esc(ds.slice(1).map(x=>x.name).join("・"))}</div>`;
-      h+=`</div><span class="chev">›</span>`;
+      h+=`</div><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><span class="chev">›</span>`;
     } else {
       h+=`<div class="dmain dempty">献立を追加</div><span class="dplus">＋</span>`;
     }
     h+='</div>';
   });
   h+='</div>';
+  h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると、その日の献立をまるごと移せます。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
   h+='<div class="ctalink" onclick="go(\'shop\')">在庫を確認する ›</div>';
   h+='<div class="ctalink small" onclick="clearWeek()">献立表をクリア</div>';
@@ -768,7 +782,7 @@ function renderPicker(){
     wk[pickDay].forEach((id,j)=>{
       const ds=dish(id); if(!ds) return;
       const ig=ds.ing.slice(0,4).map(x=>x.n).join("・");
-      h+=`<div class="selbig" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">⠿</span><div class="sbmain" onclick="togSelDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span></div>`;
+      h+=`<div class="selbig" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="sbmain" onclick="togSelDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span></div>`;
     });
     h+='</div></div>';
     if(pickDetail){
@@ -823,7 +837,7 @@ function rDish(){
   h+='<div class="card listcard">';
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(d=>{
-    h+=`<div class="dishrow" data-id="${d.id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">⠿</span><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="arrow">›</span></div>`;
+    h+=`<div class="dishrow" data-id="${d.id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="arrow">›</span></div>`;
   });
   h+='</div>';
   h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい献立を作る</button>';
@@ -892,12 +906,12 @@ let catEdit=[];
 function openCatEdit(){ catEdit=S.cats.map(c=>({old:c, name:c})); showModal(); renderCatEdit(); }
 function renderCatEdit(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>カテゴリの編集</b></div>';
-  h+='<p class="note" style="margin-top:0">名前を書き換え・⠿を掴んでドラッグで並べ替え。献立の一覧と選択画面に反映されます。</p>';
+  h+='<p class="note" style="margin-top:0">名前を書き換え・☰を掴んでドラッグで並べ替え。献立の一覧と選択画面に反映されます。</p>';
   h+='<div class="card listcard">';
   catEdit.forEach((c,i)=>{
     const cnt=c.old?S.dishes.filter(d=>d.cat===c.old).length:0;
     h+=`<div class="ingrow" data-id="${i}" style="align-items:center">`;
-    h+=`<span class="draghandle" data-sort onclick="event.stopPropagation()">⠿</span>`;
+    h+=`<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>`;
     h+=`<input class="n" type="text" value="${esc(c.name)}" oninput="catEdit[${i}].name=this.value">`;
     h+=`<span class="arq" style="width:44px;text-align:right;margin:0">${cnt}品</span>`;
     h+=`<button class="rm" onclick="delCat(${i})">✕</button>`;
@@ -941,10 +955,11 @@ function rGoods(){
   list.forEach(([g,i])=>{
     const sel=S.goodsSel[g], star=S.goodsStar[g];
     const active=(sel||star)&&!goodsEdit;
-    h+=`<div class="dishrow ${active?"selrow":""}" onclick="${goodsEdit?`togStar('${esc(g)}')`:`togGoods('${esc(g)}')`}">`;
-    h+=`<div class="dbody"><div class="nm">${star?"⭐ ":""}${esc(g)}</div><div class="ings">${esc(goodsCat(g))}${star?"・毎回追加":sel?"・選択中":""}</div></div>`;
+    h+=`<div class="dishrow ${active?"selrow":""}" data-id="${esc(g)}">`;
+    h+=`<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>`;
+    h+=`<div class="dbody" onclick="${goodsEdit?`togStar('${esc(g)}')`:`togGoods('${esc(g)}')`}"><div class="nm">${star?"⭐ ":""}${esc(g)}</div><div class="ings">${esc(goodsCat(g))}${star?"・毎回追加":sel?"・選択中":""}</div></div>`;
     if(goodsEdit) h+=`<span class="arrow" onclick="event.stopPropagation();delGoods(${i})" style="color:var(--danger);font-size:16px">✕</span>`;
-    else h+=`<span class="ckb2">${active?"✓":""}</span>`;
+    else h+=`<span class="ckb2" onclick="${goodsEdit?"":`togGoods('${esc(g)}')`}">${active?"✓":""}</span>`;
     h+='</div>';
   });
   h+='</div>';
