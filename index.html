@@ -430,6 +430,7 @@ function newState(){
     goodsSel:{},
     goodsStar:{},
     goodsCatMap:{},
+    cats:CATS.slice(),
     stores:["ツルハ","ビッグ","その他"],
     storeMap:{},
     list:null,
@@ -444,6 +445,7 @@ function load(){
   if(!S.recent) S.recent=[];
   if(!S.goodsStar) S.goodsStar={};
   if(!S.goodsCatMap) S.goodsCatMap={};
+  if(!S.cats||!S.cats.length) S.cats=CATS.slice();
   GOODS_NEW.forEach(g=>{ if(!S.goods.includes(g)) S.goods.push(g); });
   S.dishes.forEach(d=>{ if(!d.sv) d.sv=3; });
   /* テンプレ側で増えた材料を、保存済みの献立にも補充（ユーザーの編集は触らない） */
@@ -689,7 +691,7 @@ function renderPicker(){
   h+=`<input type="text" class="search" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
   h+='<div class="catbar">';
   h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
-  CATS.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${c}';renderPicker()">${c}</button>`; });
+  S.cats.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${esc(c)}';renderPicker()">${esc(c)}</button>`; });
   h+='</div>';
   const q=pickSearch.trim();
   let list;
@@ -719,7 +721,8 @@ function rDish(){
   h+=`<input type="text" class="search" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;render()">`;
   h+='<div class="catbar">';
   h+=`<button class="fchip ${dishCat===""?"on":""}" onclick="dishCat='';render()">すべて</button>`;
-  CATS.forEach(c=>{ h+=`<button class="fchip ${dishCat===c?"on":""}" onclick="dishCat='${c}';render()">${c}</button>`; });
+  S.cats.forEach(c=>{ h+=`<button class="fchip ${dishCat===c?"on":""}" onclick="dishCat='${esc(c)}';render()">${esc(c)}</button>`; });
+  h+=`<button class="fchip" onclick="openCatEdit()" style="color:var(--sub)">✏️編集</button>`;
   h+='</div>';
   const q=dishSearch.trim();
   const list=S.dishes.filter(d=>(!dishCat||d.cat===dishCat)&&(!q||d.name.includes(q)||d.ing.some(i=>i.n.includes(q))));
@@ -748,7 +751,7 @@ function renderEditor(){
   let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${t.id?"献立を編集":"新しい献立"}</b></div>`;
   h+=`<div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" style="flex:1;min-width:0" placeholder="料理名" value="${esc(t.name)}" oninput="editTarget.name=this.value">`;
   h+='<select onchange="editTarget.cat=this.value">';
-  CATS.forEach(c=>{ h+=`<option ${c===t.cat?"selected":""}>${c}</option>`; });
+  S.cats.forEach(c=>{ h+=`<option ${c===t.cat?"selected":""}>${esc(c)}</option>`; });
   h+='</select></div>';
   h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;">下の分量は<input type="number" min="1" style="width:60px" value="${t.sv}" oninput="editTarget.sv=this.value">人分</div>`;
   h+='<div style="font-size:12px;color:#9a8d7c;margin-bottom:4px;">材料　／　数量　／　単位（個・g・本など）</div>';
@@ -788,6 +791,42 @@ function delDish(){
   S.week=S.week.map(day=>day.filter(x=>x!==id));
   S.recent=S.recent.filter(x=>x!==id);
   save(); closeModal();
+}
+
+/* ===== カテゴリ編集（名前変更・並べ替え・追加・削除） ===== */
+let catEdit=[];
+function openCatEdit(){ catEdit=S.cats.map(c=>({old:c, name:c})); showModal(); renderCatEdit(); }
+function renderCatEdit(){
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>カテゴリの編集</b></div>';
+  h+='<p class="note" style="margin-top:0">名前を書き換え・▲▼で並べ替え。献立の一覧と選択画面に反映されます。</p>';
+  h+='<div class="card listcard">';
+  catEdit.forEach((c,i)=>{
+    const cnt=S.dishes.filter(d=>d.cat===c.old).length;
+    h+='<div class="ingrow" style="align-items:center">';
+    h+=`<input class="n" type="text" value="${esc(c.name)}" oninput="catEdit[${i}].name=this.value">`;
+    h+=`<span class="arq" style="width:44px;text-align:right;margin:0">${cnt}品</span>`;
+    h+=`<button class="rm" style="color:var(--sub);font-size:15px" onclick="moveCat(${i},-1)">▲</button>`;
+    h+=`<button class="rm" style="color:var(--sub);font-size:15px" onclick="moveCat(${i},1)">▼</button>`;
+    h+=`<button class="rm" onclick="delCat(${i})">✕</button>`;
+    h+='</div>';
+  });
+  h+='</div>';
+  h+='<button class="btn sub small" onclick="addCat()">＋ カテゴリを追加</button>';
+  h+='<div class="row2" style="margin-top:12px"><button class="btn" onclick="saveCats()">保存</button><button class="btn sub" onclick="closeModal()">キャンセル</button></div>';
+  h+='<p class="note">カテゴリを消しても、その料理は消えません（「すべて」から見られます）。</p>';
+  document.getElementById("modal").innerHTML=h;
+}
+function moveCat(i,dir){ const j=i+dir; if(j<0||j>=catEdit.length) return; const t=catEdit[i]; catEdit[i]=catEdit[j]; catEdit[j]=t; renderCatEdit(); }
+function addCat(){ catEdit.push({old:null, name:""}); renderCatEdit(); }
+function delCat(i){ catEdit.splice(i,1); renderCatEdit(); }
+function saveCats(){
+  const names=catEdit.map(c=>c.name.trim()).filter(Boolean);
+  if(new Set(names).size!==names.length){ alert("同じ名前のカテゴリがあります"); return; }
+  if(!names.length){ alert("カテゴリを1つ以上残してください"); return; }
+  catEdit.forEach(c=>{ const nm=c.name.trim(); if(c.old&&nm&&nm!==c.old){ S.dishes.forEach(d=>{ if(d.cat===c.old) d.cat=nm; }); } });
+  S.cats=names;
+  if(dishCat&&!S.cats.includes(dishCat)) dishCat="";
+  save(); closeModal(); flash("カテゴリを更新しました");
 }
 
 /* ===== 定番（いつも買う物） ===== */
