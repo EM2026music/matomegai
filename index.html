@@ -378,8 +378,8 @@ const SEED=[
 ["汁物","キャベツスープ",[["キャベツ",0.25,"個"],["ベーコン",50,"g"],["コンソメ",2,"個"]]],
 ["汁物","コーンポタージュ",[["コーンクリーム缶",1,"缶"],["玉ねぎ",0.5,"個"],["牛乳",300,"ml"],["バター",20,"g"],["コンソメ",1,"個"]]]
 ];
-const CATS=["主食","麺","肉","魚","おかず","汁物","副菜"];
-const CATS_OLD=["主食","麺","肉","魚","おかず","副菜","汁物"];
+const CATS=["主食","肉","魚","おかず","汁物","副菜","麺"];
+const CATS_OLDS=[["主食","麺","肉","魚","おかず","副菜","汁物"],["主食","麺","肉","魚","おかず","汁物","副菜"]];
 const GOODS_SEED=["トイレットペーパー","ボックスティッシュ","キッチンペーパー","ラップ","アルミホイル","ゴミ袋","洗濯洗剤","柔軟剤","食器用洗剤","スポンジ","ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ","マスク","電池","卵","牛乳","食パン","米","サラダ油","しょうゆ","みそ","砂糖","塩"];
 const DAYS=["月","火","水","木","金","土","日"];
 const STORE_COLORS=["#e05a5a","#4a7ab5","#6aa84f","#b58a4a","#8a5ab5","#4ab5a8","#777777"];
@@ -431,7 +431,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0720-4";
+const APP_VERSION="0720-5";
 let S=null;
 function newState(){
   return {
@@ -458,7 +458,7 @@ function load(){
   if(!S.goodsStar) S.goodsStar={};
   if(!S.goodsCatMap) S.goodsCatMap={};
   if(!S.cats||!S.cats.length) S.cats=CATS.slice();
-  else if(S.cats.join(",")===CATS_OLD.join(",")) S.cats=CATS.slice(); /* 未編集なら新しい順番に更新 */
+  else if(CATS_OLDS.some(o=>S.cats.join(",")===o.join(","))) S.cats=CATS.slice(); /* 未編集なら新しい順番に更新 */
   if(!S.plans){ S.plans={}; if(Array.isArray(S.week)) S.plans[keyOf(mondayOf(new Date()))]=S.week; }
   delete S.week;
   GOODS_NEW.forEach(g=>{ if(!S.goods.includes(g)) S.goods.push(g); });
