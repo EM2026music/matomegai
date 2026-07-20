@@ -70,6 +70,10 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .dbody{flex:1; min-width:0;}
 .dishrow.dragging,.chip.dragging{opacity:.5;}
 .dishrow.dragging{background:var(--or-bg); border-radius:10px;}
+.dishrow.selrow{background:#eef7ef; border-radius:10px;}
+.dishrow.selrow .nm{color:var(--green);}
+.ckb2{width:24px; height:24px; border:2px solid #d9cdb8; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; flex-shrink:0;}
+.dishrow.selrow .ckb2{background:var(--green); border-color:var(--green);}
 /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
 .gbtn{border:1.5px solid #eadfce; background:#fff; border-radius:12px; padding:10px 12px; font-size:13px; cursor:pointer; color:#5c5245;}
@@ -385,7 +389,9 @@ function kindOf(n){
   if(KW_MEAT.some(k=>n.includes(k))) return "肉・魚";
   return "その他";
 }
+const GOODS_ORDER=["おやつ・飲み物","朝ごはん","食品・調味料","キッチン","洗面・お風呂","その他"];
 function goodsCat(g){
+  if(S.goodsCatMap&&S.goodsCatMap[g]) return S.goodsCatMap[g];
   for(const c in GOODS_CATS){ if(GOODS_CATS[c].includes(g)) return c; }
   return "その他";
 }
@@ -423,6 +429,7 @@ function newState(){
     goods:GOODS_SEED.slice(),
     goodsSel:{},
     goodsStar:{},
+    goodsCatMap:{},
     stores:["ツルハ","ビッグ","その他"],
     storeMap:{},
     list:null,
@@ -436,6 +443,7 @@ function load(){
   if(!S.family) S.family=3;
   if(!S.recent) S.recent=[];
   if(!S.goodsStar) S.goodsStar={};
+  if(!S.goodsCatMap) S.goodsCatMap={};
   GOODS_NEW.forEach(g=>{ if(!S.goods.includes(g)) S.goods.push(g); });
   S.dishes.forEach(d=>{ if(!d.sv) d.sv=3; });
   /* テンプレ側で増えた材料を、保存済みの献立にも補充（ユーザーの編集は触らない） */
@@ -782,24 +790,32 @@ function delDish(){
   save(); closeModal();
 }
 
-/* ===== 日用品 ===== */
-let goodsEdit=false;
+/* ===== 定番（いつも買う物） ===== */
+let goodsEdit=false, goodsFilter="", goodsSearch="";
 function rGoods(){
   let h='<div class="pagehead"><div class="ptitle">定番（いつも買う物）</div>';
   h+=`<button class="pill" onclick="goodsEdit=!goodsEdit;render()">${goodsEdit?"整理おわり":"ボタン整理"}</button></div>`;
-  h+=`<p class="note">${goodsEdit?"タップで⭐毎回追加のON/OFF、✕で削除":"買うものをタップ。⭐付きはリスト作成時に自動で入ります"}</p>`;
-  const secs={};
-  S.goods.forEach((g,i)=>{ const c=goodsCat(g); (secs[c]=secs[c]||[]).push([g,i]); });
-  ["おやつ・飲み物","朝ごはん","食品・調味料","キッチン","洗面・お風呂","その他"].forEach(sec=>{
-    if(!secs[sec]) return;
-    h+=`<div class="kindhead">${sec}</div><div class="goodsgrid">`;
-    secs[sec].forEach(([g,i])=>{
-      const sel=S.goodsSel[g], star=S.goodsStar[g];
-      h+=`<button class="gbtn ${(sel||star)&&!goodsEdit?"sel":""}" onclick="${goodsEdit?`togStar('${esc(g)}')`:`togGoods('${esc(g)}')`}">${star?"⭐":""}${esc(g)}${(sel||star)&&!goodsEdit?'<span class="gchk">✓</span>':''}${goodsEdit?`<span class="del" onclick="event.stopPropagation();delGoods(${i})">✕</span>`:''}</button>`;
-    });
+  h+=`<p class="note">${goodsEdit?"タップで⭐毎回追加のON/OFF、✕で削除":"買うものをタップで選択。⭐付きはリスト作成時に自動で入ります"}</p>`;
+  h+=`<input type="text" class="search" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;render()">`;
+  h+='<div class="catbar">';
+  h+=`<button class="fchip ${goodsFilter===""?"on":""}" onclick="goodsFilter='';render()">すべて</button>`;
+  GOODS_ORDER.forEach(c=>{ h+=`<button class="fchip ${goodsFilter===c?"on":""}" onclick="goodsFilter='${c}';render()">${c}</button>`; });
+  h+='</div>';
+  const q=goodsSearch.trim();
+  const list=S.goods.map((g,i)=>[g,i]).filter(([g])=>(!goodsFilter||goodsCat(g)===goodsFilter)&&(!q||g.includes(q)));
+  h+='<div class="card listcard">';
+  if(!list.length) h+='<p class="note">見つかりません</p>';
+  list.forEach(([g,i])=>{
+    const sel=S.goodsSel[g], star=S.goodsStar[g];
+    const active=(sel||star)&&!goodsEdit;
+    h+=`<div class="dishrow ${active?"selrow":""}" onclick="${goodsEdit?`togStar('${esc(g)}')`:`togGoods('${esc(g)}')`}">`;
+    h+=`<div class="dbody"><div class="nm">${star?"⭐ ":""}${esc(g)}</div><div class="ings">${esc(goodsCat(g))}${star?"・毎回追加":sel?"・選択中":""}</div></div>`;
+    if(goodsEdit) h+=`<span class="arrow" onclick="event.stopPropagation();delGoods(${i})" style="color:var(--danger);font-size:16px">✕</span>`;
+    else h+=`<span class="ckb2">${active?"✓":""}</span>`;
     h+='</div>';
   });
-  h+='<button class="btn sub wide" onclick="addGoods()">＋ ボタンを追加</button>';
+  h+='</div>';
+  h+='<button class="btn sub wide" onclick="addGoods()">＋ 品物を追加</button>';
   const n=Object.keys(S.goodsSel).filter(k=>S.goodsSel[k]).length;
   if(n&&!goodsEdit){
     h+=`<p class="note" style="text-align:center;color:var(--or-d);font-weight:bold;font-size:14px">${n}個 選択中</p>`;
@@ -809,11 +825,13 @@ function rGoods(){
 }
 function togGoods(g){ S.goodsSel[g]=!S.goodsSel[g]; save(); render(); }
 function addGoods(){
-  const n=prompt("ボタンにする品名（例：猫のえさ）"); if(!n||!n.trim()) return;
-  if(!S.goods.includes(n.trim())) S.goods.push(n.trim());
+  const n=prompt("品名を入れてください（例：猫のえさ）"); if(!n||!n.trim()) return;
+  const nm=n.trim();
+  if(!S.goods.includes(nm)) S.goods.push(nm);
+  if(goodsFilter&&goodsFilter!=="その他") S.goodsCatMap[nm]=goodsFilter; /* 今開いてるカテゴリに入れる */
   save(); render();
 }
-function delGoods(i){ const g=S.goods[i]; if(confirm(`「${g}」のボタンを消しますか？`)){ delete S.goodsSel[g]; S.goods.splice(i,1); save(); render(); } }
+function delGoods(i){ const g=S.goods[i]; if(confirm(`「${g}」を消しますか？`)){ delete S.goodsSel[g]; delete S.goodsStar[g]; delete S.goodsCatMap[g]; S.goods.splice(i,1); save(); render(); } }
 function addSelGoods(){
   if(!S.list) S.list=newList();
   let added=0;
