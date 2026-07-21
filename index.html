@@ -18,6 +18,7 @@
   --line:#f0e5d6; --green:#5ba463; --danger:#d9534f;
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{max-width:100%; overflow-x:hidden;} /* 横にはみ出してスクロールしないように */
 body{margin:0; font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; background:var(--bg); color:var(--ink); padding-bottom:calc(92px + env(safe-area-inset-bottom));}
 main{max-width:640px; margin:0 auto; padding:18px 14px 10px;}
 h2{font-size:15px; margin:14px 2px 8px; color:var(--or-d);}
@@ -553,7 +554,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-18";
+const APP_VERSION="0721-19";
 let S=null;
 function newState(){
   return {
@@ -657,6 +658,20 @@ function curWeek(create){
   return S.plans[k];
 }
 function weekDates(){ const m=curMonday(); return DAYS.map((_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
+/* 長押しで消す（タップは通常動作のまま） */
+let lpTimer=null, lpFired=false;
+function lpStart(fn){ lpFired=false; clearTimeout(lpTimer); lpTimer=setTimeout(function(){ lpFired=true; if(navigator.vibrate) navigator.vibrate(30); fn(); },550); }
+function lpEnd(){ clearTimeout(lpTimer); }
+function lpTap(fn){ if(lpFired){ lpFired=false; return; } fn(); }
+/* その日・その食事の献立をまとめて消す */
+function clearSlot(i,k){
+  const wk=curWeek(true); const names=(wk[i][k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
+  if(!names.length) return;
+  const dt=weekDates()[i]; const ml=MEALS.find(m=>m.k===k);
+  const label=`${dt.getMonth()+1}/${dt.getDate()}(${DAYS[i]})${onMeals().length>1?"の"+ml.label:""}`;
+  if(!confirm(label+" の献立を消しますか？\n\n"+names.join("・"))) return;
+  wk[i][k]=[]; save(); render(); flash(label+" を空にしました");
+}
 function togWeekView(){ S.weekView=(S.weekView==="main"?"all":"main"); save(); render(); }
 function shiftWeek(d){ weekOffset+=d; render(); }
 function gotoThisWeek(){ weekOffset=0; render(); }
@@ -813,12 +828,12 @@ function rWeek(){
           } else {
             body=`<div class="mnames">${esc(names.join("・"))}</div>`;
           }
-          h+=`<div class="mealcol ${m.k}" onclick="event.stopPropagation();openDayMeal(${i},'${m.k}')"><div class="mlabel">${m.label}</div>${body}</div>`;
+          h+=`<div class="mealcol ${m.k}" onpointerdown="event.stopPropagation();lpStart(function(){clearSlot(${i},'${m.k}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()" onclick="event.stopPropagation();lpTap(function(){openDayMeal(${i},'${m.k}')})"><div class="mlabel">${m.label}</div>${body}</div>`;
         });
         h+='</div>';
       } else {
         const names=(wk[i][ms[0].k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
-        h+=`<div class="dmain"><div class="dtitle mnames big">${esc(names[0]||"")}</div>`;
+        h+=`<div class="dmain" onpointerdown="event.stopPropagation();lpStart(function(){clearSlot(${i},'${ms[0].k}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()" onclick="event.stopPropagation();lpTap(function(){openDayMeal(${i},'${ms[0].k}')})"><div class="dtitle mnames big">${esc(names[0]||"")}</div>`;
         if(names.length>1){
           h+=(S.weekView==="main")
             ? `<div class="more">ほか${names.length-1}品</div>`
@@ -839,7 +854,7 @@ function rWeek(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると、その日の献立をまるごと移せます。</p>';
+  h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると献立を移せます。献立を<b>長押しすると、その食事をまとめて消せます</b>。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
   h+='<div class="ctalink" onclick="go(\'shop\')">在庫を確認する ›</div>';
   h+='<div class="ctalink small" onclick="clearWeek()">献立表をクリア</div>';
