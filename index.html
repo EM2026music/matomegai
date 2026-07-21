@@ -60,12 +60,13 @@ h2{font-size:15px; margin:14px 2px 8px; color:var(--or-d);}
 input[type=text],input[type=number],select{font-size:15px; padding:8px; border:1.5px solid #e0d5c2; border-radius:10px; background:#fff; color:var(--ink);}
 input:focus,select:focus{outline:2px solid var(--or);}
 .search{width:100%; padding:11px 14px; border-radius:12px; margin-bottom:10px;}
-.catbar{display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:4px;}
+/* カテゴリは横スクロールせず折り返して全部見えるように */
+.catbar{display:flex; flex-wrap:wrap; gap:6px; padding-bottom:8px; margin-bottom:4px;}
 .stickytop{position:sticky; top:0; z-index:8; background:var(--bg); margin:0 -14px 4px; padding:8px 14px 0;}
 .searchrow{display:flex; gap:8px; align-items:center; margin-bottom:10px;}
 .searchrow .search{flex:1; min-width:0;}
 .newbtn{flex-shrink:0; border:none; background:var(--or); color:#fff; font-weight:bold; font-size:13px; padding:11px 12px; border-radius:12px; cursor:pointer;}
-.fchip{flex-shrink:0; border:1.5px solid #e8ddcb; background:#fff; color:#6f6354; border-radius:20px; padding:7px 13px; font-size:13px; cursor:pointer;}
+.fchip{flex-shrink:0; border:1.5px solid #e8ddcb; background:#fff; color:#6f6354; border-radius:20px; padding:6px 11px; font-size:12.5px; line-height:1.35; cursor:pointer;}
 .fchip.on{background:var(--or); border-color:var(--or); color:#fff; font-weight:bold;}
 .kindhead{font-size:13px; font-weight:800; color:#7d6f5c; margin:14px 2px 7px;}
 .note{font-size:12px; color:var(--sub); margin:6px 2px;}
@@ -534,7 +535,7 @@ const CATALOG_RAW={
 "衛生・その他":["トイレットペーパー|トイレット トイレ紙|袋","ボックスティッシュ|ティッシュ ティシュ|箱","ポケットティッシュ||個","マスク||箱","絆創膏|ばんそうこう バンドエイド|箱","常備薬|かぜ薬 頭痛薬|個","電池|乾電池 単三 単四|個","ウェットティッシュ|おしりふき|個","生理用品|ナプキン|袋","おむつ|オムツ|袋","除菌シート||個","消臭剤||個","カイロ|使い捨てカイロ|袋","虫よけ|虫除け|本","日焼け止め||本"]
 };
 /* カタログのカテゴリ → 定番タブのカテゴリ */
-const CAT2GOODS={"野菜・きのこ":"食品","果物":"食品","肉":"食品","魚介":"食品","卵・乳製品":"食品","豆腐・大豆":"食品","米・パン・麺":"食品","缶詰・乾物":"食品","冷凍・加工":"食品","朝ごはん":"食品","調味料・油":"調味料","粉・その他":"調味料","おやつ":"おやつ","飲み物":"飲み物","キッチン":"キッチン","洗濯・掃除":"洗面・お風呂","洗面・お風呂":"洗面・お風呂","衛生・その他":"その他"};
+const CAT2GOODS={"野菜・きのこ":"食品","果物":"食品","肉":"食品","魚介":"食品","卵・乳製品":"食品","豆腐・大豆":"食品","米・パン・麺":"食品","缶詰・乾物":"食品","冷凍・加工":"冷凍食品","朝ごはん":"食品","調味料・油":"調味料","粉・その他":"調味料","おやつ":"おやつ","飲み物":"飲み物","キッチン":"キッチン","洗濯・掃除":"掃除・洗濯","洗面・お風呂":"洗面・お風呂","衛生・その他":"衛生用品"};
 const CATALOG_CATS=Object.keys(CATALOG_RAW);
 const CATS_OLDS=[["主食","麺","肉","魚","おかず","副菜","汁物"],["主食","麺","肉","魚","おかず","汁物","副菜"],["主食","肉","魚","おかず","汁物","副菜","麺"],["主食","肉","魚","おかず","汁物","副菜","麺","朝ごはん"]];
 const GOODS_SEED=["トイレットペーパー","ボックスティッシュ","キッチンペーパー","ラップ","アルミホイル","ゴミ袋","洗濯洗剤","柔軟剤","食器用洗剤","スポンジ","ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ","マスク","電池","卵","牛乳","食パン","米","サラダ油","しょうゆ","みそ","砂糖","塩"];
@@ -550,8 +551,11 @@ const GOODS_CATS={
   "調味料":["サラダ油","しょうゆ","みそ","砂糖","塩"],
   "おやつ":["チョコレート","スナック菓子","アイス"],
   "飲み物":["トマトジュース","コーラ","お茶","コーヒー"],
+  "冷凍食品":["冷凍うどん","冷凍餃子","冷凍ポテト","アイス"],
   "キッチン":["キッチンペーパー","ラップ","アルミホイル","ゴミ袋","食器用洗剤","スポンジ"],
-  "洗面・お風呂":["トイレットペーパー","ボックスティッシュ","洗濯洗剤","柔軟剤","ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ"]
+  "掃除・洗濯":["洗濯洗剤","柔軟剤","漂白剤","掃除用洗剤","ウェットシート"],
+  "洗面・お風呂":["ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ"],
+  "衛生用品":["トイレットペーパー","ボックスティッシュ","マスク","絆創膏"]
 };
 const GOODS_NEW=["チョコレート","スナック菓子","アイス","トマトジュース","コーラ","お茶","コーヒー","ジャム","ヨーグルト","シリアル","バナナ"];
 const KW_OTHER=["牛乳","の素","ルー","スープ","冷凍","コロッケ","たれ","つゆ","ドレッシング"];
@@ -563,7 +567,7 @@ function kindOf(n){
   if(KW_MEAT.some(k=>n.includes(k))) return "肉・魚";
   return "その他";
 }
-const GOODS_ORDER=["食品","調味料","おやつ","飲み物","キッチン","洗面・お風呂","その他"];
+const GOODS_ORDER=["食品","調味料","冷凍食品","おやつ","飲み物","キッチン","掃除・洗濯","洗面・お風呂","衛生用品","その他"];
 function goodsCat(g){
   if(S.goodsCatMap&&S.goodsCatMap[g]) return S.goodsCatMap[g];
   for(const c in GOODS_CATS){ if(GOODS_CATS[c].includes(g)) return c; }
@@ -597,7 +601,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-30";
+const APP_VERSION="0721-31";
 let S=null;
 function newState(){
   return {
@@ -640,6 +644,12 @@ function load(){
     if(v==="食品・調味料"||v==="おやつ・飲み物"){
       const mapped=CAT2GOODS[catInfo(k).cat];
       S.goodsCatMap[k]=mapped||(v==="食品・調味料"?"食品":"おやつ");
+      return;
+    }
+    /* 分類を細かくした分の移行（洗面/その他から、掃除・衛生・冷凍へ振り直す） */
+    if(v==="洗面・お風呂"||v==="その他"||v==="食品"){
+      const m=CAT2GOODS[catInfo(k).cat];
+      if(m&&m!==v&&GOODS_ORDER.indexOf(m)>=0) S.goodsCatMap[k]=m;
     }
   });
   if(!S.pantryList) S.pantryList=Object.keys(PANTRY).map(n=>({n:n, q:PANTRY[n].q, u:PANTRY[n].u}));
