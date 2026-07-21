@@ -119,6 +119,10 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .mealcol.b{border-color:#e8873c;} .mealcol.b .mlabel{color:#c96f28;}
 .mealcol.l{border-color:#e0b23c;} .mealcol.l .mlabel{color:#a37c12;}
 .mealcol.d{border-color:#4a7ab5;} .mealcol.d .mlabel{color:#37608f;}
+/* 夜＝その日のメイン。淡い青帯＋大きめ文字で目立たせる（複数食事のときだけ） */
+.mealcols .mealcol.d{background:#eef3f9; border-radius:0 10px 10px 0; padding:6px 9px 6px 8px; margin-left:0;}
+.mealcols .mealcol.d .mnames.big{font-size:17px;}
+.mealcols .mealcol.d .mnames{font-size:13.5px;}
 .mealpick{background:#f6efe4; border-radius:14px; padding:10px 12px; margin-bottom:12px;}
 .mplabel{font-size:12px; color:var(--sub); font-weight:bold; margin-bottom:8px;}
 .mprow{display:flex; gap:8px;}
@@ -562,7 +566,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-22";
+const APP_VERSION="0721-24";
 let S=null;
 function newState(){
   return {
@@ -1905,21 +1909,33 @@ window.addEventListener("popstate",function(e){
     const st0=e.state; if(st0&&st0.tab) TAB=st0.tab;
     render(); return;
   }
-  /* サブタブにいる → 履歴の状態に合わせて描画。ホームまで戻す */
   const st=e.state;
+  /* 土台まで戻ってきた＝一番最初の画面で「戻る」を押した */
+  if(st&&st.base){
+    if(TAB!=="week"){ /* 念のためホームへ戻して踏みとどまる */
+      TAB="week"; history.pushState({tab:"week"},""); render(); return;
+    }
+    if(!exitArmed){
+      exitArmed=true;
+      history.pushState({tab:"week"},"");   /* 押し戻して閉じさせない */
+      flash("もう一度「戻る」で閉じます");
+      setTimeout(function(){ exitArmed=false; },2000);
+      return;
+    }
+    history.back();  /* 2回目＝本当に閉じる */
+    return;
+  }
+  /* サブタブにいる → ホームまで戻す */
   if(st&&st.tab&&st.tab!=="week"){ TAB=st.tab; render(); return; }
   if(TAB!=="week"){ TAB="week"; render(); return; }
-  /* ここに来たら次はアプリが閉じる。誤操作防止で1回目は引き止める */
-  if(!exitArmed){
-    exitArmed=true;
-    history.pushState({tab:"week"},"");
-    flash("もう一度「戻る」で閉じます");
-    setTimeout(function(){ exitArmed=false; },2000);
-  }
 });
 
 load();
-history.replaceState({tab:"week"},"");
+/* 土台の履歴を1つ余分に確保しておく。
+   これが無いと、ホーム画面から起動したPWAでは「戻る」の行き先が無く、
+   popstateも起きずにアプリが即終了してしまう。 */
+history.replaceState({tab:"week", base:true},"");
+history.pushState({tab:"week"},"");
 render();
 
 /* アプリとしてインストール＆オフライン対応（http/https のときだけ） */
