@@ -79,6 +79,8 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .draghandle{color:#cdbfa8; font-size:19px; padding:6px 12px 6px 2px; touch-action:none; -webkit-user-select:none; user-select:none; flex-shrink:0; cursor:grab;}
 .dishrow,.ingrow,.pickrow,.assignrow,.selchips .chip{-webkit-user-select:none; user-select:none;}
 .dragging-active,.dragging-active *{-webkit-user-select:none !important; user-select:none !important; cursor:grabbing !important;}
+/* 入力欄だけは必ず文字入力・選択できるようにする（上のuser-select:noneを打ち消す） */
+input,textarea,select,[contenteditable]{-webkit-user-select:text !important; user-select:text !important; -webkit-touch-callout:default !important; cursor:auto !important;}
 .chip .draghandle{color:rgba(255,255,255,.8); padding:0 4px 0 0; font-size:14px;}
 .dbody{flex:1; min-width:0;}
 .dishrow.dragging,.chip.dragging{opacity:.5;}
@@ -551,7 +553,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-16";
+const APP_VERSION="0721-17";
 let S=null;
 function newState(){
   return {
@@ -672,13 +674,27 @@ function go(t){
     history.back(); /* サブタブ→ホームは履歴を戻す（popstateでホーム描画） */
   }
 }
+/* 再描画してもカーソル位置を保つ（検索欄で1文字ずつ切れないように） */
+function setHTML(el,html){
+  const a=document.activeElement;
+  const id=(a&&a.id)||"", ss=(a&&a.selectionStart), se=(a&&a.selectionEnd);
+  el.innerHTML=html;
+  if(id){
+    const b=document.getElementById(id);
+    if(b&&b!==document.activeElement){
+      b.focus({preventScroll:true});
+      try{ if(ss!=null) b.setSelectionRange(ss,se); }catch(_){}
+    }
+  }
+}
 function render(){
+  document.body.classList.remove("dragging-active"); /* 万一ドラッグ状態が残っても解除 */
   ["week","dish","goods","shop"].forEach(t=>document.getElementById("nav-"+t).classList.toggle("on",t===TAB));
   const v=document.getElementById("view");
-  if(TAB==="week"){ v.innerHTML=rWeek(); enableSort(v.querySelector(".daylist"), commitDayOrder, false); }
-  else if(TAB==="dish"){ v.innerHTML=rDish(); enableSort(v.querySelector(".listcard"), commitDishOrder, false); }
-  else if(TAB==="goods"){ v.innerHTML=rGoods(); enableSort(v.querySelector(".listcard"), commitGoodsOrder, false); }
-  else v.innerHTML=rShop();
+  if(TAB==="week"){ setHTML(v,rWeek()); enableSort(v.querySelector(".daylist"), commitDayOrder, false); }
+  else if(TAB==="dish"){ setHTML(v,rDish()); enableSort(v.querySelector(".listcard"), commitDishOrder, false); }
+  else if(TAB==="goods"){ setHTML(v,rGoods()); enableSort(v.querySelector(".listcard"), commitGoodsOrder, false); }
+  else setHTML(v,rShop());
 }
 /* 指ドラッグで並べ替え（ポインタ＝タッチ/マウス両対応）。horiz=true は横並びチップ用 */
 function enableSort(container, commit, horiz){
@@ -851,7 +867,7 @@ function renderFamily(){
   h+='<p class="note">画面が古いままのときはこれを押してください。データは消えません。</p>';
   h+='<div class="kindhead">危険な操作</div>';
   h+='<button class="btn danger small" onclick="resetAll()">すべて初期化</button>';
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
 }
 function togMeal(k){
   if(!S.meals) S.meals={b:false,l:false,d:true};
@@ -968,7 +984,7 @@ function renderPantryEdit(){
   h+=pantryRows("pantryList","調味料・常備品","買い物リストには出さず、下の確認コーナーに出ます。名前／買うときの数／単位。");
   h+=pantryRows("excludeList","除外品（米など）","買い物リストにも確認コーナーにも出しません。「今週は買う」を押した時だけ入ります。");
   h+='<button class="cta" style="margin-top:14px" onclick="savePantryEdit()">保存</button>';
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
 }
 function addPantryItem(key){
   const n=prompt(key==="excludeList"?"除外する品名（例：米）":"常備品の品名（例：しょうゆ）");
@@ -1042,7 +1058,7 @@ function renderPicker(){
     const cur=MEALS.find(m=>m.k===pickMeal);
     h+=`<div class="addingto ${pickMeal}">↓ 下から選ぶと「${cur.icon} ${cur.label}」に入ります</div>`;
   }
-  h+=`<input type="text" class="search" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
+  h+=`<input type="text" class="search" id="sPick" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
   h+='<div class="catbar">';
   h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${esc(c)}';renderPicker()">${esc(c)}</button>`; });
@@ -1061,7 +1077,7 @@ function renderPicker(){
     if(sel) h+=`<span class="minusbtn" onclick="event.stopPropagation();pickRemoveOne('${d.id}')">−</span><span class="cntbadge">${cnt}</span>`;
     h+=`<span class="paddbtn" onclick="event.stopPropagation();pickAdd('${d.id}')">＋</span></div>`;
   });
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
   enableSort(document.querySelector("#modal .selrows"), commitWeekOrder, false);
 }
 function rmPick(j){ curWeek(true)[pickDay][pickMeal].splice(j,1); if(!curWeek()[pickDay][pickMeal].length) pickDetail=""; save(); renderPicker(); }
@@ -1084,7 +1100,7 @@ function rDish(){
   let h='<div class="pagehead"><div class="ptitle">献立</div></div>';
   h+='<div class="stickytop">';
   h+='<div class="searchrow">';
-  h+=`<input type="text" class="search" style="margin-bottom:0" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;render()">`;
+  h+=`<input type="text" class="search" style="margin-bottom:0" id="sDish" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;render()">`;
   h+='<button class="newbtn" onclick="openEditor(null)">＋新規</button>';
   h+='</div>';
   h+='<div class="catbar">';
@@ -1197,7 +1213,7 @@ function renderEditor(){
   if(t.id) h+='<button class="btn sub" onclick="copyDish()">コピーを作る</button><button class="btn danger" onclick="delDish()">削除</button>';
   h+='</div>';
   h+=edCalendar();
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
 }
 function cleanIng(){ return editTarget.ing.filter(g=>g.n.trim()).map(g=>({n:g.n.trim(), q:g.q===""?"":Number(g.q), u:g.u.trim()})); }
 function saveDish(){
@@ -1255,7 +1271,7 @@ function renderCatEdit(){
   h+='<button class="btn sub small" onclick="addCat()">＋ カテゴリを追加</button>';
   h+='<div class="row2" style="margin-top:12px"><button class="btn" onclick="saveCats()">保存</button><button class="btn sub" onclick="closeModal()">キャンセル</button></div>';
   h+='<p class="note">カテゴリを消しても、その料理は消えません（「すべて」から見られます）。</p>';
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
   enableSort(document.querySelector("#modal .listcard"), commitCatOrder, false);
 }
 function commitCatOrder(ids){ catEdit=ids.map(id=>catEdit[+id]); renderCatEdit(); }
@@ -1279,7 +1295,7 @@ function rGoods(){
   h+=`<p class="note">${goodsEdit?"タップで⭐毎回追加のON/OFF、✕で削除":"買うものをタップで選択。⭐付きはリスト作成時に自動で入ります"}</p>`;
   h+='<div class="stickytop">';
   h+='<div class="searchrow">';
-  h+=`<input type="text" class="search" style="margin-bottom:0" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;render()">`;
+  h+=`<input type="text" class="search" style="margin-bottom:0" id="sGoods" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;render()">`;
   h+='<button class="newbtn" onclick="addGoodsHere()">＋新規</button>';
   h+='</div>';
   h+='<div class="catbar">';
@@ -1403,7 +1419,7 @@ function renderCatalog(){
   let h=`<div class="mhead back"><button class="backbtn" onclick="${ingMode?"backToEditor()":"closeModal()"}">←</button><b>${ingMode?"材料をカタログから選ぶ":"品物を追加"}</b></div>`;
   if(ingMode) h+=`<p class="note" style="margin-top:0">タップすると「${esc(editTarget?editTarget.name||"この献立":"")}」の材料に入ります（単位も自動）。</p>`;
   h+='<div class="searchrow">';
-  h+=`<input type="text" class="search" style="margin-bottom:0" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';renderCatalog()">`;
+  h+=`<input type="text" class="search" style="margin-bottom:0" id="sCat" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';renderCatalog()">`;
   h+='<button class="newbtn" onclick="newCatalogItem()">＋新規</button>';
   h+='</div>';
   if(!q){
@@ -1442,7 +1458,7 @@ function renderCatalog(){
   }
   h+='<button class="btn sub wide" style="margin-top:8px" onclick="newCatalogItem()">📖 カタログに新しい品物を登録</button>';
   if(ingMode) h+='<button class="cta" style="margin-top:12px" onclick="backToEditor()">✓ 編集にもどる</button>';
-  modalEl.innerHTML=h;
+  setHTML(modalEl,h);
   modalEl.scrollTop=savedScroll; /* 追加しても見ていた位置を保つ */
 }
 function catRemoveIng(name){
@@ -1544,7 +1560,7 @@ function renderQtyEdit(){
   ["個","本","袋","g","ml","パック","枚","束"].forEach(u=>{ h+=`<button class="sopt" onclick="setUnit('${u}')">${u}</button>`; });
   h+='</div>';
   h+='<button class="cta" onclick="saveQty()">保存</button>';
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
 }
 function setQty(n){ const el=document.getElementById("qi"); if(el) el.value=n; }
 function setUnit(u){ const el=document.getElementById("ui"); if(el) el.value=u; }
@@ -1668,7 +1684,7 @@ function renderStoreModal(){
   if(smSel) h+=`<button class="btn sub wide" onclick="applyStore(true)">今後も${esc(lbl)}を標準にする</button>`;
   h+='<p class="note" style="text-align:center">今回だけ変更しても、いつもの購入先は変わりません。</p>';
   h+='<div class="ctalink" onclick="closeModal()">キャンセル</div>';
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
 }
 function applyStore(asDefault){
   const it=S.list.items[smIdx];
@@ -1708,7 +1724,7 @@ function renderAssignAll(){
     h+='</div></div>';
   });
   h+='</div><button class="cta" onclick="closeModal()">できた</button>';
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
 }
 function assignOne(i,s){
   const it=S.list.items[i]; it.store=s;
@@ -1747,7 +1763,7 @@ function renderStoreSettings(){
   });
   h+='</div><button class="btn sub wide" onclick="addStore()">＋ 店を追加</button>';
   h+='<div class="kindhead">2. 品物ごとのいつもの購入先</div>';
-  h+=`<input type="text" class="search" placeholder="🔍 品物を検索" value="${esc(psSearch)}" oninput="psSearch=this.value;renderStoreSettings()">`;
+  h+=`<input type="text" class="search" id="sStore" placeholder="🔍 品物を検索" value="${esc(psSearch)}" oninput="psSearch=this.value;renderStoreSettings()">`;
   const q=psSearch.trim();
   const names=[...new Set([...(S.list?S.list.items.map(x=>x.n):[]), ...Object.keys(S.storeMap), ...S.goods])].filter(n=>!q||n.includes(q));
   h+='<div class="card listcard">';
@@ -1765,7 +1781,7 @@ function renderStoreSettings(){
   h+='</div>';
   h+='<p class="note">ここで設定した店が、次回の買い物リストに自動表示されます。</p>';
   h+='<button class="cta" onclick="closeModal();flash(\'保存しました\')">設定を保存</button>';
-  document.getElementById("modal").innerHTML=h;
+  setHTML(document.getElementById("modal"),h);
 }
 function setDefaultStore(n,v){
   if(v) S.storeMap[n]=v; else delete S.storeMap[n];
