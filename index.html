@@ -108,6 +108,12 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .mealcol .more{font-size:10.5px; color:var(--sub); margin-top:2px;}
 .summaryrow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 2px 12px;}
 .viewtog{border:1.5px solid #e8ddcb; background:#fff; border-radius:10px; padding:6px 10px; font-size:12px; font-weight:bold; color:var(--or-d); cursor:pointer; flex-shrink:0;}
+.mealtoggle{display:flex; align-items:center; gap:6px; margin:0 2px 12px; flex-wrap:wrap;}
+.mtlabel{font-size:11px; color:var(--sub); flex-shrink:0;}
+.mtchip{border:1.5px solid #e2d6c2; background:#fff; color:#b3a696; border-radius:14px; padding:6px 11px; font-size:12.5px; font-weight:bold; cursor:pointer;}
+.mtchip.b.on{background:#e8873c; border-color:#e8873c; color:#fff;}
+.mtchip.l.on{background:#e0b23c; border-color:#e0b23c; color:#fff;}
+.mtchip.d.on{background:#4a7ab5; border-color:#4a7ab5; color:#fff;}
 .mealcol.b{border-color:#e8873c;} .mealcol.b .mlabel{color:#c96f28;}
 .mealcol.l{border-color:#e0b23c;} .mealcol.l .mlabel{color:#a37c12;}
 .mealcol.d{border-color:#4a7ab5;} .mealcol.d .mlabel{color:#37608f;}
@@ -554,7 +560,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-19";
+const APP_VERSION="0721-20";
 let S=null;
 function newState(){
   return {
@@ -797,7 +803,7 @@ function rWeek(){
   const nItems=aggregate().length;
   const label=weekOffset===0?"今週":weekOffset===-1?"先週":weekOffset===1?"来週":(weekOffset<0?weekOffset+"週":"+"+weekOffset+"週");
   let h='<div class="pagehead"><div class="ptitle">献立表</div>';
-  h+=`<button class="pill" onclick="openFamily()">👥 ${S.family}人分 ▾</button></div>`;
+  h+='<button class="pill" onclick="openFamily()">⚙ 設定</button></div>';
   h+='<div class="weeknav">';
   h+='<button class="wnav" onclick="shiftWeek(-1)">◀</button>';
   h+=`<div class="wlabel"><b>${label}</b><span>${dates[0].getMonth()+1}/${dates[0].getDate()}〜${dates[6].getMonth()+1}/${dates[6].getDate()}</span></div>`;
@@ -805,8 +811,15 @@ function rWeek(){
   h+='</div>';
   if(weekOffset!==0) h+='<div class="ctalink small" style="margin-top:-4px;margin-bottom:8px" onclick="gotoThisWeek()">↩ 今週にもどる</div>';
   h+='<div class="summaryrow">';
-  h+=`<div class="summary" style="margin:0"><b>${decided}日</b>決定・未定<b>${7-decided}日</b>・買うもの<b>${nItems}品</b></div>`;
+  h+=`<div class="summary" style="margin:0"><b>${S.family}人分</b>・<b>${decided}日</b>決定・買うもの<b>${nItems}品</b></div>`;
   h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"メイン表示":"全部表示"} ⇄</button>`;
+  h+='</div>';
+  /* 朝・昼・夜の表示切替をホームから直接 */
+  h+='<div class="mealtoggle"><span class="mtlabel">表示する食事</span>';
+  MEALS.forEach(m=>{
+    const on=S.meals&&S.meals[m.k];
+    h+=`<button class="mtchip ${m.k} ${on?"on":""}" onclick="togMeal('${m.k}')">${m.icon} ${m.label}</button>`;
+  });
   h+='</div>';
   h+='<div class="daylist">';
   DAYS.forEach((w,i)=>{
@@ -881,7 +894,7 @@ function renderFamily(){
   h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(1);renderFamily()">＋</button></div>';
   h+='<p class="note" style="text-align:center;margin-top:0">献立テンプレの基準人数から、この人数に分量を自動換算します</p>';
   h+='<div class="kindhead">献立表に出す食事</div>';
-  h+='<p class="note" style="margin-top:0">使う食事だけONにすると、ホームがすっきりします。</p>';
+  h+='<p class="note" style="margin-top:0">朝・昼・夜の表示切替は<b>ホーム画面の「表示する食事」</b>から直接できます。</p>';
   h+='<div class="goodsgrid">';
   MEALS.forEach(m=>{
     const on=S.meals&&S.meals[m.k];
@@ -906,7 +919,9 @@ function togMeal(k){
   const on=Object.keys(S.meals).filter(x=>S.meals[x]);
   if(S.meals[k]&&on.length<=1){ flash("最低1つは必要です"); return; }
   S.meals[k]=!S.meals[k];
-  save(); renderFamily();
+  save();
+  /* 設定画面から押された時はそちらを、ホームから押された時はホームを描き直す */
+  if(modalOpen) renderFamily(); else render();
 }
 function clearWeek(){ if(confirm("この週の献立をすべて消しますか？")){ S.plans[curKey()]=emptyWeek(); save(); render(); } }
 function newList(){
