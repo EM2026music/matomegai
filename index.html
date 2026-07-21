@@ -553,7 +553,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-17";
+const APP_VERSION="0721-18";
 let S=null;
 function newState(){
   return {
@@ -673,6 +673,23 @@ function go(t){
   } else {
     history.back(); /* サブタブ→ホームは履歴を戻す（popstateでホーム描画） */
   }
+}
+/* 日本語変換（IME）中は再描画しない。変換が壊れて文字が打てなくなるため */
+let imeComposing=false, deferTimer=null, deferFn=null;
+document.addEventListener("compositionstart",function(){ imeComposing=true; });
+document.addEventListener("compositionend",function(){
+  imeComposing=false;
+  if(deferFn){ const f=deferFn; deferFn=null; clearTimeout(deferTimer); setTimeout(f,0); }
+});
+/* 入力のたびに走る再描画を、変換確定後・少し待ってからにまとめる */
+function deferRender(fn){
+  deferFn=fn;
+  clearTimeout(deferTimer);
+  deferTimer=setTimeout(function(){
+    if(imeComposing) return;      /* 変換中なら compositionend 側で実行する */
+    const f=deferFn; deferFn=null;
+    if(f) f();
+  },220);
 }
 /* 再描画してもカーソル位置を保つ（検索欄で1文字ずつ切れないように） */
 function setHTML(el,html){
@@ -1058,7 +1075,7 @@ function renderPicker(){
     const cur=MEALS.find(m=>m.k===pickMeal);
     h+=`<div class="addingto ${pickMeal}">↓ 下から選ぶと「${cur.icon} ${cur.label}」に入ります</div>`;
   }
-  h+=`<input type="text" class="search" id="sPick" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;renderPicker()">`;
+  h+=`<input type="text" class="search" id="sPick" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;deferRender(renderPicker)">`;
   h+='<div class="catbar">';
   h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${esc(c)}';renderPicker()">${esc(c)}</button>`; });
@@ -1100,7 +1117,7 @@ function rDish(){
   let h='<div class="pagehead"><div class="ptitle">献立</div></div>';
   h+='<div class="stickytop">';
   h+='<div class="searchrow">';
-  h+=`<input type="text" class="search" style="margin-bottom:0" id="sDish" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;render()">`;
+  h+=`<input type="text" class="search" style="margin-bottom:0" id="sDish" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;deferRender(render)">`;
   h+='<button class="newbtn" onclick="openEditor(null)">＋新規</button>';
   h+='</div>';
   h+='<div class="catbar">';
@@ -1295,7 +1312,7 @@ function rGoods(){
   h+=`<p class="note">${goodsEdit?"タップで⭐毎回追加のON/OFF、✕で削除":"買うものをタップで選択。⭐付きはリスト作成時に自動で入ります"}</p>`;
   h+='<div class="stickytop">';
   h+='<div class="searchrow">';
-  h+=`<input type="text" class="search" style="margin-bottom:0" id="sGoods" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;render()">`;
+  h+=`<input type="text" class="search" style="margin-bottom:0" id="sGoods" placeholder="🔍 品名を検索" value="${esc(goodsSearch)}" oninput="goodsSearch=this.value;deferRender(render)">`;
   h+='<button class="newbtn" onclick="addGoodsHere()">＋新規</button>';
   h+='</div>';
   h+='<div class="catbar">';
@@ -1419,7 +1436,7 @@ function renderCatalog(){
   let h=`<div class="mhead back"><button class="backbtn" onclick="${ingMode?"backToEditor()":"closeModal()"}">←</button><b>${ingMode?"材料をカタログから選ぶ":"品物を追加"}</b></div>`;
   if(ingMode) h+=`<p class="note" style="margin-top:0">タップすると「${esc(editTarget?editTarget.name||"この献立":"")}」の材料に入ります（単位も自動）。</p>`;
   h+='<div class="searchrow">';
-  h+=`<input type="text" class="search" style="margin-bottom:0" id="sCat" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';renderCatalog()">`;
+  h+=`<input type="text" class="search" style="margin-bottom:0" id="sCat" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';deferRender(renderCatalog)">`;
   h+='<button class="newbtn" onclick="newCatalogItem()">＋新規</button>';
   h+='</div>';
   if(!q){
@@ -1763,7 +1780,7 @@ function renderStoreSettings(){
   });
   h+='</div><button class="btn sub wide" onclick="addStore()">＋ 店を追加</button>';
   h+='<div class="kindhead">2. 品物ごとのいつもの購入先</div>';
-  h+=`<input type="text" class="search" id="sStore" placeholder="🔍 品物を検索" value="${esc(psSearch)}" oninput="psSearch=this.value;renderStoreSettings()">`;
+  h+=`<input type="text" class="search" id="sStore" placeholder="🔍 品物を検索" value="${esc(psSearch)}" oninput="psSearch=this.value;deferRender(renderStoreSettings)">`;
   const q=psSearch.trim();
   const names=[...new Set([...(S.list?S.list.items.map(x=>x.n):[]), ...Object.keys(S.storeMap), ...S.goods])].filter(n=>!q||n.includes(q));
   h+='<div class="card listcard">';
