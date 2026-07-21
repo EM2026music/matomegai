@@ -164,6 +164,16 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .qtylabel{min-width:46px; text-align:center; font-size:14px; font-weight:bold; color:var(--green);}
 .catrow.sel,.pickrow.sel{background:#eef7ef; border-radius:10px;}
 .iq.editable{cursor:pointer; border:1px dashed #d9cdb8; border-radius:8px; padding:3px 7px;}
+/* 買い物リストの2段表示 */
+.item2{padding:11px 2px; border-bottom:1px solid var(--line);}
+.item2:last-child{border-bottom:none;}
+.i2top{display:flex; align-items:center; gap:10px;}
+.i2name{flex:1; min-width:0; font-size:16px; font-weight:600; cursor:pointer;}
+.i2top .iq{font-size:14px; color:var(--ink); flex-shrink:0;}
+.i2bot{display:flex; align-items:center; gap:8px; margin:7px 0 0 34px; flex-wrap:wrap;}
+.needq{font-size:11.5px; color:var(--sub);}
+.item2.done .i2name,.item2.done .iq{text-decoration:line-through; color:#b7ab9a;}
+.item2.stocked .i2name,.item2.stocked .iq{text-decoration:line-through; color:#c4b8a6;}
 .dishrow.selrow .ckb2{background:var(--green); border-color:var(--green);}
 /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
@@ -587,7 +597,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-27";
+const APP_VERSION="0721-28";
 let S=null;
 function newState(){
   return {
@@ -840,7 +850,7 @@ function rWeek(){
   if(weekOffset!==0) h+='<div class="ctalink small" style="margin-top:-4px;margin-bottom:8px" onclick="gotoThisWeek()">↩ 今週にもどる</div>';
   h+='<div class="summaryrow">';
   h+=`<div class="summary" style="margin:0"><b>${S.family}人分</b>・<b>${decided}日</b>決定・買うもの<b>${nItems}品</b></div>`;
-  h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"メイン表示":"全部表示"} ⇄</button>`;
+  h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"全部の献立を見る":"メインだけ表示"}</button>`;
   h+='</div>';
   /* 朝・昼・夜の表示切替をホームから直接 */
   h+='<div class="mealtoggle"><span class="mtlabel">表示する食事</span>';
@@ -897,7 +907,7 @@ function rWeek(){
   h+='</div>';
   h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると献立を移せます。献立を<b>長押しすると、その食事をまとめて消せます</b>。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
-  h+='<div class="ctalink" onclick="go(\'shop\')">在庫を確認する ›</div>';
+  h+='<div class="ctalink" onclick="go(\'shop\')">家にある物を確認する ›</div>';
   h+='<div class="ctalink small" onclick="clearWeek()">献立表をクリア</div>';
   h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
   return h;
@@ -1681,7 +1691,11 @@ function aggregate(){
       else map.set(k,{n:g.n, q:q, u:g.u});
     });
   }));
-  const items=[...map.values()].map(x=>({n:x.n, q:roundQ(x.q,x.u), u:x.u, stock:false, done:false, store:S.storeMap[x.n]||""}));
+  const items=[...map.values()].map(x=>{
+    const buy=buyQty(x.q,x.u);
+    const need=(typeof x.q==="number")?Math.round(x.q*100)/100:x.q;
+    return {n:x.n, q:buy, need:(buy!==need?need:undefined), u:x.u, stock:false, done:false, store:S.storeMap[x.n]||""};
+  });
   /* 定番（選択中＋⭐毎回）。献立材料と同名なら統合し、商品単位（1本など）の定番側を優先 */
   S.goods.forEach(g=>{
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
@@ -1692,11 +1706,20 @@ function aggregate(){
   return items;
 }
 function togStar(g){ S.goodsStar[g]=!S.goodsStar[g]; if(!S.goodsStar[g]) delete S.goodsStar[g]; save(); render(); }
-function roundQ(q,u){
-  if(typeof q!=="number") return q;
-  if(u==="g"||u==="ml") return Math.round(q/5)*5||Math.round(q)||q;
-  return Math.round(q*4)/4;
+/* 実際に買える数に直す。個数ものは切り上げ（0.25個は買えないため） */
+const COUNT_UNITS=["個","本","枚","丁","パック","袋","缶","玉","尾","切れ","株","束","房","杯","箱","匹","羽","段","カップ"];
+function buyQty(q,u){
+  if(typeof q!=="number"||!isFinite(q)) return q;
+  const e=1e-6;
+  if(u==="g"||u==="ml"){
+    if(q<=100) return Math.ceil((q-e)/10)*10;      /* 少量は10g刻み */
+    return Math.ceil((q-e)/50)*50;                  /* それ以上は50g刻み */
+  }
+  if(COUNT_UNITS.indexOf(u)>=0) return Math.max(1,Math.ceil(q-e)); /* 個数は切り上げ */
+  if(u==="kg"||u==="L"||u==="合") return Math.ceil((q-e)*2)/2;     /* 0.5刻み */
+  return Math.round(q*4)/4;                          /* 大さじ等はそのまま */
 }
+function roundQ(q,u){ return buyQty(q,u); }
 /* 買い物リストの数量・単位をその場で編集 */
 let qtyIdx=0;
 function openQtyEdit(i){ qtyIdx=i; showModal(); renderQtyEdit(); }
@@ -1728,13 +1751,19 @@ function saveQty(){
 }
 function itemRow(i,withStock){
   const it=S.list.items[i];
-  let r=`<div class="item ${it.done?"done":(it.stock&&withStock?"stocked":"")}">`;
+  let r=`<div class="item2 ${it.done?"done":(it.stock&&withStock?"stocked":"")}">`;
+  /* 上段：チェック・品名・買う量 */
+  r+='<div class="i2top">';
   r+=`<span class="ckb" onclick="togDone(${i})">${it.done?"✓":""}</span>`;
-  r+=`<div class="info"><div class="inm">${esc(it.n)}</div></div>`;
+  r+=`<div class="i2name" onclick="togDone(${i})">${esc(it.n)}</div>`;
   r+=`<span class="iq editable" onclick="openQtyEdit(${i})">${(it.q===""||it.q==null)?"数量":fmtQ(it.q)+esc(it.u)} ✎</span>`;
-  r+=`<button class="storebtn ${it.store?"":"unset"}" onclick="openStoreModal(${i})">${esc(it.store||"未定")} ▾</button>`;
-  if(withStock) r+=`<button class="stockbtn ${it.stock?"on":""}" onclick="togStock(${i})">在庫${it.stock?"あり":"？"}</button>`;
   r+='</div>';
+  /* 下段：お店・家にある */
+  r+='<div class="i2bot">';
+  r+=`<button class="storebtn ${it.store?"":"unset"}" onclick="openStoreModal(${i})">${esc(it.store||"店を選ぶ")} ▾</button>`;
+  if(withStock) r+=`<button class="stockbtn ${it.stock?"on":""}" onclick="togStock(${i})">${it.stock?"✓ 家にある":"家にある"}</button>`;
+  if(it.need!=null) r+=`<span class="needq">必要 ${fmtQ(it.need)}${esc(it.u)}</span>`;
+  r+='</div></div>';
   return r;
 }
 function rShop(){
@@ -1791,7 +1820,7 @@ function rShop(){
       h+='</div>';
     }
     h+='<p class="note" style="margin-bottom:0">今週の献立で使うものだけ表示。タップすると「1本・1袋」として上のリストに入ります。「✏️編集」で品目を追加・削除できます。</p></div>';
-    h+='<p class="note">チェックすると、店に関係なく購入済みになります。「在庫あり」にすると買うものから外れます。</p>';
+    h+='<p class="note">チェックすると購入済みになります。「家にある」を押すと買うものから外れます。</p>';
     h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから追加</button>';
     h+='<div class="ctalink small" onclick="addManual()">キーボードで直接入力して追加</div>';
     h+='<div class="ctalink small" onclick="rebuildList()">リストをゼロから作り直す</div>';
