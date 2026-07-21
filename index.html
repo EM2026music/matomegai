@@ -99,11 +99,13 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .wlabel{flex:1; text-align:center;}
 .wlabel b{font-size:16px;}
 .wlabel span{display:block; font-size:12px; color:var(--sub); margin-top:1px;}
-.mealcols{display:flex; gap:7px; align-items:flex-start;}
-.mealcol{flex:1; min-width:0; padding-left:7px; border-left:3px solid; align-self:stretch;}
-.mealcol .mlabel{font-size:10px; font-weight:bold; letter-spacing:.5px; margin-bottom:2px;}
-.mealcol .mnames{font-size:12.5px; line-height:1.35; color:var(--ink); word-break:break-word; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden;}
-.mealcol .mnames.big{font-size:15px; font-weight:bold; -webkit-line-clamp:2;}
+/* 朝・昼・夜は縦に3段（スマホで読みやすい） */
+.mealcols{display:flex; flex-direction:column; gap:7px;}
+.mealcol{display:flex; align-items:flex-start; gap:9px; min-width:0; padding-left:8px; border-left:3px solid;}
+.mealcol .mbody{flex:1; min-width:0;}
+.mealcol .mlabel{font-size:11px; font-weight:bold; letter-spacing:.5px; width:24px; flex-shrink:0; padding-top:2px;}
+.mealcol .mnames{font-size:13px; line-height:1.35; color:var(--ink); word-break:break-word; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;}
+.mealcol .mnames.big{font-size:15.5px; font-weight:bold; -webkit-line-clamp:1;}
 .mealcol .mnames.empty{color:#c9bda9; font-size:15px;}
 .mealcol .more{font-size:10.5px; color:var(--sub); margin-top:2px;}
 .summaryrow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 2px 12px;}
@@ -560,7 +562,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-21";
+const APP_VERSION="0721-22";
 let S=null;
 function newState(){
   return {
@@ -841,7 +843,7 @@ function rWeek(){
           } else {
             body=`<div class="mnames">${esc(names.join("・"))}</div>`;
           }
-          h+=`<div class="mealcol ${m.k}" onpointerdown="event.stopPropagation();lpStart(function(){clearSlot(${i},'${m.k}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()" onclick="event.stopPropagation();lpTap(function(){openDayMeal(${i},'${m.k}')})"><div class="mlabel">${m.label}</div>${body}</div>`;
+          h+=`<div class="mealcol ${m.k}" onpointerdown="event.stopPropagation();lpStart(function(){clearSlot(${i},'${m.k}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()" onclick="event.stopPropagation();lpTap(function(){openDayMeal(${i},'${m.k}')})"><div class="mlabel">${m.label}</div><div class="mbody">${body}</div></div>`;
         });
         h+='</div>';
       } else {
