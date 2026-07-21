@@ -601,7 +601,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-34";
+const APP_VERSION="0721-35";
 let S=null;
 function newState(){
   return {
@@ -1513,19 +1513,46 @@ function rGoods(){
   h+='</div>';
   return h;
 }
-/* 定番にその場で品物を追加（カタログにも登録するか選べる） */
+/* 定番に品物を追加する画面（カテゴリ・単位も選べる） */
+let newGoods=null;
 function addGoodsHere(){
-  const n=prompt("定番に追加する品名（例：猫のえさ）"); if(!n||!n.trim()) return;
-  const nm=n.trim();
+  newGoods={name:"", cat:(goodsFilter||"食品"), unit:"", toCatalog:true};
+  showModal(); renderAddGoods();
+}
+function renderAddGoods(){
+  const g=newGoods;
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>定番に品物を追加</b></div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin-bottom:4px">品名</div>';
+  h+=`<input id="ngName" type="text" style="width:100%" placeholder="例：猫のえさ" value="${esc(g.name)}" oninput="newGoods.name=this.value">`;
+  h+='<div style="font-size:12px;color:var(--sub);margin:12px 0 6px">どの分類に入れる？</div>';
+  h+='<div class="aropts">';
+  GOODS_ORDER.forEach(c=>{
+    const on=g.cat===c;
+    h+=`<button class="sopt" style="${on?"background:var(--or);border-color:var(--or);color:#fff":""}" onclick="newGoods.cat='${esc(c)}';renderAddGoods()">${esc(c)}</button>`;
+  });
+  h+='</div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin:12px 0 6px">買うときの単位（任意）</div>';
+  h+=`<input id="ngUnit" type="text" style="width:100%" placeholder="例：本・袋・個" value="${esc(g.unit)}" oninput="newGoods.unit=this.value">`;
+  h+='<div class="aropts" style="margin-top:6px">';
+  ["個","本","袋","パック","箱","g","ml"].forEach(u=>{ h+=`<button class="sopt" onclick="newGoods.unit='${u}';renderAddGoods()">${u}</button>`; });
+  h+='</div>';
+  h+=`<div class="aropts" style="margin-top:14px"><button class="sopt" style="${g.toCatalog?"background:var(--green);border-color:var(--green);color:#fff":""}" onclick="newGoods.toCatalog=!newGoods.toCatalog;renderAddGoods()">${g.toCatalog?"✓ ":""}カタログにも登録する</button></div>`;
+  h+='<p class="note">カタログに登録すると、献立の材料や買い物リストからも選べるようになります。</p>';
+  h+='<button class="cta" onclick="saveNewGoods()">追加する</button>';
+  setHTML(document.getElementById("modal"),h);
+}
+function saveNewGoods(){
+  const g=newGoods, nm=(g.name||"").trim();
+  if(!nm){ alert("品名を入れてください"); return; }
   if(!S.goods.includes(nm)) S.goods.push(nm);
-  S.goodsCatMap[nm]=(goodsFilter&&goodsFilter!=="その他")?goodsFilter:(CAT2GOODS[catInfo(nm).cat]||"その他");
+  S.goodsCatMap[nm]=g.cat;
   S.goodsSel[nm]=true;
-  if(!allCatalog().some(x=>x.name===nm)){
-    if(confirm("「"+nm+"」をカタログにも登録しますか？\n\n［OK］登録する（他の画面からも選べます）\n［キャンセル］定番だけに追加")){
-      S.customCatalog.push({name:nm, alias:"", unit:"", cat:"その他"});
-    }
+  if(!S.goodsQty[nm]) S.goodsQty[nm]=1;
+  if(g.toCatalog&&!allCatalog().some(x=>x.name===nm)){
+    S.customCatalog.push({name:nm, alias:"", unit:(g.unit||"").trim(), cat:"その他"});
   }
-  save(); render(); flash(nm+" を定番に追加しました");
+  goodsFilter=g.cat;
+  save(); closeModal(); flash(nm+" を「"+g.cat+"」に追加しました");
 }
 /* 定番の個数（未設定なら1）と単位（カタログから） */
 function goodsQtyOf(g){ const v=Number(S.goodsQty&&S.goodsQty[g]); return v>0?v:1; }
