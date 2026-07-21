@@ -603,7 +603,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-32";
+const APP_VERSION="0721-33";
 let S=null;
 function newState(){
   return {
@@ -1210,7 +1210,6 @@ function renderPicker(){
   h+=`<input type="text" class="search" id="sPick" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;deferRender(renderPicker)">`;
   h+='<div class="catbar">';
   if(favCount()) h+=`<button class="fchip ${pickCat==="__fav"?"on":""}" onclick="pickCat='__fav';renderPicker()">⭐ よく作る(${favCount()})</button>`;
-  if((S.recent||[]).length) h+=`<button class="fchip ${pickCat==="__recent"?"on":""}" onclick="pickCat='__recent';renderPicker()">🕘 最近</button>`;
   h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${esc(c)}';renderPicker()">${esc(c)}</button>`; });
   h+='</div>';
@@ -1218,7 +1217,6 @@ function renderPicker(){
   let list;
   if(q) list=S.dishes.filter(d=>d.name.includes(q)||d.ing.some(i=>i.n.includes(q)));
   else if(pickCat==="__fav") list=S.dishes.filter(d=>S.favs&&S.favs[d.id]);
-  else if(pickCat==="__recent") list=(S.recent||[]).map(id=>dish(id)).filter(Boolean);
   else if(pickCat==="") list=S.dishes;
   else list=S.dishes.filter(d=>d.cat===pickCat);
   if(!list.length) h+='<p class="note">見つかりません</p>';
