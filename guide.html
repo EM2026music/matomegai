@@ -1,269 +1,648 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>まとめ買いリスト｜使い方ガイド</title>
-<link rel="icon" href="icon-192.png">
-<meta name="theme-color" content="#e8873c">
-<style>
-:root{--or:#e8873c;--or-d:#c96f28;--or-bg:#fdf1e5;--bg:#faf4ec;--ink:#3a3228;--sub:#8b7f6e;--line:#ece0cf;}
-*{box-sizing:border-box;}
-body{margin:0;background:var(--bg);color:var(--ink);
- font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;line-height:1.75;}
-.wrap{max-width:760px;margin:0 auto;padding:0 18px 80px;}
-header{background:linear-gradient(160deg,#e8873c,#d9702a);color:#fff;padding:44px 18px 38px;text-align:center;}
-header img{width:72px;height:72px;border-radius:18px;box-shadow:0 6px 18px rgba(0,0,0,.18);}
-header h1{margin:14px 0 6px;font-size:27px;letter-spacing:.5px;}
-header p{margin:0;opacity:.95;font-size:15px;}
-.start{display:inline-block;margin-top:20px;background:#fff;color:var(--or-d);font-weight:800;
- text-decoration:none;padding:14px 30px;border-radius:999px;font-size:17px;box-shadow:0 4px 14px rgba(0,0,0,.15);}
-h2{font-size:21px;margin:44px 0 6px;padding-bottom:8px;border-bottom:3px solid var(--or);display:inline-block;}
-h3{font-size:17px;margin:26px 0 6px;}
-p{margin:8px 0;}
-.lead{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:18px 0;}
-.step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin:18px 0;
- box-shadow:0 1px 4px rgba(120,90,50,.06);}
-.step .no{display:inline-block;background:var(--or);color:#fff;font-weight:800;border-radius:999px;
- padding:3px 13px;font-size:13px;margin-bottom:8px;}
-.step h3{margin:4px 0 8px;font-size:19px;}
-figure{margin:14px 0 4px;text-align:center;}
-figure img{width:100%;max-width:330px;border:1px solid var(--line);border-radius:14px;
- box-shadow:0 3px 12px rgba(120,90,50,.13);}
-figcaption{font-size:12.5px;color:var(--sub);margin-top:7px;}
-ul{margin:8px 0;padding-left:22px;}li{margin:5px 0;}
-.tip{background:#eef7ef;border-left:4px solid #5ba463;border-radius:0 10px 10px 0;padding:12px 15px;margin:14px 0;font-size:14.5px;}
-.warn{background:var(--or-bg);border-left:4px solid var(--or);border-radius:0 10px 10px 0;padding:12px 15px;margin:14px 0;font-size:14.5px;}
-.q{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0;}
-.q b{color:var(--or-d);}
-kbd{background:#fff;border:1px solid #d9cdb8;border-radius:7px;padding:2px 8px;font-size:13px;font-weight:700;white-space:nowrap;}
-.foot{text-align:center;color:var(--sub);font-size:13px;margin-top:50px;}
-.toc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 20px;margin:22px 0;}
-.toc a{color:var(--or-d);text-decoration:none;}
-.toc li{margin:6px 0;}
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f48132">
+  <meta name="description" content="1週間の献立から買い物リストを自動で作れる『まとめ買いリスト』の、初心者向け使い方ガイドです。">
+  <title>まとめ買いリスト｜かんたん使い方ガイド</title>
+  <link rel="icon" href="assets/icon-192.png">
+  <style>
+    :root {
+      --orange: #f48132;
+      --orange-dark: #c95e19;
+      --orange-pale: #fff0e3;
+      --cream: #fbf6ef;
+      --paper: #fffdf9;
+      --ink: #2f2923;
+      --muted: #81776c;
+      --line: #eadfce;
+      --blue: #3f79b9;
+      --green: #4f9563;
+      --yellow: #e2ad29;
+      --shadow: 0 18px 55px rgba(77, 51, 26, .10);
+      --radius: 28px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; scroll-padding-top: 82px; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 100% 0, rgba(244,129,50,.10), transparent 28rem),
+        var(--cream);
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", Meiryo, sans-serif;
+      font-feature-settings: "palt";
+      line-height: 1.75;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    img { max-width: 100%; }
+    a { color: inherit; }
+    button { font: inherit; }
+
+    .skip {
+      position: fixed;
+      z-index: 100;
+      top: 8px;
+      left: 8px;
+      padding: 9px 14px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--ink);
+      transform: translateY(-150%);
+    }
+    .skip:focus { transform: none; }
+
+    .topbar {
+      position: sticky;
+      z-index: 30;
+      top: 0;
+      height: 64px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 0 max(18px, env(safe-area-inset-left));
+      border-bottom: 1px solid rgba(234,223,206,.85);
+      background: rgba(251,246,239,.88);
+      backdrop-filter: blur(15px);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .brand img { width: 36px; height: 36px; border-radius: 11px; }
+    .toplinks { display: flex; align-items: center; gap: 22px; }
+    .toplinks a { color: var(--muted); font-size: 13px; font-weight: 700; text-decoration: none; }
+    .app-link {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 9px 18px;
+      border-radius: 999px;
+      color: #fff !important;
+      background: var(--orange);
+      box-shadow: 0 7px 20px rgba(244,129,50,.25);
+    }
+
+    .container { width: min(1120px, calc(100% - 36px)); margin-inline: auto; }
+
+    .hero { padding: 72px 0 52px; overflow: hidden; }
+    .hero-grid { display: grid; grid-template-columns: 1.08fr .92fr; align-items: center; gap: 64px; }
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 18px;
+      color: var(--orange-dark);
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: .08em;
+    }
+    .eyebrow::before { content: ""; width: 28px; height: 2px; background: var(--orange); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      max-width: 680px;
+      margin-bottom: 22px;
+      font-size: clamp(38px, 6.2vw, 70px);
+      line-height: 1.12;
+      letter-spacing: -.045em;
+    }
+    h1 .accent { color: var(--orange); }
+    .hero-copy { max-width: 650px; margin-bottom: 26px; color: #62594f; font-size: clamp(16px, 2vw, 20px); }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin: 28px 0 24px; }
+    .primary, .secondary {
+      display: inline-flex;
+      min-height: 54px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 13px 24px;
+      border-radius: 999px;
+      font-weight: 800;
+      text-decoration: none;
+    }
+    .primary { color: #fff; background: var(--orange); box-shadow: 0 12px 30px rgba(244,129,50,.28); }
+    .secondary { border: 1px solid var(--line); background: var(--paper); }
+    .trust { display: flex; flex-wrap: wrap; gap: 8px; }
+    .trust span {
+      padding: 6px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255,255,255,.62);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .hero-visual { position: relative; min-height: 570px; }
+    .hero-blob {
+      position: absolute;
+      inset: 38px 0 0 32px;
+      border-radius: 48% 52% 41% 59% / 45% 44% 56% 55%;
+      background: linear-gradient(145deg, #f8b077, #f48132);
+      transform: rotate(-4deg);
+    }
+    .phone {
+      position: absolute;
+      z-index: 2;
+      width: min(330px, 72vw);
+      height: 570px;
+      overflow: hidden;
+      border: 9px solid #2d2925;
+      border-radius: 44px;
+      background: var(--paper);
+      box-shadow: 0 30px 70px rgba(61,43,27,.28);
+    }
+    .phone.one { top: 0; right: 11%; transform: rotate(2deg); }
+    .phone.two { bottom: -22px; left: 0; width: min(248px, 54vw); height: 430px; transform: rotate(-7deg); opacity: .97; }
+    .phone img { width: 100%; height: auto; display: block; }
+    .mini-note {
+      position: absolute;
+      z-index: 4;
+      right: 0;
+      bottom: 26px;
+      max-width: 195px;
+      padding: 15px 17px;
+      border-radius: 17px;
+      background: #fff;
+      box-shadow: var(--shadow);
+      font-size: 13px;
+      font-weight: 800;
+      transform: rotate(3deg);
+    }
+    .mini-note b { display: block; color: var(--orange-dark); font-size: 22px; }
+
+    .flow-band { padding: 14px 0 74px; }
+    .flow-card {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: var(--shadow);
+    }
+    .flow-item { position: relative; padding: 30px 28px; }
+    .flow-item + .flow-item { border-left: 1px solid var(--line); }
+    .flow-num { color: var(--orange); font-size: 12px; font-weight: 900; letter-spacing: .12em; }
+    .flow-item h2 { margin: 8px 0 6px; font-size: 19px; line-height: 1.4; }
+    .flow-item p { margin: 0; color: var(--muted); font-size: 13px; }
+
+    .section { padding: 82px 0; }
+    .section.alt { background: #fffaf4; border-block: 1px solid var(--line); }
+    .section-head { max-width: 720px; margin-bottom: 36px; }
+    .section-kicker { margin-bottom: 10px; color: var(--orange-dark); font-size: 12px; font-weight: 900; letter-spacing: .12em; }
+    .section h2 { margin-bottom: 14px; font-size: clamp(30px, 4.2vw, 46px); line-height: 1.24; letter-spacing: -.035em; }
+    .section-head > p { color: var(--muted); font-size: 16px; }
+
+    .install-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+    .install-card {
+      padding: 26px;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      background: var(--paper);
+    }
+    .install-card h3 { margin-bottom: 16px; font-size: 20px; }
+    .os { display: inline-flex; margin-bottom: 14px; padding: 5px 11px; border-radius: 999px; background: var(--orange-pale); color: var(--orange-dark); font-size: 12px; font-weight: 900; }
+    .steps-mini { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; counter-reset: item; }
+    .steps-mini li { display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; }
+    .steps-mini li::before {
+      counter-increment: item;
+      content: counter(item);
+      display: grid;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 50%;
+      color: #fff;
+      background: var(--ink);
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .tipbar {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-top: 18px;
+      padding: 16px 18px;
+      border-radius: 16px;
+      color: #395942;
+      background: #edf6ef;
+      font-size: 14px;
+    }
+
+    .guide-list { display: grid; gap: 28px; }
+    .guide-step {
+      display: grid;
+      grid-template-columns: minmax(0, .9fr) minmax(320px, 1.1fr);
+      gap: clamp(28px, 6vw, 78px);
+      align-items: center;
+      padding: clamp(24px, 4vw, 48px);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 10px 34px rgba(77,51,26,.065);
+    }
+    .guide-step:nth-child(even) .step-copy { order: 2; }
+    .guide-step:nth-child(even) .screen-wrap { order: 1; }
+    .step-label { display: inline-flex; align-items: center; gap: 8px; margin-bottom: 12px; color: var(--orange-dark); font-size: 12px; font-weight: 900; letter-spacing: .11em; }
+    .step-label b { display: grid; width: 30px; height: 30px; place-items: center; border-radius: 50%; color: #fff; background: var(--orange); font-size: 14px; letter-spacing: 0; }
+    .step-copy h3 { margin-bottom: 14px; font-size: clamp(25px, 3vw, 34px); line-height: 1.3; letter-spacing: -.025em; }
+    .step-copy > p { color: var(--muted); }
+    .action-list { display: grid; gap: 11px; margin: 20px 0 0; padding: 0; list-style: none; }
+    .action-list li { display: grid; grid-template-columns: 25px 1fr; gap: 10px; align-items: start; }
+    .action-list li::before { content: "✓"; display: grid; width: 23px; height: 23px; place-items: center; border-radius: 50%; color: #fff; background: var(--green); font-size: 12px; font-weight: 900; }
+    .micro-tip { margin-top: 18px; padding: 14px 16px; border-left: 3px solid var(--yellow); border-radius: 0 12px 12px 0; background: #fff8df; font-size: 13px; }
+
+    .screen-wrap {
+      position: relative;
+      width: min(100%, 410px);
+      margin-inline: auto;
+      padding: 9px;
+      border-radius: 33px;
+      background: #292723;
+      box-shadow: 0 20px 45px rgba(63,45,27,.20);
+    }
+    .screen-preview { position: relative; height: 560px; overflow: hidden; border-radius: 25px; background: #f7f1e8; cursor: zoom-in; }
+    .screen-preview img { width: 100%; height: auto; display: block; }
+    .screen-preview::after {
+      content: "タップで全体を見る  ↗";
+      position: absolute;
+      inset: auto 0 0;
+      padding: 38px 15px 14px;
+      color: #fff;
+      background: linear-gradient(transparent, rgba(35,30,25,.78));
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      pointer-events: none;
+    }
+    .screen-wrap[data-position="middle"] .screen-preview img { transform: translateY(-18%); }
+    .screen-wrap[data-position="lower"] .screen-preview img { transform: translateY(-38%); }
+
+    .shop-note {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 13px;
+      margin-top: 22px;
+      padding: 17px 18px;
+      border: 1px solid #f2caa9;
+      border-radius: 16px;
+      background: var(--orange-pale);
+      font-size: 14px;
+    }
+    .shop-note .icon { display: grid; width: 38px; height: 38px; place-items: center; border-radius: 12px; background: #fff; font-size: 20px; }
+
+    .feature-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; }
+    .feature-card {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background: var(--paper);
+    }
+    .feature-shot { height: 350px; overflow: hidden; border-bottom: 1px solid var(--line); background: #f3ede5; cursor: zoom-in; }
+    .feature-shot img { width: 100%; height: auto; display: block; }
+    .feature-shot.middle img { transform: translateY(-18%); }
+    .feature-body { padding: 24px; }
+    .feature-body h3 { margin-bottom: 9px; font-size: 21px; }
+    .feature-body p { margin-bottom: 0; color: var(--muted); font-size: 14px; }
+    .feature-body ul { margin: 14px 0 0; padding-left: 1.25em; color: #5f564d; font-size: 14px; }
+
+    .faq { max-width: 850px; }
+    details { border-top: 1px solid var(--line); }
+    details:last-child { border-bottom: 1px solid var(--line); }
+    summary { position: relative; padding: 20px 42px 20px 2px; cursor: pointer; font-weight: 800; list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    summary::after { content: "+"; position: absolute; right: 8px; top: 17px; color: var(--orange); font-size: 24px; font-weight: 500; }
+    details[open] summary::after { content: "−"; }
+    details p { padding: 0 42px 20px 2px; color: var(--muted); font-size: 14px; }
+
+    .closing { padding: 76px 0 110px; text-align: center; }
+    .closing-card {
+      position: relative;
+      overflow: hidden;
+      padding: clamp(38px, 7vw, 76px) 22px;
+      border-radius: 34px;
+      color: #fff;
+      background: var(--ink);
+    }
+    .closing-card::before { content: ""; position: absolute; width: 300px; height: 300px; right: -90px; top: -170px; border-radius: 50%; background: var(--orange); opacity: .9; }
+    .closing-card > * { position: relative; }
+    .closing-card h2 { margin-bottom: 12px; font-size: clamp(30px, 5vw, 50px); }
+    .closing-card p { color: #d8d0c8; }
+    .closing-card .primary { margin-top: 14px; }
+    .footer { padding: 0 0 34px; color: var(--muted); text-align: center; font-size: 12px; }
+
+    .lightbox {
+      position: fixed;
+      z-index: 80;
+      inset: 0;
+      display: none;
+      overflow: auto;
+      padding: 66px 18px 30px;
+      background: rgba(28,24,20,.92);
+      backdrop-filter: blur(8px);
+    }
+    .lightbox.open { display: block; }
+    .lightbox img { display: block; width: min(620px, 100%); height: auto; margin: 0 auto; border-radius: 22px; background: #fff; }
+    .lightbox button { position: fixed; z-index: 2; top: 14px; right: 16px; width: 43px; height: 43px; border: 0; border-radius: 50%; color: #fff; background: rgba(255,255,255,.18); font-size: 26px; cursor: pointer; }
+
+    @media (max-width: 820px) {
+      .toplinks > a:not(.app-link) { display: none; }
+      .hero { padding-top: 48px; }
+      .hero-grid { grid-template-columns: 1fr; gap: 28px; }
+      .hero-visual { min-height: 510px; }
+      .phone.one { right: 5%; }
+      .phone.two { left: 4%; }
+      .mini-note { right: 3%; }
+      .flow-card { grid-template-columns: 1fr; }
+      .flow-item + .flow-item { border-top: 1px solid var(--line); border-left: 0; }
+      .guide-step, .guide-step:nth-child(even) { grid-template-columns: 1fr; }
+      .guide-step:nth-child(even) .step-copy, .guide-step:nth-child(even) .screen-wrap { order: initial; }
+    }
+
+    @media (max-width: 600px) {
+      .container { width: min(100% - 28px, 1120px); }
+      .topbar { height: 58px; }
+      .brand span { display: none; }
+      .app-link { min-height: 38px; padding: 7px 14px; font-size: 13px; }
+      .hero { padding: 38px 0 42px; }
+      h1 { font-size: 42px; }
+      .hero-copy { font-size: 16px; }
+      .hero-visual { min-height: 450px; }
+      .phone { height: 470px; }
+      .phone.two { width: 190px; height: 325px; bottom: 0; }
+      .hero-blob { inset: 36px 0 12px 38px; }
+      .mini-note { bottom: 10px; max-width: 150px; padding: 11px 13px; font-size: 11px; }
+      .mini-note b { font-size: 18px; }
+      .flow-band { padding-bottom: 48px; }
+      .flow-item { padding: 23px 22px; }
+      .section { padding: 60px 0; }
+      .install-grid, .feature-grid { grid-template-columns: 1fr; }
+      .guide-step { padding: 22px 16px 26px; border-radius: 22px; }
+      .screen-wrap { width: min(100%, 350px); }
+      .screen-preview { height: 500px; }
+      .feature-shot { height: 320px; }
+      .hero-actions > * { width: 100%; }
+    }
+
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  
+/* ===== 表示ズレ・横はみ出しの修正 ===== */
+html,body{max-width:100%;overflow-x:hidden}
+*{min-width:0}
+img{max-width:100%;height:auto}
+@media (max-width: 860px){
+  /* 最小幅の指定で画面から溢れるのを防ぐ */
+  [style*="minmax(320px"],
+  .hero-grid,.section-head,.install,.try-card{grid-template-columns:1fr !important}
+  .quick-grid,.feature-grid{grid-template-columns:1fr !important}
+}
+@media (max-width: 640px){
+  .wrap{width:calc(100% - 28px) !important;margin-inline:auto}
+  h1{font-size:clamp(30px,8vw,44px) !important;overflow-wrap:anywhere}
+  h2{overflow-wrap:anywhere}
+  p,li,summary{overflow-wrap:anywhere}
+  .button{width:100%;justify-content:center}
+  .hero-actions{flex-direction:column;gap:10px}
+  .hero-actions>*{width:100%}
+  .safe{gap:6px}
+  .install-cards,.feature-grid,.quick-grid{grid-template-columns:1fr !important}
+}
 </style>
 </head>
 <body>
+  <a class="skip" href="#main">本文へ移動</a>
 
-<header>
-  <img src="icon-192.png" alt="">
-  <h1>まとめ買いリスト</h1>
-  <p>1週間の献立を決めるだけで、<br>買い物リストが自動でできるアプリ</p>
-  <a class="start" href="./">アプリを開く</a>
-</header>
+  <nav class="topbar" aria-label="ページ内メニュー">
+    <a class="brand" href="#top"><img src="assets/icon-192.png" alt=""><span>まとめ買いリスト</span></a>
+    <div class="toplinks">
+      <a href="#start">最初の準備</a>
+      <a href="#basic">基本の使い方</a>
+      <a href="#useful">便利な機能</a>
+      <a class="app-link" href="https://em2026music.github.io/matomegai/">アプリを開く <span aria-hidden="true">↗</span></a>
+    </div>
+  </nav>
 
-<div class="wrap">
+  <header class="hero" id="top">
+    <div class="container hero-grid">
+      <div>
+        <p class="eyebrow">はじめてでも迷わない</p>
+        <h1>献立を決めたら、<br><span class="accent">買う物ができあがる。</span></h1>
+        <p class="hero-copy">1週間の献立から、必要な材料を自動で合算。人数に合わせた分量で、店ごとの買い物リストまで作れます。</p>
+        <div class="hero-actions">
+          <a class="primary" href="#basic">3分で使い方を見る <span aria-hidden="true">↓</span></a>
+          <a class="secondary" href="https://em2026music.github.io/matomegai/">アプリを開く <span aria-hidden="true">↗</span></a>
+        </div>
+        <div class="trust" aria-label="アプリの特徴">
+          <span>無料・広告なし</span><span>登録不要</span><span>スマホ内に保存</span><span>オフライン対応</span>
+        </div>
+      </div>
+      <div class="hero-visual" aria-label="アプリ画面のイメージ">
+        <div class="hero-blob"></div>
+        <div class="phone one"><img src="assets/guide-home.png" alt="1週間の献立表画面"></div>
+        <div class="phone two"><img src="assets/guide-shop.png" alt="自動で作られた買い物リスト画面"></div>
+        <div class="mini-note"><b>5日分 → 20品</b>材料を自動でまとめます</div>
+      </div>
+    </div>
+  </header>
 
-<div class="lead">
-  <b>このアプリでできること</b>
-  <ul>
-    <li>1週間の献立をカレンダーに入れる</li>
-    <li>必要な材料が<b>自動で合算</b>されて買い物リストになる（じゃがいも 2個＋3個＝5個）</li>
-    <li>家族の人数に合わせて<b>分量が自動計算</b>される</li>
-    <li>「これはツルハ、これはビッグ」と<b>お店ごとに振り分け</b>できる</li>
-    <li>データはスマホの中だけに保存。<b>登録もログインも不要</b>、無料です</li>
-  </ul>
-</div>
+  <main id="main">
+    <section class="flow-band" aria-labelledby="flow-title">
+      <div class="container">
+        <h2 id="flow-title" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">基本の流れ</h2>
+        <div class="flow-card">
+          <div class="flow-item"><span class="flow-num">01</span><h2>献立を入れる</h2><p>曜日を選び、食べたい料理の「＋」を押します。</p></div>
+          <div class="flow-item"><span class="flow-num">02</span><h2>リストが完成</h2><p>材料が合算され、人数分の買う量が出ます。</p></div>
+          <div class="flow-item"><span class="flow-num">03</span><h2>店ごとに買う</h2><p>ツルハ・ビッグなど、買う店ごとに確認できます。</p></div>
+        </div>
+      </div>
+    </section>
 
-<div class="toc">
-  <b>目次</b>
-  <ul>
-    <li><a href="#s1">1. まずやること（ホーム画面に置く）</a></li>
-    <li><a href="#s2">2. 献立を決める</a></li>
-    <li><a href="#s3">3. 買い物リストを作る</a></li>
-    <li><a href="#s4">4. お店ごとに振り分ける</a></li>
-    <li><a href="#s5">5. 買い物に行く</a></li>
-    <li><a href="#s6">6. 慣れてきたら：便利な機能</a></li>
-    <li><a href="#s7">よくある質問</a></li>
-  </ul>
-</div>
+    <section class="section alt" id="start">
+      <div class="container">
+        <div class="section-head">
+          <p class="section-kicker">最初に1回だけ</p>
+          <h2>ホーム画面に置くと、<br>普通のアプリのように使えます</h2>
+          <p>インストールや会員登録は不要です。リンクを毎回探さなくて済むよう、スマホのホーム画面への追加がおすすめです。</p>
+        </div>
+        <div class="install-grid">
+          <article class="install-card">
+            <span class="os">iPhone</span>
+            <h3>Safariから追加</h3>
+            <ol class="steps-mini"><li>Safariでアプリを開く</li><li>画面下の共有ボタン「□に↑」を押す</li><li>「ホーム画面に追加」を選ぶ</li></ol>
+          </article>
+          <article class="install-card">
+            <span class="os">Android</span>
+            <h3>Chromeから追加</h3>
+            <ol class="steps-mini"><li>Chromeでアプリを開く</li><li>右上の「⋮」を押す</li><li>「ホーム画面に追加」を選ぶ</li></ol>
+          </article>
+        </div>
+        <div class="tipbar"><span aria-hidden="true">✓</span><div><strong>追加したあとは電波がない場所でも使えます。</strong><br>スーパーの中でも買い物リストを確認できます。</div></div>
+      </div>
+    </section>
 
-<h2 id="s1">1. まずやること</h2>
-<p>アプリは<b>インストール不要</b>です。リンクを開けばすぐ使えます。ただし毎回リンクを探すのは面倒なので、<b>ホーム画面に置く</b>のがおすすめです。</p>
+    <section class="section" id="basic">
+      <div class="container">
+        <div class="section-head">
+          <p class="section-kicker">まずはここだけ</p>
+          <h2>基本の使い方は、5ステップ</h2>
+          <p>最初は夜ごはんだけで大丈夫。献立を入れて、できあがったリストを見ながら買い物するだけです。</p>
+        </div>
 
-<div class="step">
-  <span class="no">iPhone</span>
-  <h3>ホーム画面に追加する</h3>
-  <ul>
-    <li>Safariでアプリを開く</li>
-    <li>下の<b>共有ボタン</b>（□に↑）をタップ</li>
-    <li><b>「ホーム画面に追加」</b>を選ぶ</li>
-  </ul>
-</div>
+        <div class="guide-list">
+          <article class="guide-step">
+            <div class="step-copy">
+              <span class="step-label"><b>1</b> 献立を入れる日を選ぶ</span>
+              <h3>ホームで曜日をタップ</h3>
+              <p>最初の画面が1週間の献立表です。料理を入れたい日の白い枠を押します。</p>
+              <ul class="action-list"><li>◀・▶で前後の週へ移動できます</li><li>最初は「夜」だけの表示でOKです</li></ul>
+              <div class="micro-tip"><strong>人数を変えたいとき：</strong>右上の「設定」から家族の人数を合わせると、材料の量も自動で変わります。</div>
+            </div>
+            <div class="screen-wrap" role="button" tabindex="0" data-full="assets/guide-home.png" aria-label="献立表の画面を拡大して見る"><div class="screen-preview"><img src="assets/guide-home.png" alt="曜日ごとに献立を追加するホーム画面"></div></div>
+          </article>
 
-<div class="step">
-  <span class="no">Android</span>
-  <h3>ホーム画面に追加する</h3>
-  <ul>
-    <li>Chromeでアプリを開く</li>
-    <li>右上の<b>「⋮」</b>をタップ</li>
-    <li><b>「ホーム画面に追加」</b>を選ぶ</li>
-  </ul>
-</div>
+          <article class="guide-step">
+            <div class="step-copy">
+              <span class="step-label"><b>2</b> 食べたい料理を追加</span>
+              <h3>料理の右にある「＋」を押す</h3>
+              <p>約230品の料理が入っています。検索やカテゴリを使うと、目当ての料理をすぐ探せます。</p>
+              <ul class="action-list"><li>料理名でも材料名でも検索できます</li><li>メイン・汁物・副菜など何品でも追加できます</li><li>果物やヨーグルトは「そのまま」にあります</li></ul>
+              <div class="micro-tip"><strong>入れすぎたとき：</strong>「−」で1品ずつ減らせます。献立表で料理を長押しすると、その日の分をまとめて消せます。</div>
+            </div>
+            <div class="screen-wrap" role="button" tabindex="0" data-full="assets/guide-picker.png" aria-label="料理を選ぶ画面を拡大して見る"><div class="screen-preview"><img src="assets/guide-picker.png" alt="料理の一覧からプラスボタンで追加する画面"></div></div>
+          </article>
 
-<div class="tip">
-  追加すると普通のアプリのように開けて、<b>電波が無くても使えます</b>（スーパーの中でも安心）。
-</div>
+          <article class="guide-step">
+            <div class="step-copy">
+              <span class="step-label"><b>3</b> リストを自動作成</span>
+              <h3>「買い物リストを見る」を押す</h3>
+              <p>同じ材料は自動で足し算され、家族の人数に合った買う量で一覧になります。</p>
+              <ul class="action-list"><li>玉ねぎ1個＋2個なら「3個」に合算</li><li>数量はタップして自分で変更できます</li><li>家にある物は「在庫あり」で外せます</li></ul>
+              <div class="shop-note"><span class="icon" aria-hidden="true">🧂</span><div><strong>調味料とお米は別コーナーです。</strong><br>切れている物だけ追加できるので、毎週のリストが散らかりません。</div></div>
+            </div>
+            <div class="screen-wrap" role="button" tabindex="0" data-full="assets/guide-shop.png" aria-label="買い物リスト画面を拡大して見る"><div class="screen-preview"><img src="assets/guide-shop.png" alt="材料がカテゴリ別に合算された買い物リスト画面"></div></div>
+          </article>
 
-<h2 id="s2">2. 献立を決める</h2>
+          <article class="guide-step">
+            <div class="step-copy">
+              <span class="step-label"><b>4</b> 買う店を決める</span>
+              <h3>品物を店ごとに振り分ける</h3>
+              <p>「お店をまとめて決める」を押し、ツルハ・ビッグなど買う店を品物ごとに選びます。</p>
+              <ul class="action-list"><li>「全部ツルハ」など一括指定もできます</li><li>一度決めた店は次回から自動で入ります</li><li>「今回だけ」なら記憶せず一時変更できます</li></ul>
+              <div class="micro-tip">お店は「＋店を追加」から自由に増やせます。</div>
+            </div>
+            <div class="screen-wrap" role="button" tabindex="0" data-full="assets/guide-store.png" aria-label="購入先を選ぶ画面を拡大して見る"><div class="screen-preview"><img src="assets/guide-store.png" alt="品物ごとに購入する店を選ぶ画面"></div></div>
+          </article>
 
-<div class="step">
-  <span class="no">STEP 1</span>
-  <h3>曜日をタップする</h3>
-  <p>最初の画面が1週間の献立表です。献立を入れたい<b>曜日をタップ</b>します。</p>
-  <figure>
-    <img src="guide-home.png" alt="献立表の画面">
-    <figcaption>これがホーム画面。曜日をタップして献立を入れていきます</figcaption>
-  </figure>
-</div>
+          <article class="guide-step">
+            <div class="step-copy">
+              <span class="step-label"><b>5</b> お店でチェック</span>
+              <h3>カゴに入れたら、左の丸をタップ</h3>
+              <p>上のお店タブを選ぶと、その店で買う物だけ表示されます。買った物をチェックして進めます。</p>
+              <ul class="action-list"><li>購入済みの数が上に表示されます</li><li>全部終わったら「買い物を完了」</li><li>献立表は消えず、過去の週も見返せます</li></ul>
+            </div>
+            <div class="screen-wrap" role="button" tabindex="0" data-full="assets/guide-shop.png" aria-label="買い物中の画面を拡大して見る"><div class="screen-preview"><img src="assets/guide-shop.png" alt="買った品物を丸でチェックする買い物リスト画面"></div></div>
+          </article>
+        </div>
+      </div>
+    </section>
 
-<div class="step">
-  <span class="no">STEP 2</span>
-  <h3>料理を選ぶ</h3>
-  <p>約230品の料理が最初から入っています。<b>「＋」を押すだけ</b>でその日の献立になります。</p>
-  <ul>
-    <li>上の<b>カテゴリ</b>（主食・肉・魚・汁物など）で絞り込めます</li>
-    <li><b>検索</b>でも探せます（料理名でも材料名でもOK）</li>
-    <li>果物やヨーグルトなど切って出すだけの物は<b>「そのまま」</b>カテゴリに</li>
-    <li>1日に何品でも入れられます（メイン＋汁物＋副菜など）</li>
-  </ul>
-  <figure>
-    <img src="guide-picker.png" alt="料理を選ぶ画面">
-    <figcaption>「＋」を押すだけ。減らしたいときは「−」で減らせます</figcaption>
-  </figure>
-</div>
+    <section class="section alt" id="useful">
+      <div class="container">
+        <div class="section-head">
+          <p class="section-kicker">慣れてきたら</p>
+          <h2>もっと便利に使う</h2>
+          <p>最初から全部覚える必要はありません。必要になった機能だけ、少しずつ使ってみてください。</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-shot" role="button" tabindex="0" data-full="assets/guide-goods.png" aria-label="定番画面を拡大して見る"><img src="assets/guide-goods.png" alt="食品や日用品を登録する定番画面"></div>
+            <div class="feature-body"><h3>牛乳・パン・日用品は「定番」</h3><p>献立に関係なく買う物を登録できます。</p><ul><li>選んで数量を「−」「＋」で調整</li><li>⭐を付けると毎回自動で追加</li><li>約300品のカタログから選択</li></ul></div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-shot" role="button" tabindex="0" data-full="assets/guide-meals.png" aria-label="朝昼夜の献立画面を拡大して見る"><img src="assets/guide-meals.png" alt="朝昼夜を分けて管理する献立表"></div>
+            <div class="feature-body"><h3>朝ごはん・お弁当も管理</h3><p>ホームの「表示する食事」で朝・昼をONにすると、1日を3段に分けて登録できます。</p></div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-shot" role="button" tabindex="0" data-full="assets/guide-dish.png" aria-label="献立編集画面を拡大して見る"><img src="assets/guide-dish.png" alt="料理を編集・新規登録する献立画面"></div>
+            <div class="feature-body"><h3>料理を我が家の味に</h3><p>献立タブで料理を押すと、材料・分量・レシピURL・メモを編集できます。</p><ul><li>「コピーを作る」で増量版も作成</li><li>「＋新規」でオリジナル料理を登録</li></ul></div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-shot" role="button" tabindex="0" data-full="assets/guide-settings.png" aria-label="設定画面を拡大して見る"><img src="assets/guide-settings.png" alt="人数・バックアップ・更新を管理する設定画面"></div>
+            <div class="feature-body"><h3>人数・バックアップ・更新</h3><p>右上の「設定」から家族の人数を変更できます。機種変更前は「バックアップ保存」を使ってください。</p></div>
+          </article>
+        </div>
+      </div>
+    </section>
 
-<div class="tip">
-  <b>間違えて入れすぎたとき</b>は、献立表でその料理を<b>長押し</b>すると、その日の分をまとめて消せます。
-</div>
+    <section class="section" id="faq">
+      <div class="container faq">
+        <div class="section-head"><p class="section-kicker">困ったとき</p><h2>よくある質問</h2></div>
+        <details><summary>お金はかかりますか？</summary><p>無料です。広告もありません。</p></details>
+        <details><summary>登録やログインは必要ですか？</summary><p>必要ありません。リンクを開けばすぐ使えます。</p></details>
+        <details><summary>データはどこに保存されますか？</summary><p>お使いのスマホの中だけに保存されます。献立や買い物の内容がインターネット上へ送られることはありません。</p></details>
+        <details><summary>スマホとパソコンで共有できますか？</summary><p>自動では共有されません。設定の「バックアップ保存」でファイルを保存し、もう一方の端末で「読み込み」をしてください。</p></details>
+        <details><summary>機種変更したらデータは消えますか？</summary><p>そのままでは新しい端末へ移りません。古い端末で「設定 → バックアップ保存」を行い、新しい端末で読み込んでください。</p></details>
+        <details><summary>電波がなくても使えますか？</summary><p>一度アプリを開いておけば、圏外でも買い物リストを確認できます。</p></details>
+        <details><summary>画面が古いまま更新されません</summary><p>「設定 → アプリを最新に更新する」を押してください。保存済みのデータは消えません。</p></details>
+        <details><summary>献立を間違えて入れました</summary><p>料理を選ぶ画面の「−」で減らせます。献立表では料理を長押しすると、その日の分をまとめて削除できます。</p></details>
+      </div>
+    </section>
 
-<h2 id="s3">3. 買い物リストを作る</h2>
+    <section class="closing">
+      <div class="container">
+        <div class="closing-card"><h2>まずは今週の夜ごはんを、<br>1日分だけ入れてみよう。</h2><p>使い方は、触りながら少しずつ覚えれば大丈夫です。</p><a class="primary" href="https://em2026music.github.io/matomegai/">まとめ買いリストを開く <span aria-hidden="true">↗</span></a></div>
+      </div>
+    </section>
+  </main>
 
-<div class="step">
-  <span class="no">STEP 3</span>
-  <h3>ボタンを1回押すだけ</h3>
-  <p>献立が決まったら、下の<b>「🛒 買い物リストを見る」</b>を押します。<b>材料が自動で合算</b>されたリストができます。</p>
-  <figure>
-    <img src="guide-shop.png" alt="買い物リストの画面">
-    <figcaption>野菜・肉魚・その他に分かれて表示されます</figcaption>
-  </figure>
-  <ul>
-    <li>同じ材料は<b>足し算</b>されます（玉ねぎ 1個＋2個＝3個）</li>
-    <li>家族の人数に合わせて<b>分量が調整</b>されます</li>
-    <li>家にある物は<b>「在庫あり」</b>を押すと買い物から外れます</li>
-    <li>数量をタップすれば<b>自分で変更</b>できます</li>
-  </ul>
-</div>
+  <footer class="footer"><div class="container">まとめ買いリスト｜かんたん使い方ガイド</div></footer>
 
-<div class="warn">
-  <b>しょうゆ・砂糖などの調味料</b>は、毎回リストに並ぶと邪魔なので、リストの下の
-  <b>「調味料・常備品」</b>コーナーにまとめてあります。家を見て「切れてる！」と思った物だけタップすると、
-  「しょうゆ 1本」としてリストに入ります。<br>
-  <b>お米</b>も同じく除外されていて、買いたい週だけ「今週は買う」を押します。
-</div>
+  <div class="lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="画面画像の拡大表示">
+    <button type="button" aria-label="閉じる">×</button>
+    <img src="" alt="拡大したアプリ画面">
+  </div>
 
-<h2 id="s4">4. お店ごとに振り分ける</h2>
-
-<div class="step">
-  <span class="no">STEP 4</span>
-  <h3>「どこで買うか」を決める</h3>
-  <p>買い物リストの<b>「🏪 お店をまとめて決める」</b>を押すと、品物ごとにお店を選べます。</p>
-  <figure>
-    <img src="guide-store.png" alt="お店を決める画面">
-    <figcaption>ポンポン押すだけ。「全部ツルハ」などの一括ボタンもあります</figcaption>
-  </figure>
-  <ul>
-    <li>一度選んだお店は<b>記憶されて、次回から自動</b>で振り分けられます</li>
-    <li>「今回だけ」に切り替えれば、記憶せず一時的に変更できます</li>
-    <li>お店は<b>「＋店を追加」</b>で自由に増やせます</li>
-  </ul>
-</div>
-
-<h2 id="s5">5. 買い物に行く</h2>
-<p>お店に着いたら、上の<b>お店のタブ</b>を選びます。そのお店で買う物だけが表示されるので、
-カゴに入れたら<b>丸をタップ</b>してチェック。全部買い終わったら<b>「買い物を完了」</b>を押します。</p>
-
-<div class="tip">
-  完了するとリストは空になりますが、<b>献立表は残ります</b>。「先週なに食べたっけ？」は、
-  献立表の<kbd>◀</kbd><kbd>▶</kbd>で過去の週を見返せます。
-</div>
-
-<h2 id="s6">6. 慣れてきたら</h2>
-
-<h3>いつも買う物を登録する（定番）</h3>
-<p>牛乳・パン・トイレットペーパーなど、献立に関係なく買う物は<b>「定番」タブ</b>に登録します。</p>
-<figure>
-  <img src="guide-goods.png" alt="定番タブの画面">
-  <figcaption>個数も指定できます。⭐を付けると毎回自動でリストに入ります</figcaption>
-</figure>
-<ul>
-  <li>タップで選択 → <b>「−」「＋」で個数</b>を決める</li>
-  <li><b>⭐毎回買う</b>にすると、リストを作るたび自動で入ります</li>
-  <li><b>「＋カタログ」</b>から約300品の中から選べます（別名でも検索できます）</li>
-</ul>
-
-<h3>朝ごはん・お弁当も管理する</h3>
-<p>最初は<b>夜ごはんだけ</b>が表示されています。献立表の<b>「表示する食事」</b>で
-🍞朝・🍱昼をONにすると、1日が3段になります。</p>
-<figure>
-  <img src="guide-meals.png" alt="朝昼夜の表示">
-  <figcaption>使う食事だけONに。夜は大きく表示されて見つけやすくなっています</figcaption>
-</figure>
-
-<h3>献立を自分好みにする</h3>
-<figure>
-  <img src="guide-dish.png" alt="献立タブの画面">
-  <figcaption>料理をタップすると材料や分量を編集できます</figcaption>
-</figure>
-<ul>
-  <li>材料・分量を<b>自由に書き換え</b>られます（我が家の味に）</li>
-  <li><b>「コピーを作る」</b>で「カレー（食べ盛り）」など増量版が作れます</li>
-  <li><b>「＋新規」</b>でオリジナル料理を登録できます</li>
-  <li>レシピのURLやメモも保存できます</li>
-</ul>
-
-<h3>家族の人数を変える</h3>
-<figure>
-  <img src="guide-settings.png" alt="設定画面">
-  <figcaption>右上の「⚙ 設定」から。分量が自動で計算し直されます</figcaption>
-</figure>
-
-<h2 id="s7">よくある質問</h2>
-
-<div class="q"><b>Q. お金はかかりますか？</b><br>
-かかりません。広告もありません。</div>
-
-<div class="q"><b>Q. 登録やログインは必要？</b><br>
-不要です。リンクを開けばすぐ使えます。</div>
-
-<div class="q"><b>Q. データはどこに保存される？</b><br>
-<b>お使いのスマホの中だけ</b>です。インターネット上には一切送られないので、
-献立や買い物の内容が外に出ることはありません。</div>
-
-<div class="q"><b>Q. スマホとパソコンでデータは共有されますか？</b><br>
-共有されません（端末ごとに別々です）。移したいときは
-<kbd>⚙設定</kbd> →「バックアップ保存」でファイルを保存し、
-もう一方の端末で「読み込み」してください。</div>
-
-<div class="q"><b>Q. 機種変更したらデータは消える？</b><br>
-消えます。事前に <kbd>⚙設定</kbd> →「バックアップ保存」でファイルを保存し、
-新しい端末で読み込んでください。</div>
-
-<div class="q"><b>Q. 電波がなくても使える？</b><br>
-使えます。一度開いておけば、圏外でも買い物リストを見られます。</div>
-
-<div class="q"><b>Q. 画面が古いまま更新されない</b><br>
-<kbd>⚙設定</kbd> → <b>「🔄 アプリを最新に更新する」</b>を押してください。データは消えません。</div>
-
-<div class="q"><b>Q. 間違えて消してしまった</b><br>
-献立表の献立は、その日をタップして選び直せます。
-全部やり直したいときは <kbd>⚙設定</kbd> →「すべて初期化」（<b>元に戻せません</b>のでご注意を）。</div>
-
-<div class="foot">
-  <a class="start" href="./" style="background:var(--or);color:#fff;">アプリを開く</a>
-  <p style="margin-top:22px">まとめ買いリスト｜使い方ガイド</p>
-</div>
-
-</div>
+  <script>
+    (() => {
+      const box = document.getElementById('lightbox');
+      const full = box.querySelector('img');
+      const close = box.querySelector('button');
+      let previous = null;
+      const open = (el) => {
+        previous = el;
+        full.src = el.dataset.full;
+        box.classList.add('open');
+        document.body.style.overflow = 'hidden';
+        close.focus();
+      };
+      const shut = () => {
+        box.classList.remove('open');
+        full.src = '';
+        document.body.style.overflow = '';
+        if (previous) previous.focus();
+      };
+      document.querySelectorAll('[data-full]').forEach((el) => {
+        el.addEventListener('click', () => open(el));
+        el.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(el); }
+        });
+      });
+      close.addEventListener('click', shut);
+      box.addEventListener('click', (e) => { if (e.target === box) shut(); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && box.classList.contains('open')) shut(); });
+    })();
+  </script>
 </body>
 </html>

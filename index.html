@@ -597,7 +597,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-28";
+const APP_VERSION="0721-30";
 let S=null;
 function newState(){
   return {
@@ -715,6 +715,38 @@ function clearSlot(i,k){
   const label=`${dt.getMonth()+1}/${dt.getDate()}(${DAYS[i]})${onMeals().length>1?"の"+ml.label:""}`;
   if(!confirm(label+" の献立を消しますか？\n\n"+names.join("・"))) return;
   wk[i][k]=[]; save(); render(); flash(label+" を空にしました");
+}
+/* 先週の献立をこの週にコピー */
+function copyPrevWeek(){
+  const prev=S.plans[keyAt(weekOffset-1)];
+  if(!prev||!prev.some(d=>dayIds(d).length)){ flash("先週の献立がまだありません"); return; }
+  const cur=curWeek();
+  if(cur.some(d=>dayIds(d).length)&&!confirm("この週の献立を、先週の内容に置き換えますか？")) return;
+  S.plans[curKey()]=prev.map(d=>({b:(d.b||[]).slice(), l:(d.l||[]).slice(), d:(d.d||[]).slice()}));
+  save(); render(); flash("先週の献立をコピーしました");
+}
+/* 献立セット（カレー＋サラダ＋スープ などの組み合わせ） */
+function saveSet(){
+  const slot=curWeek()[pickDay][pickMeal]||[];
+  if(slot.length<2){ flash("2品以上のときに保存できます"); return; }
+  const names=slot.map(id=>dish(id)).filter(Boolean).map(x=>x.name);
+  const n=prompt("この組み合わせの名前", names.slice(0,2).join("＋"));
+  if(!n||!n.trim()) return;
+  if(!S.sets) S.sets=[];
+  S.sets.unshift({name:n.trim(), ids:slot.slice()});
+  S.sets=S.sets.slice(0,20);
+  save(); renderPicker(); flash("セットとして保存しました");
+}
+function applySet(i){
+  const st=(S.sets||[])[i]; if(!st) return;
+  const slot=curWeek(true)[pickDay][pickMeal];
+  st.ids.forEach(id=>{ if(dish(id)) slot.push(id); });
+  save(); renderPicker(); flash(st.name+" を追加しました");
+}
+function delSet(i){
+  const st=(S.sets||[])[i]; if(!st) return;
+  if(!confirm("セット「"+st.name+"」を削除しますか？")) return;
+  S.sets.splice(i,1); save(); renderPicker();
 }
 function togWeekView(){ S.weekView=(S.weekView==="main"?"all":"main"); save(); render(); }
 function shiftWeek(d){ weekOffset+=d; render(); }
@@ -908,6 +940,7 @@ function rWeek(){
   h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると献立を移せます。献立を<b>長押しすると、その食事をまとめて消せます</b>。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
   h+='<div class="ctalink" onclick="go(\'shop\')">家にある物を確認する ›</div>';
+  h+='<div class="ctalink" onclick="copyPrevWeek()">📋 先週の献立をコピー</div>';
   h+='<div class="ctalink small" onclick="clearWeek()">献立表をクリア</div>';
   h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
   return h;
@@ -1139,6 +1172,15 @@ function renderPicker(){
       }
     }
   }
+  /* よく使う組み合わせ（献立セット） */
+  if((S.sets||[]).length){
+    h+='<div class="kindhead" style="margin-top:6px">よく使う組み合わせ</div><div class="goodsgrid" style="margin-bottom:10px">';
+    S.sets.forEach((st,i)=>{
+      h+=`<button class="gbtn" onclick="applySet(${i})">${esc(st.name)}<span class="del" onclick="event.stopPropagation();delSet(${i})">✕</span></button>`;
+    });
+    h+='</div>';
+  }
+  if(slot.length>=2) h+=`<div class="ctalink small" style="margin:0 0 8px" onclick="saveSet()">⭐ この組み合わせをセットに保存</div>`;
   if(ms.length>1){
     const cur=MEALS.find(m=>m.k===pickMeal);
     h+=`<div class="addingto ${pickMeal}">↓ 下から選ぶと「${cur.icon} ${cur.label}」に入ります</div>`;
@@ -1693,7 +1735,7 @@ function aggregate(){
   }));
   const items=[...map.values()].map(x=>{
     const buy=buyQty(x.q,x.u);
-    const need=(typeof x.q==="number")?Math.round(x.q*100)/100:x.q;
+    const need=(typeof x.q==="number")?((x.q>=10)?Math.round(x.q):Math.round(x.q*10)/10):x.q;
     return {n:x.n, q:buy, need:(buy!==need?need:undefined), u:x.u, stock:false, done:false, store:S.storeMap[x.n]||""};
   });
   /* 定番（選択中＋⭐毎回）。献立材料と同名なら統合し、商品単位（1本など）の定番側を優先 */
@@ -1707,7 +1749,7 @@ function aggregate(){
 }
 function togStar(g){ S.goodsStar[g]=!S.goodsStar[g]; if(!S.goodsStar[g]) delete S.goodsStar[g]; save(); render(); }
 /* 実際に買える数に直す。個数ものは切り上げ（0.25個は買えないため） */
-const COUNT_UNITS=["個","本","枚","丁","パック","袋","缶","玉","尾","切れ","株","束","房","杯","箱","匹","羽","段","カップ"];
+const COUNT_UNITS=["個","本","枚","丁","パック","袋","缶","玉","尾","切れ","株","束","房","杯","箱","匹","羽","段","カップ","かけ","片","さく","腹","組","粒","把","袋入"];
 function buyQty(q,u){
   if(typeof q!=="number"||!isFinite(q)) return q;
   const e=1e-6;
@@ -1848,6 +1890,11 @@ function addManual(){
 }
 function finishTrip(){
   const wl=S.list&&S.list.week?weekRangeLabel(S.list.week)+"の週の":"";
+  const rest=S.list?S.list.items.filter(x=>!x.stock&&!x.done):[];
+  if(rest.length){
+    const names=rest.slice(0,5).map(x=>"・"+x.n).join("\n")+(rest.length>5?"\n…ほか"+(rest.length-5)+"品":"");
+    if(!confirm("⚠ まだ買っていない物が "+rest.length+"品 あります。\n\n"+names+"\n\nこのまま買い物を完了しますか？")) return;
+  }
   if(!confirm("買い物おつかれさま！\n"+wl+"リストを空にします。よろしいですか？\n（献立表は消えません。日用品の選択はリセットされます）")) return;
   S.list=null; S.goodsSel={}; shopFilter="all";
   save(); render(); flash("完了！おつかれさまでした🎉");
