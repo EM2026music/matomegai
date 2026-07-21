@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>まとめ買いリスト｜使い方ガイド</title>
+<link rel="icon" href="icon-192.png">
+<meta name="theme-color" content="#e8873c">
+<style>
+:root{--or:#e8873c;--or-d:#c96f28;--or-bg:#fdf1e5;--bg:#faf4ec;--ink:#3a3228;--sub:#8b7f6e;--line:#ece0cf;}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--ink);
+ font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;line-height:1.75;}
+.wrap{max-width:760px;margin:0 auto;padding:0 18px 80px;}
+header{background:linear-gradient(160deg,#e8873c,#d9702a);color:#fff;padding:44px 18px 38px;text-align:center;}
+header img{width:72px;height:72px;border-radius:18px;box-shadow:0 6px 18px rgba(0,0,0,.18);}
+header h1{margin:14px 0 6px;font-size:27px;letter-spacing:.5px;}
+header p{margin:0;opacity:.95;font-size:15px;}
+.start{display:inline-block;margin-top:20px;background:#fff;color:var(--or-d);font-weight:800;
+ text-decoration:none;padding:14px 30px;border-radius:999px;font-size:17px;box-shadow:0 4px 14px rgba(0,0,0,.15);}
+h2{font-size:21px;margin:44px 0 6px;padding-bottom:8px;border-bottom:3px solid var(--or);display:inline-block;}
+h3{font-size:17px;margin:26px 0 6px;}
+p{margin:8px 0;}
+.lead{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:18px 0;}
+.step{background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;margin:18px 0;
+ box-shadow:0 1px 4px rgba(120,90,50,.06);}
+.step .no{display:inline-block;background:var(--or);color:#fff;font-weight:800;border-radius:999px;
+ padding:3px 13px;font-size:13px;margin-bottom:8px;}
+.step h3{margin:4px 0 8px;font-size:19px;}
+figure{margin:14px 0 4px;text-align:center;}
+figure img{width:100%;max-width:330px;border:1px solid var(--line);border-radius:14px;
+ box-shadow:0 3px 12px rgba(120,90,50,.13);}
+figcaption{font-size:12.5px;color:var(--sub);margin-top:7px;}
+ul{margin:8px 0;padding-left:22px;}li{margin:5px 0;}
+.tip{background:#eef7ef;border-left:4px solid #5ba463;border-radius:0 10px 10px 0;padding:12px 15px;margin:14px 0;font-size:14.5px;}
+.warn{background:var(--or-bg);border-left:4px solid var(--or);border-radius:0 10px 10px 0;padding:12px 15px;margin:14px 0;font-size:14.5px;}
+.q{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0;}
+.q b{color:var(--or-d);}
+kbd{background:#fff;border:1px solid #d9cdb8;border-radius:7px;padding:2px 8px;font-size:13px;font-weight:700;white-space:nowrap;}
+.foot{text-align:center;color:var(--sub);font-size:13px;margin-top:50px;}
+.toc{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 20px;margin:22px 0;}
+.toc a{color:var(--or-d);text-decoration:none;}
+.toc li{margin:6px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <img src="icon-192.png" alt="">
+  <h1>まとめ買いリスト</h1>
+  <p>1週間の献立を決めるだけで、<br>買い物リストが自動でできるアプリ</p>
+  <a class="start" href="./">アプリを開く</a>
+</header>
+
+<div class="wrap">
+
+<div class="lead">
+  <b>このアプリでできること</b>
+  <ul>
+    <li>1週間の献立をカレンダーに入れる</li>
+    <li>必要な材料が<b>自動で合算</b>されて買い物リストになる（じゃがいも 2個＋3個＝5個）</li>
+    <li>家族の人数に合わせて<b>分量が自動計算</b>される</li>
+    <li>「これはツルハ、これはビッグ」と<b>お店ごとに振り分け</b>できる</li>
+    <li>データはスマホの中だけに保存。<b>登録もログインも不要</b>、無料です</li>
+  </ul>
+</div>
+
+<div class="toc">
+  <b>目次</b>
+  <ul>
+    <li><a href="#s1">1. まずやること（ホーム画面に置く）</a></li>
+    <li><a href="#s2">2. 献立を決める</a></li>
+    <li><a href="#s3">3. 買い物リストを作る</a></li>
+    <li><a href="#s4">4. お店ごとに振り分ける</a></li>
+    <li><a href="#s5">5. 買い物に行く</a></li>
+    <li><a href="#s6">6. 慣れてきたら：便利な機能</a></li>
+    <li><a href="#s7">よくある質問</a></li>
+  </ul>
+</div>
+
+<h2 id="s1">1. まずやること</h2>
+<p>アプリは<b>インストール不要</b>です。リンクを開けばすぐ使えます。ただし毎回リンクを探すのは面倒なので、<b>ホーム画面に置く</b>のがおすすめです。</p>
+
+<div class="step">
+  <span class="no">iPhone</span>
+  <h3>ホーム画面に追加する</h3>
+  <ul>
+    <li>Safariでアプリを開く</li>
+    <li>下の<b>共有ボタン</b>（□に↑）をタップ</li>
+    <li><b>「ホーム画面に追加」</b>を選ぶ</li>
+  </ul>
+</div>
+
+<div class="step">
+  <span class="no">Android</span>
+  <h3>ホーム画面に追加する</h3>
+  <ul>
+    <li>Chromeでアプリを開く</li>
+    <li>右上の<b>「⋮」</b>をタップ</li>
+    <li><b>「ホーム画面に追加」</b>を選ぶ</li>
+  </ul>
+</div>
+
+<div class="tip">
+  追加すると普通のアプリのように開けて、<b>電波が無くても使えます</b>（スーパーの中でも安心）。
+</div>
+
+<h2 id="s2">2. 献立を決める</h2>
+
+<div class="step">
+  <span class="no">STEP 1</span>
+  <h3>曜日をタップする</h3>
+  <p>最初の画面が1週間の献立表です。献立を入れたい<b>曜日をタップ</b>します。</p>
+  <figure>
+    <img src="guide-home.png" alt="献立表の画面">
+    <figcaption>これがホーム画面。曜日をタップして献立を入れていきます</figcaption>
+  </figure>
+</div>
+
+<div class="step">
+  <span class="no">STEP 2</span>
+  <h3>料理を選ぶ</h3>
+  <p>約230品の料理が最初から入っています。<b>「＋」を押すだけ</b>でその日の献立になります。</p>
+  <ul>
+    <li>上の<b>カテゴリ</b>（主食・肉・魚・汁物など）で絞り込めます</li>
+    <li><b>検索</b>でも探せます（料理名でも材料名でもOK）</li>
+    <li>果物やヨーグルトなど切って出すだけの物は<b>「そのまま」</b>カテゴリに</li>
+    <li>1日に何品でも入れられます（メイン＋汁物＋副菜など）</li>
+  </ul>
+  <figure>
+    <img src="guide-picker.png" alt="料理を選ぶ画面">
+    <figcaption>「＋」を押すだけ。減らしたいときは「−」で減らせます</figcaption>
+  </figure>
+</div>
+
+<div class="tip">
+  <b>間違えて入れすぎたとき</b>は、献立表でその料理を<b>長押し</b>すると、その日の分をまとめて消せます。
+</div>
+
+<h2 id="s3">3. 買い物リストを作る</h2>
+
+<div class="step">
+  <span class="no">STEP 3</span>
+  <h3>ボタンを1回押すだけ</h3>
+  <p>献立が決まったら、下の<b>「🛒 買い物リストを見る」</b>を押します。<b>材料が自動で合算</b>されたリストができます。</p>
+  <figure>
+    <img src="guide-shop.png" alt="買い物リストの画面">
+    <figcaption>野菜・肉魚・その他に分かれて表示されます</figcaption>
+  </figure>
+  <ul>
+    <li>同じ材料は<b>足し算</b>されます（玉ねぎ 1個＋2個＝3個）</li>
+    <li>家族の人数に合わせて<b>分量が調整</b>されます</li>
+    <li>家にある物は<b>「在庫あり」</b>を押すと買い物から外れます</li>
+    <li>数量をタップすれば<b>自分で変更</b>できます</li>
+  </ul>
+</div>
+
+<div class="warn">
+  <b>しょうゆ・砂糖などの調味料</b>は、毎回リストに並ぶと邪魔なので、リストの下の
+  <b>「調味料・常備品」</b>コーナーにまとめてあります。家を見て「切れてる！」と思った物だけタップすると、
+  「しょうゆ 1本」としてリストに入ります。<br>
+  <b>お米</b>も同じく除外されていて、買いたい週だけ「今週は買う」を押します。
+</div>
+
+<h2 id="s4">4. お店ごとに振り分ける</h2>
+
+<div class="step">
+  <span class="no">STEP 4</span>
+  <h3>「どこで買うか」を決める</h3>
+  <p>買い物リストの<b>「🏪 お店をまとめて決める」</b>を押すと、品物ごとにお店を選べます。</p>
+  <figure>
+    <img src="guide-store.png" alt="お店を決める画面">
+    <figcaption>ポンポン押すだけ。「全部ツルハ」などの一括ボタンもあります</figcaption>
+  </figure>
+  <ul>
+    <li>一度選んだお店は<b>記憶されて、次回から自動</b>で振り分けられます</li>
+    <li>「今回だけ」に切り替えれば、記憶せず一時的に変更できます</li>
+    <li>お店は<b>「＋店を追加」</b>で自由に増やせます</li>
+  </ul>
+</div>
+
+<h2 id="s5">5. 買い物に行く</h2>
+<p>お店に着いたら、上の<b>お店のタブ</b>を選びます。そのお店で買う物だけが表示されるので、
+カゴに入れたら<b>丸をタップ</b>してチェック。全部買い終わったら<b>「買い物を完了」</b>を押します。</p>
+
+<div class="tip">
+  完了するとリストは空になりますが、<b>献立表は残ります</b>。「先週なに食べたっけ？」は、
+  献立表の<kbd>◀</kbd><kbd>▶</kbd>で過去の週を見返せます。
+</div>
+
+<h2 id="s6">6. 慣れてきたら</h2>
+
+<h3>いつも買う物を登録する（定番）</h3>
+<p>牛乳・パン・トイレットペーパーなど、献立に関係なく買う物は<b>「定番」タブ</b>に登録します。</p>
+<figure>
+  <img src="guide-goods.png" alt="定番タブの画面">
+  <figcaption>個数も指定できます。⭐を付けると毎回自動でリストに入ります</figcaption>
+</figure>
+<ul>
+  <li>タップで選択 → <b>「−」「＋」で個数</b>を決める</li>
+  <li><b>⭐毎回買う</b>にすると、リストを作るたび自動で入ります</li>
+  <li><b>「＋カタログ」</b>から約300品の中から選べます（別名でも検索できます）</li>
+</ul>
+
+<h3>朝ごはん・お弁当も管理する</h3>
+<p>最初は<b>夜ごはんだけ</b>が表示されています。献立表の<b>「表示する食事」</b>で
+🍞朝・🍱昼をONにすると、1日が3段になります。</p>
+<figure>
+  <img src="guide-meals.png" alt="朝昼夜の表示">
+  <figcaption>使う食事だけONに。夜は大きく表示されて見つけやすくなっています</figcaption>
+</figure>
+
+<h3>献立を自分好みにする</h3>
+<figure>
+  <img src="guide-dish.png" alt="献立タブの画面">
+  <figcaption>料理をタップすると材料や分量を編集できます</figcaption>
+</figure>
+<ul>
+  <li>材料・分量を<b>自由に書き換え</b>られます（我が家の味に）</li>
+  <li><b>「コピーを作る」</b>で「カレー（食べ盛り）」など増量版が作れます</li>
+  <li><b>「＋新規」</b>でオリジナル料理を登録できます</li>
+  <li>レシピのURLやメモも保存できます</li>
+</ul>
+
+<h3>家族の人数を変える</h3>
+<figure>
+  <img src="guide-settings.png" alt="設定画面">
+  <figcaption>右上の「⚙ 設定」から。分量が自動で計算し直されます</figcaption>
+</figure>
+
+<h2 id="s7">よくある質問</h2>
+
+<div class="q"><b>Q. お金はかかりますか？</b><br>
+かかりません。広告もありません。</div>
+
+<div class="q"><b>Q. 登録やログインは必要？</b><br>
+不要です。リンクを開けばすぐ使えます。</div>
+
+<div class="q"><b>Q. データはどこに保存される？</b><br>
+<b>お使いのスマホの中だけ</b>です。インターネット上には一切送られないので、
+献立や買い物の内容が外に出ることはありません。</div>
+
+<div class="q"><b>Q. スマホとパソコンでデータは共有されますか？</b><br>
+共有されません（端末ごとに別々です）。移したいときは
+<kbd>⚙設定</kbd> →「バックアップ保存」でファイルを保存し、
+もう一方の端末で「読み込み」してください。</div>
+
+<div class="q"><b>Q. 機種変更したらデータは消える？</b><br>
+消えます。事前に <kbd>⚙設定</kbd> →「バックアップ保存」でファイルを保存し、
+新しい端末で読み込んでください。</div>
+
+<div class="q"><b>Q. 電波がなくても使える？</b><br>
+使えます。一度開いておけば、圏外でも買い物リストを見られます。</div>
+
+<div class="q"><b>Q. 画面が古いまま更新されない</b><br>
+<kbd>⚙設定</kbd> → <b>「🔄 アプリを最新に更新する」</b>を押してください。データは消えません。</div>
+
+<div class="q"><b>Q. 間違えて消してしまった</b><br>
+献立表の献立は、その日をタップして選び直せます。
+全部やり直したいときは <kbd>⚙設定</kbd> →「すべて初期化」（<b>元に戻せません</b>のでご注意を）。</div>
+
+<div class="foot">
+  <a class="start" href="./" style="background:var(--or);color:#fff;">アプリを開く</a>
+  <p style="margin-top:22px">まとめ買いリスト｜使い方ガイド</p>
+</div>
+
+</div>
+</body>
+</html>
