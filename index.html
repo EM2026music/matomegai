@@ -20,7 +20,7 @@
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
 html,body{max-width:100%; overflow-x:hidden;} /* 横にはみ出してスクロールしないように */
 body{margin:0; font-family:"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif; background:var(--bg); color:var(--ink); padding-bottom:calc(92px + env(safe-area-inset-bottom));}
-main{max-width:640px; margin:0 auto; padding:18px 14px 10px;}
+main{max-width:640px; margin:0 auto; padding:18px 14px 10px; overflow-x:hidden;}
 h2{font-size:15px; margin:14px 2px 8px; color:var(--or-d);}
 /* ページ見出し */
 .pagehead{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;}
@@ -108,7 +108,8 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .mealcol .mnames.big{font-size:14px; font-weight:bold; -webkit-line-clamp:1;}
 .mealcol .mnames.empty{color:#c9bda9; font-size:15px;}
 .mealcol .more{font-size:10.5px; color:var(--sub); margin-top:2px;}
-.summaryrow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 2px 12px;}
+.summaryrow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 2px 12px; flex-wrap:wrap;}
+.summaryrow .summary{flex:1 1 auto; min-width:0;}
 .viewtog{border:1.5px solid #e8ddcb; background:#fff; border-radius:10px; padding:6px 10px; font-size:12px; font-weight:bold; color:var(--or-d); cursor:pointer; flex-shrink:0;}
 .mealtoggle{display:flex; align-items:center; gap:6px; margin:0 2px 12px; flex-wrap:wrap;}
 .mtlabel{font-size:11px; color:var(--sub); flex-shrink:0;}
@@ -479,9 +480,28 @@ const SEED=[
 ["朝ごはん","和朝食（焼き鮭）",[["米",2,"合"],["塩鮭",3,"切れ"],["豆腐",1,"丁"],["乾燥わかめ",3,"g"],["みそ",3,"大さじ"],["だしの素","","適量"]]],
 ["朝ごはん","おにぎり",[["米",2,"合"],["焼きのり",1,"袋"],["塩","","適量"],["ふりかけ",1,"袋"]]],
 ["朝ごはん","ヨーグルトとフルーツ",[["ヨーグルト",3,"個"],["バナナ",1,"房"],["はちみつ","","適量"]]],
-["朝ごはん","シリアル",[["シリアル",1,"袋"],["牛乳",300,"ml"],["バナナ",1,"房"]]]
+["朝ごはん","シリアル",[["シリアル",1,"袋"],["牛乳",300,"ml"],["バナナ",1,"房"]]],
+/* --- そのまま食べる（切るだけ・出すだけ） --- */
+["そのまま","バナナ",[["バナナ",1,"房"]]],
+["そのまま","りんご",[["りんご",2,"個"]]],
+["そのまま","みかん",[["みかん",4,"個"]]],
+["そのまま","キウイ",[["キウイ",2,"個"]]],
+["そのまま","いちご",[["いちご",1,"パック"]]],
+["そのまま","ぶどう",[["ぶどう",1,"房"]]],
+["そのまま","梨",[["梨",2,"個"]]],
+["そのまま","カットフルーツ",[["りんご",1,"個"],["キウイ",1,"個"],["バナナ",1,"房"]]],
+["そのまま","プチトマト",[["ミニトマト",1,"パック"]]],
+["そのまま","きゅうりの浅漬け",[["きゅうり",2,"本"],["塩昆布",1,"袋"]]],
+["そのまま","冷奴",[["豆腐",1,"丁"],["長ねぎ",0.5,"本"],["しょうゆ","","適量"]]],
+["そのまま","納豆",[["納豆",3,"パック"]]],
+["そのまま","ヨーグルト",[["ヨーグルト",3,"個"]]],
+["そのまま","チーズ",[["チーズ",1,"個"]]],
+["そのまま","ゆで卵",[["卵",4,"個"]]],
+["そのまま","枝豆",[["枝豆",1,"袋"]]],
+["そのまま","もずく酢",[["もずく酢",3,"パック"]]],
+["そのまま","めかぶ",[["めかぶ",3,"パック"]]]
 ];
-const CATS=["主食","肉","魚","おかず","汁物","副菜","麺","朝ごはん"];
+const CATS=["主食","肉","魚","おかず","汁物","副菜","麺","朝ごはん","そのまま"];
 /* ===== 品物マスター（カタログ）: "名前|別名(空白区切り)|単位" ===== */
 const CATALOG_RAW={
 "野菜・きのこ":["じゃがいも|ジャガイモ 馬鈴薯 ポテト|個","にんじん|人参 ニンジン|本","玉ねぎ|たまねぎ 玉葱 タマネギ|個","長ねぎ|ねぎ 葱 ネギ 青ねぎ|本","キャベツ||個","もやし|モヤシ|袋","ほうれん草|ホウレンソウ ほうれんそう|束","小松菜|こまつな コマツナ|束","白菜|はくさい ハクサイ|個","レタス||個","きゅうり|キュウリ 胡瓜|本","トマト||個","ミニトマト|プチトマト|パック","なす|ナス 茄子|本","ピーマン||個","パプリカ||個","かぼちゃ|カボチャ 南瓜|個","大根|だいこん ダイコン|本","ごぼう|ゴボウ 牛蒡|本","れんこん|レンコン 蓮根|節","さつまいも|サツマイモ さつま芋|本","里芋|さといも サトイモ|個","長芋|ながいも 山芋 とろろ|本","しめじ|シメジ|パック","えのき|エノキ|袋","しいたけ|椎茸 シイタケ|パック","まいたけ|舞茸 マイタケ|パック","エリンギ||パック","なめこ|ナメコ|袋","ブロッコリー||株","カリフラワー||株","アスパラ|アスパラガス|束","とうもろこし|トウモロコシ コーン|本","枝豆|えだまめ エダマメ|袋","いんげん|インゲン 隠元|袋","オクラ||袋","ズッキーニ||本","にんにく|ニンニク 大蒜|個","しょうが|生姜 ショウガ|かけ","にら|ニラ 韮|束","春菊|しゅんぎく シュンギク|束","三つ葉|みつば ミツバ|束","大葉|しそ 紫蘇 シソ|枚","みょうが|茗荷|パック","セロリ||本","水菜|みずな ミズナ|束","チンゲン菜|青梗菜 チンゲンサイ|株","ゴーヤ|にがうり|本","かぶ|カブ 蕪|個","豆苗|とうみょう|パック","貝割れ|かいわれ|パック","サニーレタス||個"],
@@ -506,7 +526,7 @@ const CATALOG_RAW={
 /* カタログのカテゴリ → 定番タブのカテゴリ */
 const CAT2GOODS={"野菜・きのこ":"食品","果物":"食品","肉":"食品","魚介":"食品","卵・乳製品":"食品","豆腐・大豆":"食品","米・パン・麺":"食品","缶詰・乾物":"食品","冷凍・加工":"食品","朝ごはん":"食品","調味料・油":"調味料","粉・その他":"調味料","おやつ":"おやつ","飲み物":"飲み物","キッチン":"キッチン","洗濯・掃除":"洗面・お風呂","洗面・お風呂":"洗面・お風呂","衛生・その他":"その他"};
 const CATALOG_CATS=Object.keys(CATALOG_RAW);
-const CATS_OLDS=[["主食","麺","肉","魚","おかず","副菜","汁物"],["主食","麺","肉","魚","おかず","汁物","副菜"],["主食","肉","魚","おかず","汁物","副菜","麺"]];
+const CATS_OLDS=[["主食","麺","肉","魚","おかず","副菜","汁物"],["主食","麺","肉","魚","おかず","汁物","副菜"],["主食","肉","魚","おかず","汁物","副菜","麺"],["主食","肉","魚","おかず","汁物","副菜","麺","朝ごはん"]];
 const GOODS_SEED=["トイレットペーパー","ボックスティッシュ","キッチンペーパー","ラップ","アルミホイル","ゴミ袋","洗濯洗剤","柔軟剤","食器用洗剤","スポンジ","ハンドソープ","シャンプー","コンディショナー","ボディソープ","歯みがき粉","歯ブラシ","マスク","電池","卵","牛乳","食パン","米","サラダ油","しょうゆ","みそ","砂糖","塩"];
 const DAYS=["月","火","水","木","金","土","日"];
 const MEALS=[{k:"b",label:"朝",icon:"🍞"},{k:"l",label:"昼",icon:"🍱"},{k:"d",label:"夜",icon:"🌙"}];
@@ -567,7 +587,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-26";
+const APP_VERSION="0721-27";
 let S=null;
 function newState(){
   return {
@@ -1132,10 +1152,35 @@ function renderPicker(){
     if(sel) h+=`<span class="minusbtn" onclick="event.stopPropagation();pickRemoveOne('${d.id}')">−</span><span class="cntbadge">${cnt}</span>`;
     h+=`<span class="paddbtn" onclick="event.stopPropagation();pickAdd('${d.id}')">＋</span></div>`;
   });
+  /* 献立に無くても、カタログの品物なら「そのまま」1品として追加できる */
+  if(q){
+    const exists=S.dishes.some(d=>d.name===q);
+    const hits=allCatalog().filter(x=>(x.name===q)||x.name.includes(q)||x.alias.includes(q)).slice(0,6);
+    const news=hits.filter(x=>!S.dishes.some(d=>d.name===x.name));
+    if(news.length&&!exists){
+      h+='<div class="kindhead">そのまま食べる物として追加</div><div class="card listcard">';
+      news.forEach(x=>{
+        h+=`<div class="pickrow"><div class="dbody" onclick="addRawDish('${esc(x.name)}','${esc(x.unit||"")}')"><div class="pnm">${esc(x.name)}</div><div class="pig">${esc(x.cat)}・切って出すだけ</div></div><span class="paddbtn">＋</span></div>`;
+      });
+      h+='</div>';
+    }
+  }
   setHTML(document.getElementById("modal"),h);
   enableSort(document.querySelector("#modal .selrows"), commitWeekOrder, false);
 }
 function rmPick(j){ curWeek(true)[pickDay][pickMeal].splice(j,1); if(!curWeek()[pickDay][pickMeal].length) pickDetail=""; save(); renderPicker(); }
+/* カタログの品物を「そのまま食べる」1品の献立にして、その日に入れる */
+function addRawDish(name,unit){
+  let d=S.dishes.find(x=>x.name===name);
+  if(!d){
+    d={id:"u"+(S.nextId++), name:name, cat:"そのまま", sv:S.family||3, url:"", memo:"", ing:[{n:name, q:1, u:unit||""}]};
+    S.dishes.push(d);
+  }
+  curWeek(true)[pickDay][pickMeal].push(d.id);
+  S.recent=[d.id,...S.recent.filter(x=>x!==d.id)].slice(0,10);
+  pickSearch="";
+  save(); renderPicker(); flash(name+" を追加（献立にも登録しました）");
+}
 function pickRemoveOne(id){
   const slot=curWeek(true)[pickDay][pickMeal];
   const i=slot.lastIndexOf(id);
