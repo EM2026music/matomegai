@@ -567,7 +567,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-25";
+const APP_VERSION="0721-26";
 let S=null;
 function newState(){
   return {
@@ -602,6 +602,7 @@ function load(){
   if(!S.goodsCatMap) S.goodsCatMap={};
   if(!S.catRecent) S.catRecent=[];
   if(!S.customCatalog) S.customCatalog=[];
+  if(!S.catalogOv) S.catalogOv={};
   /* 定番の分類変更を移行：朝ごはん廃止／食品・調味料とおやつ・飲み物を分割 */
   Object.keys(S.goodsCatMap).forEach(k=>{
     const v=S.goodsCatMap[k];
@@ -1438,9 +1439,16 @@ function addSelGoods(){
 /* ===== 品物カタログ（共通の追加元） ===== */
 let catSearch="", catFilter="", catOpenName="", catMode="add";
 function allCatalog(){
-  const arr=[];
-  CATALOG_CATS.forEach(c=>{ CATALOG_RAW[c].forEach(s=>{ const p=s.split("|"); arr.push({name:p[0], alias:p[1]||"", unit:p[2]||"", cat:c}); }); });
-  (S.customCatalog||[]).forEach(it=>{ if(!arr.some(x=>x.name===it.name)) arr.push(it); });
+  const arr=[]; const ov=S.catalogOv||{};
+  CATALOG_CATS.forEach(c=>{ CATALOG_RAW[c].forEach(s=>{
+    const p=s.split("|");
+    const base={name:p[0], alias:p[1]||"", unit:p[2]||"", cat:c};
+    const o=ov[base.name];
+    if(o&&o.deleted) return;                       /* 消した内蔵品は出さない */
+    if(o) arr.push({name:o.name||base.name, alias:o.alias!=null?o.alias:base.alias, unit:o.unit!=null?o.unit:base.unit, cat:o.cat||base.cat, orig:base.name});
+    else arr.push(base);
+  }); });
+  (S.customCatalog||[]).forEach(it=>{ if(!arr.some(x=>x.name===it.name)) arr.push(Object.assign({custom:true},it)); });
   return arr;
 }
 function catInfo(name){ return allCatalog().find(x=>x.name===name)||{name:name, alias:"", unit:"", cat:"その他"}; }
@@ -1503,6 +1511,7 @@ function renderCatalog(){
       h+=`<button class="sopt" onclick="event.stopPropagation();catAdd('${esc(it.name)}','buy')">🛒 今回買う</button>`;
       h+=`<button class="sopt" onclick="event.stopPropagation();catAdd('${esc(it.name)}','teiban')">${inGoods?"定番に入ってる":"⏳ 定番に追加"}</button>`;
       h+=`<button class="sopt ${star?"on":""}" style="${star?"background:var(--or);border-color:var(--or);color:#fff":""}" onclick="event.stopPropagation();catAdd('${esc(it.name)}','star')">⭐ 毎回買う</button>`;
+      h+=`<button class="sopt" onclick="event.stopPropagation();openCatItemEdit('${esc(it.name)}')">✏️ 編集</button>`;
       h+='</div>';
     }
   });
@@ -1531,6 +1540,53 @@ function newCatalogItem(){
   S.customCatalog.push({name:nm, alias:"", unit:u.trim(), cat:cat});
   catSearch=""; catFilter=cat; save(); renderCatalog();
   flash(nm+" をカタログに登録しました");
+}
+/* カタログの品物を編集（内蔵品も上書きできる） */
+let catItem=null;
+function openCatItemEdit(name){
+  const it=catInfo(name);
+  catItem={key:it.orig||it.name, name:it.name, unit:it.unit||"", cat:it.cat, alias:it.alias||"", custom:!!it.custom, builtin:!it.custom};
+  renderCatItemEdit();
+}
+function renderCatItemEdit(){
+  const c=catItem;
+  let h='<div class="mhead back"><button class="backbtn" onclick="renderCatalog()">←</button><b>品物を編集</b></div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin-bottom:4px">品名</div>';
+  h+=`<input type="text" style="width:100%" value="${esc(c.name)}" oninput="catItem.name=this.value">`;
+  h+='<div style="font-size:12px;color:var(--sub);margin:10px 0 4px">買うときの単位（本・袋・個など）</div>';
+  h+=`<input type="text" style="width:100%" value="${esc(c.unit)}" oninput="catItem.unit=this.value">`;
+  h+='<div class="aropts" style="margin-top:8px">';
+  ["個","本","袋","g","ml","パック","枚","束","缶","箱"].forEach(u=>{ h+=`<button class="sopt" onclick="catItem.unit='${u}';renderCatItemEdit()">${u}</button>`; });
+  h+='</div>';
+  h+='<div style="font-size:12px;color:var(--sub);margin:12px 0 4px">別名（検索用・空白区切り）</div>';
+  h+=`<input type="text" style="width:100%" placeholder="例：醤油 しょう油" value="${esc(c.alias)}" oninput="catItem.alias=this.value">`;
+  h+='<div style="font-size:12px;color:var(--sub);margin:12px 0 4px">カテゴリ</div>';
+  h+='<select style="width:100%" onchange="catItem.cat=this.value">';
+  CATALOG_CATS.forEach(x=>{ h+=`<option ${x===c.cat?"selected":""}>${esc(x)}</option>`; });
+  if(!CATALOG_CATS.includes(c.cat)) h+=`<option selected>${esc(c.cat)}</option>`;
+  h+='</select>';
+  h+='<button class="cta" style="margin-top:14px" onclick="saveCatItem()">保存</button>';
+  h+='<button class="btn danger wide" style="margin-top:8px" onclick="deleteCatItem()">この品物を削除</button>';
+  if(c.builtin) h+='<p class="note">最初から入っている品物です。編集内容はこの端末に保存されます。</p>';
+  setHTML(document.getElementById("modal"),h);
+}
+function saveCatItem(){
+  const c=catItem; const nm=(c.name||"").trim();
+  if(!nm){ alert("品名を入れてください"); return; }
+  if(c.custom){
+    const t=S.customCatalog.find(x=>x.name===c.key);
+    if(t){ t.name=nm; t.unit=(c.unit||"").trim(); t.cat=c.cat; t.alias=(c.alias||"").trim(); }
+  } else {
+    S.catalogOv[c.key]={name:nm, unit:(c.unit||"").trim(), cat:c.cat, alias:(c.alias||"").trim()};
+  }
+  save(); catOpenName=""; renderCatalog(); flash(nm+" を更新しました");
+}
+function deleteCatItem(){
+  const c=catItem;
+  if(!confirm("「"+c.name+"」をカタログから削除しますか？\n（献立の材料や定番からは消えません）")) return;
+  if(c.custom) S.customCatalog=S.customCatalog.filter(x=>x.name!==c.key);
+  else S.catalogOv[c.key]={deleted:true};
+  save(); catOpenName=""; renderCatalog(); flash(c.name+" を削除しました");
 }
 function catToggle(name){ catOpenName=(catOpenName===name?"":name); renderCatalog(); }
 function catPushRecent(name){ S.catRecent=[name,...(S.catRecent||[]).filter(x=>x!==name)].slice(0,20); }
