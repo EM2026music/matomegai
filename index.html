@@ -560,7 +560,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-20";
+const APP_VERSION="0721-21";
 let S=null;
 function newState(){
   return {
@@ -1884,26 +1884,36 @@ function resetAll(){
 let modalOpen=false, modalClosing=false;
 function showModal(){
   document.getElementById("overlay").classList.add("show");
-  if(!modalOpen){ modalOpen=true; modalClosing=false; history.pushState({modal:1,tab:TAB},""); }
+  /* 開くたびに必ず履歴を1つ積む。こうすると「戻る」は必ずこの画面を閉じる動きになる */
+  modalOpen=true; modalClosing=false;
+  history.pushState({modal:1,tab:TAB},"");
 }
 function closeModal(){
   /* modalClosing で二重呼び出しを防ぐ（二重に history.back() するとアプリごと閉じてしまう） */
   if(modalOpen&&!modalClosing){ modalClosing=true; history.back(); return; }
   if(!modalOpen){ document.getElementById("overlay").classList.remove("show"); render(); }
 }
+let exitArmed=false;
 window.addEventListener("popstate",function(e){
-  /* まずモーダルが開いていれば閉じる */
-  if(modalOpen){
+  const ov=document.getElementById("overlay");
+  /* まずモーダルが開いていれば閉じる（表示だけ残っている食い違いも拾う） */
+  if(modalOpen||ov.classList.contains("show")){
     modalOpen=false; modalClosing=false;
-    document.getElementById("overlay").classList.remove("show");
-    const st=e.state; if(st&&st.tab) TAB=st.tab;
+    ov.classList.remove("show");
+    const st0=e.state; if(st0&&st0.tab) TAB=st0.tab;
     render(); return;
   }
   /* サブタブにいる → 履歴の状態に合わせて描画。ホームまで戻す */
   const st=e.state;
   if(st&&st.tab&&st.tab!=="week"){ TAB=st.tab; render(); return; }
   if(TAB!=="week"){ TAB="week"; render(); return; }
-  /* ホームでさらに戻る → 何もしない＝アプリが閉じる */
+  /* ここに来たら次はアプリが閉じる。誤操作防止で1回目は引き止める */
+  if(!exitArmed){
+    exitArmed=true;
+    history.pushState({tab:"week"},"");
+    flash("もう一度「戻る」で閉じます");
+    setTimeout(function(){ exitArmed=false; },2000);
+  }
 });
 
 load();
