@@ -94,7 +94,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .fbcount{font-size:12px; color:var(--or-d); font-weight:bold; text-align:center; line-height:1.2; flex-shrink:0;}
 .dishrow.selrow{background:#eef7ef; border-radius:10px;}
 .dishrow.selrow .nm{color:var(--green);}
-.ckb2{width:24px; height:24px; border:2px solid #d9cdb8; border-radius:6px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; flex-shrink:0;}
 .weeknav{display:flex; align-items:center; gap:10px; margin:2px 0 8px;}
 .wnav{border:1px solid var(--line); background:#fff; width:44px; height:44px; border-radius:12px; font-size:16px; color:var(--or-d); cursor:pointer; flex-shrink:0;}
 .wlabel{flex:1; text-align:center;}
@@ -177,8 +176,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .needq{font-size:11.5px; color:var(--sub);}
 .item2.done .i2name,.item2.done .iq{text-decoration:line-through; color:#b7ab9a;}
 .item2.stocked .i2name,.item2.stocked .iq{text-decoration:line-through; color:#c4b8a6;}
-.dishrow.selrow .ckb2{background:var(--green); border-color:var(--green);}
-/* 日用品 */
+.dishrow.selrow /* 日用品 */
 .goodsgrid{display:flex; flex-wrap:wrap; gap:8px;}
 .gbtn{border:1.5px solid #eadfce; background:#fff; border-radius:12px; padding:10px 12px; font-size:13px; cursor:pointer; color:#5c5245;}
 .gbtn.sel{background:var(--or-bg); border-color:var(--or); color:var(--or-d); font-weight:bold;}
@@ -603,7 +601,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-33";
+const APP_VERSION="0721-34";
 let S=null;
 function newState(){
   return {
@@ -1503,7 +1501,7 @@ function rGoods(){
       h+=`<span class="qtylabel">${goodsQtyOf(g)}${esc(u)}</span>`;
       h+=`<span class="paddbtn" onclick="event.stopPropagation();goodsQtyAdd('${esc(g)}',1)">＋</span>`;
     }
-    else h+=`<span class="ckb2" onclick="event.stopPropagation();togGoods('${esc(g)}')"></span>`;
+    else h+=`<span class="paddbtn" onclick="event.stopPropagation();togGoods('${esc(g)}')">＋</span>`;
     h+='</div>';
   });
   h+='</div>';
