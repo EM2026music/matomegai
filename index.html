@@ -264,7 +264,7 @@ nav button.on .ic{background:#f7e7d4;}
 <main id="view"></main>
 <nav>
   <button id="nav-week" onclick="go('week')"><span class="ic">🏠</span>ホーム</button>
-  <button id="nav-dish" onclick="go('dish')"><span class="ic">🍲</span>献立</button>
+  <button id="nav-dish" onclick="go('dish')"><span class="ic">🍲</span>料理</button>
   <button id="nav-goods" onclick="go('goods')"><span class="ic">🛍️</span>定番</button>
   <button id="nav-shop" onclick="go('shop')"><span class="ic">🛒</span>買い物</button>
 </nav>
@@ -601,7 +601,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-35";
+const APP_VERSION="0722-36";
 let S=null;
 function newState(){
   return {
@@ -755,7 +755,7 @@ function saveSet(){
   if(!S.sets) S.sets=[];
   S.sets.unshift({name:n.trim(), ids:slot.slice()});
   S.sets=S.sets.slice(0,20);
-  save(); renderPicker(); flash("セットとして保存しました");
+  save(); renderPicker(); flash("組み合わせとして保存しました");
 }
 function applySet(i){
   const st=(S.sets||[])[i]; if(!st) return;
@@ -765,7 +765,7 @@ function applySet(i){
 }
 function delSet(i){
   const st=(S.sets||[])[i]; if(!st) return;
-  if(!confirm("セット「"+st.name+"」を削除しますか？")) return;
+  if(!confirm("組み合わせ「"+st.name+"」を削除しますか？")) return;
   S.sets.splice(i,1); save(); renderPicker();
 }
 function togWeekView(){ S.weekView=(S.weekView==="main"?"all":"main"); save(); render(); }
@@ -952,16 +952,16 @@ function rWeek(){
       });
       h+='</div><span class="chev">›</span>';
     } else {
-      h+=`<div class="dmain dempty">献立を追加</div><span class="dplus">＋</span>`;
+      h+=`<div class="dmain dempty">料理を追加</div><span class="dplus">＋</span>`;
     }
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると献立を移せます。献立を<b>長押しすると、その食事をまとめて消せます</b>。</p>';
+  h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると料理を移せます。料理を<b>長押しすると、その食事をまとめて消せます</b>。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
-  h+='<div class="ctalink" onclick="go(\'shop\')">家にある物を確認する ›</div>';
+  h+='<div class="ctalink" onclick="go(\'shop\')">作り直さずに今のリストを見る ›</div>';
   h+='<div class="ctalink" onclick="copyPrevWeek()">📋 先週の献立をコピー</div>';
-  h+='<div class="ctalink small" onclick="clearWeek()">献立表をクリア</div>';
+  h+='<div class="ctalink small" onclick="clearWeek()">今週の献立をクリア</div>';
   h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
   return h;
 }
@@ -983,7 +983,7 @@ function renderFamily(){
   h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(-1);renderFamily()">−</button>';
   h+=`<b style="font-size:26px">${S.family}人</b>`;
   h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(1);renderFamily()">＋</button></div>';
-  h+='<p class="note" style="text-align:center;margin-top:0">献立テンプレの基準人数から、この人数に分量を自動換算します</p>';
+  h+='<p class="note" style="text-align:center;margin-top:0">料理ごとの分量（基準3人分）を、この人数に自動換算します</p>';
   h+='<div class="kindhead">献立表に出す食事</div>';
   h+='<p class="note" style="margin-top:0">朝・昼・夜の表示切替は<b>ホーム画面の「表示する食事」</b>から直接できます。</p>';
   h+='<div class="goodsgrid">';
@@ -1029,7 +1029,7 @@ function weekRangeLabel(key){
 }
 function makeListGo(){
   const ag=aggregate();
-  if(!ag.length&&!(S.list&&S.list.items.length)){ flash("先に献立か日用品を選んでね"); return; }
+  if(!ag.length&&!(S.list&&S.list.items.length)){ flash("先に献立か定番を選んでね"); return; }
   if(S.list&&S.list.items.length){
     const r=syncList(ag);
     S.list.week=curKey();
@@ -1143,7 +1143,7 @@ function savePantryEdit(){
 }
 /* ゼロから作り直し（チェックも消える） */
 function rebuildList(){
-  if(!confirm("リストをゼロから作り直しますか？（購入済みチェック・在庫チェックも消えます）")) return;
+  if(!confirm("リストをゼロから作り直しますか？（購入済みチェックや「家にある」の印も消えます）")) return;
   S.list=newList();
   shopFilter="all"; save(); render(); flash("作り直しました");
 }
@@ -1200,7 +1200,7 @@ function renderPicker(){
     });
     h+='</div>';
   }
-  if(slot.length>=2) h+=`<div class="ctalink small" style="margin:0 0 8px" onclick="saveSet()">⭐ この組み合わせをセットに保存</div>`;
+  if(slot.length>=2) h+=`<div class="ctalink small" style="margin:0 0 8px" onclick="saveSet()">⭐ この組み合わせを保存する</div>`;
   if(ms.length>1){
     const cur=MEALS.find(m=>m.k===pickMeal);
     h+=`<div class="addingto ${pickMeal}">↓ 下から選ぶと「${cur.icon} ${cur.label}」に入ります</div>`;
@@ -1273,7 +1273,7 @@ function pickAdd(id){
 
 /* ===== 献立（テンプレ管理） ===== */
 function rDish(){
-  let h='<div class="pagehead"><div class="ptitle">献立</div></div>';
+  let h='<div class="pagehead"><div class="ptitle">料理</div></div>';
   h+='<div class="stickytop">';
   h+='<div class="searchrow">';
   h+=`<input type="text" class="search" style="margin-bottom:0" id="sDish" placeholder="🔍 料理名・材料名を検索" value="${esc(dishSearch)}" oninput="dishSearch=this.value;deferRender(render)">`;
@@ -1283,7 +1283,7 @@ function rDish(){
   if(favCount()) h+=`<button class="fchip ${dishCat==="__fav"?"on":""}" onclick="dishCat='__fav';render()">⭐ よく作る(${favCount()})</button>`;
   h+=`<button class="fchip ${dishCat===""?"on":""}" onclick="dishCat='';render()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${dishCat===c?"on":""}" onclick="dishCat='${esc(c)}';render()">${esc(c)}</button>`; });
-  h+=`<button class="fchip" onclick="openCatEdit()" style="color:var(--sub)">✏️編集</button>`;
+  h+=`<button class="fchip" onclick="openCatEdit()" style="color:var(--sub)">✏️ カテゴリ</button>`;
   h+='</div></div>';
   const q=dishSearch.trim();
   const list=S.dishes.filter(d=>{
@@ -1298,8 +1298,8 @@ function rDish(){
     h+=`<div class="dishrow" data-id="${d.id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}')">${fav?"★":"☆"}</span><span class="arrow">›</span></div>`;
   });
   h+='</div>';
-  h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい献立を作る</button>';
-  h+='<p class="note">タップで材料・分量を編集。「コピーを作る」で食べ盛り版（増量版）も作れます。テンプレの分量は基準3人分の目安で、買い物リストでは「家族の人数」に合わせて自動換算します。データのバックアップは設定画面（ホームの「👥○人分」）から。</p>';
+  h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい料理を作る</button>';
+  h+='<p class="note">タップで材料・分量を編集できます。「コピーを作る」で食べ盛り版（増量版）も作れます。分量は基準3人分の目安で、買い物リストでは設定した家族の人数に合わせて自動換算します。</p>';
   return h;
 }
 
@@ -1370,7 +1370,7 @@ function edCalendar(){
 }
 function renderEditor(){
   const t=editTarget;
-  let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${t.id?"献立を編集":"新しい献立"}</b></div>`;
+  let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${t.id?"料理を編集":"新しい料理"}</b></div>`;
   h+=`<div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" style="flex:1;min-width:0" placeholder="料理名" value="${esc(t.name)}" oninput="editTarget.name=this.value">`;
   h+='<select onchange="editTarget.cat=this.value">';
   S.cats.forEach(c=>{ h+=`<option ${c===t.cat?"selected":""}>${esc(c)}</option>`; });
@@ -1408,7 +1408,7 @@ function saveDish(){
   const unknown=ing.filter(g=>known.indexOf(g.n)<0).map(g=>g);
   if(unknown.length){
     const names=unknown.map(g=>"・"+g.n).join("\n");
-    if(confirm("カタログに無い材料があります：\n"+names+"\n\nカタログにも登録しますか？\n\n［OK］登録して保存（次から選ぶだけで使えます）\n［キャンセル］この献立にだけ保存")){
+    if(confirm("カタログに無い材料があります：\n"+names+"\n\nカタログにも登録しますか？\n\n［OK］登録して保存（次から選ぶだけで使えます）\n［キャンセル］この料理にだけ保存")){
       unknown.forEach(g=>{
         if(!S.customCatalog.some(x=>x.name===g.n)) S.customCatalog.push({name:g.n, alias:"", unit:g.u||"", cat:"その他"});
       });
@@ -1425,7 +1425,7 @@ function copyDish(){
   save(); closeModal(); flash("コピーを作りました。分量を調整してね");
 }
 function delDish(){
-  if(!confirm("この献立を削除しますか？")) return;
+  if(!confirm("この料理を削除しますか？")) return;
   const id=editTarget.id;
   S.dishes=S.dishes.filter(d=>d.id!==id);
   Object.keys(S.plans).forEach(k=>{ S.plans[k]=S.plans[k].map(day=>({b:(day.b||[]).filter(x=>x!==id), l:(day.l||[]).filter(x=>x!==id), d:(day.d||[]).filter(x=>x!==id)})); });
@@ -1438,7 +1438,7 @@ let catEdit=[];
 function openCatEdit(){ catEdit=S.cats.map(c=>({old:c, name:c})); showModal(); renderCatEdit(); }
 function renderCatEdit(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>カテゴリの編集</b></div>';
-  h+='<p class="note" style="margin-top:0">名前を書き換え・☰を掴んでドラッグで並べ替え。献立の一覧と選択画面に反映されます。</p>';
+  h+='<p class="note" style="margin-top:0">名前を書き換え・☰を掴んでドラッグで並べ替え。料理の一覧と、料理を選ぶ画面に反映されます。</p>';
   h+='<div class="card listcard">';
   catEdit.forEach((c,i)=>{
     const cnt=c.old?S.dishes.filter(d=>d.cat===c.old).length:0;
@@ -1473,7 +1473,7 @@ function saveCats(){
 let goodsEdit=false, goodsFilter="", goodsSearch="";
 function rGoods(){
   let h='<div class="pagehead"><div class="ptitle">定番（いつも買う物）</div>';
-  h+=`<button class="pill" onclick="goodsEdit=!goodsEdit;render()">${goodsEdit?"整理おわり":"ボタン整理"}</button></div>`;
+  h+=`<button class="pill" onclick="goodsEdit=!goodsEdit;render()">${goodsEdit?"編集おわり":"✏️ 編集"}</button></div>`;
   h+=`<p class="note">${goodsEdit?"タップで⭐毎回追加のON/OFF、✕で削除":"買うものをタップで選択。⭐付きはリスト作成時に自動で入ります"}</p>`;
   h+='<div class="stickytop">';
   h+='<div class="searchrow">';
@@ -1508,7 +1508,7 @@ function rGoods(){
   const n=Object.keys(S.goodsSel).filter(k=>S.goodsSel[k]).length;
   h+='<div style="height:70px"></div>';
   h+='<div class="floatbar">';
-  h+='<button class="btn sub" style="flex:1;margin:0;white-space:nowrap" onclick="openCatalog()">＋ カタログ</button>';
+  h+='<button class="btn sub" style="flex:1;margin:0;white-space:nowrap" onclick="openCatalog()">＋ カタログから追加</button>';
   if(n&&!goodsEdit) h+=`<button class="btn" style="flex:1.5;margin:0;white-space:nowrap" onclick="addSelGoods()">🛒 リストに追加 ${n}</button>`;
   h+='</div>';
   return h;
@@ -1866,9 +1866,9 @@ function itemRow(i,withStock){
   return r;
 }
 function rShop(){
-  let h='<div class="pagehead"><div class="ptitle">買い物リスト</div><span class="linkbtn" onclick="openStoreSettings()">購入先設定</span></div>';
+  let h='<div class="pagehead"><div class="ptitle">買い物リスト</div><span class="linkbtn" onclick="openStoreSettings()">🏪 お店の設定</span></div>';
   if(!S.list||!S.list.items.length){
-    h+='<div class="card" style="text-align:center;padding:26px 12px;"><p class="note" style="font-size:14px;margin:0">まだリストがありません。<br>献立表と日用品を選んで作りましょう。</p></div>';
+    h+='<div class="card" style="text-align:center;padding:26px 12px;"><p class="note" style="font-size:14px;margin:0">まだリストがありません。<br>献立と定番を選んで作りましょう。</p></div>';
     h+='<button class="cta" onclick="makeListGo()">📝 献立表からリストを作る</button>';
     return h;
   }
@@ -1893,15 +1893,15 @@ function rShop(){
   h+=`<button class="btn sub wide" onclick="openAssignAll()" style="margin-bottom:6px">🏪 お店をまとめて決める${undf?`（未定 ${undf}品）`:""}</button>`;
   if(shopFilter==="all"){
     const groups={};
-    items.forEach((it,i)=>{ const k=it.daily?"日用品":kindOf(it.n); (groups[k]=groups[k]||[]).push(i); });
-    ["野菜","肉・魚","その他","日用品"].forEach(k=>{
+    items.forEach((it,i)=>{ const k=it.daily?"定番":kindOf(it.n); (groups[k]=groups[k]||[]).push(i); });
+    ["野菜","肉・魚","その他","定番"].forEach(k=>{
       if(!groups[k]) return;
       h+=`<div class="kindhead">${k}</div><div class="card listcard">`;
       groups[k].forEach(i=>{ h+=itemRow(i,true); });
       h+='</div>';
     });
     const pn=S.list.pantry||[], ex=S.list.excluded||[];
-    h+='<div class="kindhead" style="display:flex;justify-content:space-between;align-items:center">調味料・常備品（家にあるか確認）<span class="linkbtn" style="font-size:12px" onclick="openPantryEdit()">✏️ 編集</span></div><div class="card">';
+    h+='<div class="kindhead" style="display:flex;justify-content:space-between;align-items:center">調味料・常備品（切れてる物をタップ）<span class="linkbtn" style="font-size:12px" onclick="openPantryEdit()">✏️ 編集</span></div><div class="card">';
     if(pn.length){
       h+='<div class="goodsgrid">';
       pn.forEach((p,idx)=>{
@@ -1918,7 +1918,7 @@ function rShop(){
       });
       h+='</div>';
     }
-    h+='<p class="note" style="margin-bottom:0">今週の献立で使うものだけ表示。タップすると「1本・1袋」として上のリストに入ります。「✏️編集」で品目を追加・削除できます。</p></div>';
+    h+='<p class="note" style="margin-bottom:0">今週の献立で使うものだけ出ます。切れている物をタップすると、買い物リストに入ります。「✏️ 編集」で品目や数量を変えられます。</p></div>';
     h+='<p class="note">チェックすると購入済みになります。「家にある」を押すと買うものから外れます。</p>';
     h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから追加</button>';
     h+='<div class="ctalink small" onclick="addManual()">キーボードで直接入力して追加</div>';
@@ -1952,7 +1952,7 @@ function finishTrip(){
     const names=rest.slice(0,5).map(x=>"・"+x.n).join("\n")+(rest.length>5?"\n…ほか"+(rest.length-5)+"品":"");
     if(!confirm("⚠ まだ買っていない物が "+rest.length+"品 あります。\n\n"+names+"\n\nこのまま買い物を完了しますか？")) return;
   }
-  if(!confirm("買い物おつかれさま！\n"+wl+"リストを空にします。よろしいですか？\n（献立表は消えません。日用品の選択はリセットされます）")) return;
+  if(!confirm("買い物おつかれさま！\n"+wl+"リストを空にします。よろしいですか？\n（献立は消えません。定番の選択はリセットされます）")) return;
   S.list=null; S.goodsSel={}; shopFilter="all";
   save(); render(); flash("完了！おつかれさまでした🎉");
 }
@@ -2000,7 +2000,7 @@ function renderAssignAll(){
   h+='</div></div>';
   h+='<div class="kindhead" style="margin-top:4px">全部いっぺんに</div><div class="aropts" style="margin-bottom:6px">';
   S.stores.forEach(s=>{ h+=`<button class="sopt" style="border-color:${storeColor(s)};color:${storeColor(s)}" onclick="assignAll('${esc(s)}')">全部 ${esc(s)}</button>`; });
-  h+='<button class="sopt" onclick="assignAll(\'\')">全部 未定に</button>';
+  h+='<button class="sopt" onclick="assignAll(\'\')">全部 未定</button>';
   h+='<button class="sopt" style="border-style:dashed" onclick="addStoreHere()">＋ 店を追加</button></div>';
   const buy=[]; S.list.items.forEach((it,i)=>{ if(!it.stock) buy.push(i); });
   h+='<div class="kindhead">品物ごと</div><div class="card listcard">';
@@ -2025,7 +2025,7 @@ function assignOne(i,s){
   save(); renderAssignAll();
 }
 function addStoreHere(){
-  const n=prompt("店の名前（例：ヨークベニマル）"); if(!n||!n.trim()) return;
+  const n=prompt("店の名前（例：ツルハ）"); if(!n||!n.trim()) return;
   const nm=n.trim();
   if(S.stores.includes(nm)){ flash("すでにあります"); return; }
   S.stores.push(nm); save(); renderAssignAll(); flash(nm+" を追加しました");
@@ -2078,7 +2078,7 @@ function setDefaultStore(n,v){
   save(); renderStoreSettings();
 }
 function addStore(){
-  const n=prompt("店の名前（例：セブン）"); if(!n||!n.trim()) return;
+  const n=prompt("店の名前（例：ツルハ）"); if(!n||!n.trim()) return;
   if(!S.stores.includes(n.trim())) S.stores.push(n.trim());
   save();
   if(document.getElementById("overlay").classList.contains("show")) renderStoreSettings(); else render();
@@ -2116,7 +2116,7 @@ function importData(inp){
 }
 function load2(){ if(!S.family)S.family=3; if(!S.recent)S.recent=[]; S.dishes.forEach(d=>{ if(!d.sv)d.sv=3; }); }
 function resetAll(){
-  if(!confirm("すべてのデータを初期状態に戻します。自分で作った献立や設定も消えます。いいですか？")) return;
+  if(!confirm("すべてのデータを初期状態に戻します。自分で作った料理や設定も消えます。いいですか？")) return;
   if(!confirm("本当に初期化しますか？（バックアップ保存をおすすめします）")) return;
   S=newState(); save(); render();
 }
