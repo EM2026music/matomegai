@@ -162,6 +162,8 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 /* 一覧行の「−」と個数バッジ */
 .minusbtn{width:30px; height:30px; border-radius:50%; background:#fdecec; color:var(--danger); font-size:18px; font-weight:bold; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;}
 .cntbadge{min-width:22px; text-align:center; font-size:13px; font-weight:bold; color:var(--green);}
+.favbtn{font-size:20px; line-height:1; color:#d9cdb8; padding:4px 6px; cursor:pointer; flex-shrink:0;}
+.favbtn.on{color:#f0b429;}
 .qtylabel{min-width:46px; text-align:center; font-size:14px; font-weight:bold; color:var(--green);}
 .catrow.sel,.pickrow.sel{background:#eef7ef; border-radius:10px;}
 .iq.editable{cursor:pointer; border:1px dashed #d9cdb8; border-radius:8px; padding:3px 7px;}
@@ -601,7 +603,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0721-31";
+const APP_VERSION="0721-32";
 let S=null;
 function newState(){
   return {
@@ -633,6 +635,7 @@ function load(){
   if(!S.goodsStar) S.goodsStar={};
   if(!S.goodsQty) S.goodsQty={};
   if(!S.weekView) S.weekView="main";
+  if(!S.favs) S.favs={};   /* よく作る料理 */
   if(!S.goodsCatMap) S.goodsCatMap={};
   if(!S.catRecent) S.catRecent=[];
   if(!S.customCatalog) S.customCatalog=[];
@@ -735,6 +738,15 @@ function copyPrevWeek(){
   S.plans[curKey()]=prev.map(d=>({b:(d.b||[]).slice(), l:(d.l||[]).slice(), d:(d.d||[]).slice()}));
   save(); render(); flash("先週の献立をコピーしました");
 }
+/* よく作る料理（★） */
+function togFav(id,from){
+  if(!S.favs) S.favs={};
+  if(S.favs[id]){ delete S.favs[id]; flash(dish(id).name+" を「よく作る」から外しました"); }
+  else { S.favs[id]=true; flash(dish(id).name+" を「よく作る」に登録"); }
+  save();
+  if(from==="pick") renderPicker(); else render();
+}
+function favCount(){ return Object.keys(S.favs||{}).filter(id=>dish(id)).length; }
 /* 献立セット（カレー＋サラダ＋スープ などの組み合わせ） */
 function saveSet(){
   const slot=curWeek()[pickDay][pickMeal]||[];
@@ -1197,12 +1209,16 @@ function renderPicker(){
   }
   h+=`<input type="text" class="search" id="sPick" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;deferRender(renderPicker)">`;
   h+='<div class="catbar">';
+  if(favCount()) h+=`<button class="fchip ${pickCat==="__fav"?"on":""}" onclick="pickCat='__fav';renderPicker()">⭐ よく作る(${favCount()})</button>`;
+  if((S.recent||[]).length) h+=`<button class="fchip ${pickCat==="__recent"?"on":""}" onclick="pickCat='__recent';renderPicker()">🕘 最近</button>`;
   h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${esc(c)}';renderPicker()">${esc(c)}</button>`; });
   h+='</div>';
   const q=pickSearch.trim();
   let list;
   if(q) list=S.dishes.filter(d=>d.name.includes(q)||d.ing.some(i=>i.n.includes(q)));
+  else if(pickCat==="__fav") list=S.dishes.filter(d=>S.favs&&S.favs[d.id]);
+  else if(pickCat==="__recent") list=(S.recent||[]).map(id=>dish(id)).filter(Boolean);
   else if(pickCat==="") list=S.dishes;
   else list=S.dishes.filter(d=>d.cat===pickCat);
   if(!list.length) h+='<p class="note">見つかりません</p>';
@@ -1210,7 +1226,9 @@ function renderPicker(){
     const ig=d.ing.slice(0,3).map(x=>x.n).join("・");
     const cnt=slot.filter(x=>x===d.id).length;
     const sel=cnt>0;
+    const fav=S.favs&&S.favs[d.id];
     h+=`<div class="pickrow ${sel?"sel":""}"><div class="dbody" onclick="pickAdd('${d.id}')"><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div>`;
+    h+=`<span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}','pick')">${fav?"★":"☆"}</span>`;
     if(sel) h+=`<span class="minusbtn" onclick="event.stopPropagation();pickRemoveOne('${d.id}')">−</span><span class="cntbadge">${cnt}</span>`;
     h+=`<span class="paddbtn" onclick="event.stopPropagation();pickAdd('${d.id}')">＋</span></div>`;
   });
@@ -1266,16 +1284,22 @@ function rDish(){
   h+='<button class="newbtn" onclick="openEditor(null)">＋新規</button>';
   h+='</div>';
   h+='<div class="catbar">';
+  if(favCount()) h+=`<button class="fchip ${dishCat==="__fav"?"on":""}" onclick="dishCat='__fav';render()">⭐ よく作る(${favCount()})</button>`;
   h+=`<button class="fchip ${dishCat===""?"on":""}" onclick="dishCat='';render()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${dishCat===c?"on":""}" onclick="dishCat='${esc(c)}';render()">${esc(c)}</button>`; });
   h+=`<button class="fchip" onclick="openCatEdit()" style="color:var(--sub)">✏️編集</button>`;
   h+='</div></div>';
   const q=dishSearch.trim();
-  const list=S.dishes.filter(d=>(!dishCat||d.cat===dishCat)&&(!q||d.name.includes(q)||d.ing.some(i=>i.n.includes(q))));
+  const list=S.dishes.filter(d=>{
+    if(q) return d.name.includes(q)||d.ing.some(i=>i.n.includes(q));
+    if(dishCat==="__fav") return S.favs&&S.favs[d.id];
+    return !dishCat||d.cat===dishCat;
+  });
   h+='<div class="card listcard">';
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(d=>{
-    h+=`<div class="dishrow" data-id="${d.id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="arrow">›</span></div>`;
+    const fav=S.favs&&S.favs[d.id];
+    h+=`<div class="dishrow" data-id="${d.id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}')">${fav?"★":"☆"}</span><span class="arrow">›</span></div>`;
   });
   h+='</div>';
   h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい献立を作る</button>';
