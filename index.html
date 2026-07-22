@@ -221,6 +221,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 #modal{background:#fff; width:100%; max-width:640px; max-height:88vh; min-height:0; border-radius:22px 22px 0 0; padding:18px 16px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;}
 .mhead{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;}
 .mhead.back{justify-content:flex-start; gap:12px;}
+.daywipe{margin-left:auto; font-size:12px; color:#c0553f; white-space:nowrap;}
 .mhead b{font-size:16px;}
 .backbtn{border:none; background:#f4ece0; color:var(--ink); font-size:19px; width:40px; height:40px; border-radius:12px; cursor:pointer; flex-shrink:0;}
 .selbox{background:#eef7ef; border:1px solid #cfe6d3; border-radius:12px; padding:10px; margin-bottom:12px; position:sticky; top:-2px; z-index:9; box-shadow:0 3px 10px rgba(60,45,25,.06);}
@@ -611,7 +612,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0722-38";
+const APP_VERSION="0723-39";
 let S=null;
 function newState(){
   return {
@@ -728,6 +729,24 @@ let lpTimer=null, lpFired=false;
 function lpStart(fn){ lpFired=false; clearTimeout(lpTimer); lpTimer=setTimeout(function(){ lpFired=true; if(navigator.vibrate) navigator.vibrate(30); fn(); },550); }
 function lpEnd(){ clearTimeout(lpTimer); }
 function lpTap(fn){ if(lpFired){ lpFired=false; return; } fn(); }
+/* その日に入れた料理を、朝・昼・夜まとめて消す */
+function clearDay(i){
+  const wk=curWeek(true);
+  const ms=onMeals();
+  const parts=[];
+  ms.forEach(m=>{
+    const ns=(wk[i][m.k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
+    if(ns.length) parts.push((ms.length>1?m.icon+" "+m.label+"：":"")+ns.join("・"));
+  });
+  if(!parts.length){ flash("この日はまだ空です"); return; }
+  const dt=weekDates()[i];
+  const label=`${dt.getMonth()+1}/${dt.getDate()}(${DAYS[i]})`;
+  if(!confirm(label+" に入れた料理をすべて消しますか？\n\n"+parts.join("\n"))) return;
+  ms.forEach(m=>{ wk[i][m.k]=[]; });
+  pickDetail=""; save();
+  if(document.getElementById("overlay").classList.contains("show")) renderPicker();
+  render(); flash(label+" を空にしました");
+}
 /* その日・その食事の献立をまとめて消す */
 function clearSlot(i,k){
   const wk=curWeek(true); const names=(wk[i][k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
@@ -949,7 +968,7 @@ function rWeek(){
     const cls=(i===5?"sat ":i===6?"sun ":"")+(isT?"today":"");
     const total=dayIds(wk[i]).length;
     h+=`<div class="dayrow ${cls}" data-id="${i}" onclick="openDay(${i})">`;
-    h+=`<div class="dcol"><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
+    h+=`<div class="dcol"${total?` onpointerdown="event.stopPropagation();lpStart(function(){clearDay(${i})})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()"`:""}><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
     if(total){
       if(ms.length>1){
         h+='<div class="dmain mealcols">';
@@ -989,7 +1008,7 @@ function rWeek(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると料理を移せます。料理を<b>長押しすると、その食事をまとめて消せます</b>。</p>';
+  h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると料理を移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
   h+='<div class="ctalink" onclick="go(\'shop\')">作り直さずに今のリストを見る ›</div>';
   h+='<div class="ctalink" onclick="copyPrevWeek()">📋 先週の献立をコピー</div>';
@@ -1188,7 +1207,11 @@ function openDayMeal(d,k){ pickDay=d; pickSearch=""; pickCat=""; pickDetail=""; 
 function togSelDetail(id){ pickDetail=(pickDetail===id?"":id); renderPicker(); }
 function renderPicker(){
   const dt=weekDates()[pickDay];
-  let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b></div>`;
+  const wkNow=curWeek();
+  const dayHas=onMeals().reduce((n,m)=>n+((wkNow[pickDay][m.k]||[]).length),0);
+  let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b>`;
+  if(dayHas) h+=`<span class="linkbtn daywipe" onclick="clearDay(${pickDay})">🗑 この日を空に</span>`;
+  h+='</div>';
   const wk=curWeek();
   const ms=onMeals();
   if(!ms.some(m=>m.k===pickMeal)) pickMeal=defaultMeal();
