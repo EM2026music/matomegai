@@ -601,7 +601,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0722-36";
+const APP_VERSION="0722-37";
 let S=null;
 function newState(){
   return {
@@ -614,7 +614,7 @@ function newState(){
     goodsQty:{},
     goodsCatMap:{},
     cats:CATS.slice(),
-    stores:["ツルハ","ビッグ","その他"],
+    stores:["スーパー","ドラッグストア","その他"],
     storeMap:{},
     list:null,
     recent:[],
@@ -724,7 +724,7 @@ function clearSlot(i,k){
   if(!names.length) return;
   const dt=weekDates()[i]; const ml=MEALS.find(m=>m.k===k);
   const label=`${dt.getMonth()+1}/${dt.getDate()}(${DAYS[i]})${onMeals().length>1?"の"+ml.label:""}`;
-  if(!confirm(label+" の献立を消しますか？\n\n"+names.join("・"))) return;
+  if(!confirm(label+" の料理を消しますか？\n\n"+names.join("・"))) return;
   wk[i][k]=[]; save(); render(); flash(label+" を空にしました");
 }
 /* 先週の献立をこの週にコピー */
@@ -902,7 +902,7 @@ function rWeek(){
   if(weekOffset!==0) h+='<div class="ctalink small" style="margin-top:-4px;margin-bottom:8px" onclick="gotoThisWeek()">↩ 今週にもどる</div>';
   h+='<div class="summaryrow">';
   h+=`<div class="summary" style="margin:0"><b>${S.family}人分</b>・<b>${decided}日</b>決定・買うもの<b>${nItems}品</b></div>`;
-  h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"全部の献立を見る":"メインだけ表示"}</button>`;
+  h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"副菜まで全部見る":"メインだけ表示"}</button>`;
   h+='</div>';
   /* 朝・昼・夜の表示切替をホームから直接 */
   h+='<div class="mealtoggle"><span class="mtlabel">表示する食事</span>';
@@ -992,7 +992,7 @@ function renderFamily(){
     h+=`<button class="gbtn ${on?"sel":""}" onclick="togMeal('${m.k}')">${m.icon} ${m.label}${on?'<span class="gchk">✓</span>':''}</button>`;
   });
   h+='</div>';
-  h+='<p class="note">OFFにしても、その食事に入れた献立は消えません（またONにすれば戻ります）。</p>';
+  h+='<p class="note">OFFにしても、その食事に入れた料理は消えません（またONにすれば戻ります）。</p>';
   h+='<div class="kindhead">データの管理</div>';
   h+='<div class="row2"><button class="btn sub small" onclick="exportData()">バックアップ保存</button><button class="btn sub small" onclick="document.getElementById(\'imp\').click()">読み込み</button></div>';
   h+='<input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">';
@@ -1188,7 +1188,7 @@ function renderPicker(){
         });
         if(dd.memo) h+=`<p class="note">📝 ${esc(dd.memo)}</p>`;
         if(dd.url&&/^https?:\/\//.test(dd.url)) h+=`<a href="${esc(dd.url)}" target="_blank" rel="noopener" class="linkbtn" style="display:inline-block;margin-top:6px">🔗 レシピを開く</a>`;
-        h+=`<div class="ctalink small" onclick="openEditor('${pickDetail}')">この献立を編集</div></div>`;
+        h+=`<div class="ctalink small" onclick="openEditor('${pickDetail}')">この料理を編集</div></div>`;
       }
     }
   }
@@ -1255,7 +1255,7 @@ function addRawDish(name,unit){
   curWeek(true)[pickDay][pickMeal].push(d.id);
   S.recent=[d.id,...S.recent.filter(x=>x!==d.id)].slice(0,10);
   pickSearch="";
-  save(); renderPicker(); flash(name+" を追加（献立にも登録しました）");
+  save(); renderPicker(); flash(name+" を追加（料理にも登録しました）");
 }
 function pickRemoveOne(id){
   const slot=curWeek(true)[pickDay][pickMeal];
@@ -1345,7 +1345,7 @@ function edCalendar(){
   if(!editTarget.id) return '';
   const ms=onMeals(); const dates=datesAt(edWeekOff); const wk=weekAt(keyAt(edWeekOff));
   const todayStr=new Date().toDateString();
-  let h='<div class="kindhead" style="margin-top:16px">この献立を献立表に入れる</div>';
+  let h='<div class="kindhead" style="margin-top:16px">この料理を献立に入れる</div>';
   h+='<div class="edcal">';
   h+='<div class="edcalhead"><button class="edarrow" onclick="edShiftWeek(-1)">◀</button>';
   h+=`<b>${edWeekOff===0?"今週":edWeekOff===1?"来週":edWeekOff===-1?"先週":weekRangeLabel(keyAt(edWeekOff))}</b>`;
@@ -1392,7 +1392,7 @@ function renderEditor(){
   if(t.url&&/^https?:\/\//.test(t.url.trim())) h+=`<div style="margin-top:6px"><a href="${esc(t.url.trim())}" target="_blank" rel="noopener" class="linkbtn">🔗 レシピを開く</a></div>`;
   h+=`<div style="margin-top:8px"><input type="text" style="width:100%" placeholder="ひとことメモ（任意：味付けのコツなど）" value="${esc(t.memo)}" oninput="editTarget.memo=this.value"></div>`;
   h+='<div class="row2"><button class="btn" onclick="saveDish()">保存</button>';
-  if(t.id) h+='<button class="btn sub" onclick="copyDish()">コピーを作る</button><button class="btn danger" onclick="delDish()">削除</button>';
+  if(t.id) h+='<button class="btn sub" onclick="copyDish()">増量版を作る</button><button class="btn danger" onclick="delDish()">削除</button>';
   h+='</div>';
   h+=edCalendar();
   setHTML(document.getElementById("modal"),h);
@@ -1537,7 +1537,7 @@ function renderAddGoods(){
   ["個","本","袋","パック","箱","g","ml"].forEach(u=>{ h+=`<button class="sopt" onclick="newGoods.unit='${u}';renderAddGoods()">${u}</button>`; });
   h+='</div>';
   h+=`<div class="aropts" style="margin-top:14px"><button class="sopt" style="${g.toCatalog?"background:var(--green);border-color:var(--green);color:#fff":""}" onclick="newGoods.toCatalog=!newGoods.toCatalog;renderAddGoods()">${g.toCatalog?"✓ ":""}カタログにも登録する</button></div>`;
-  h+='<p class="note">カタログに登録すると、献立の材料や買い物リストからも選べるようになります。</p>';
+  h+='<p class="note">カタログに登録すると、料理の材料や買い物リストからも選べるようになります。</p>';
   h+='<button class="cta" onclick="saveNewGoods()">追加する</button>';
   setHTML(document.getElementById("modal"),h);
 }
@@ -1633,7 +1633,7 @@ function renderCatalog(){
   }
   const ingMode=(catMode==="ing");
   let h=`<div class="mhead back"><button class="backbtn" onclick="${ingMode?"backToEditor()":"closeModal()"}">←</button><b>${ingMode?"材料をカタログから選ぶ":"品物を追加"}</b></div>`;
-  if(ingMode) h+=`<p class="note" style="margin-top:0">タップすると「${esc(editTarget?editTarget.name||"この献立":"")}」の材料に入ります（単位も自動）。</p>`;
+  if(ingMode) h+=`<p class="note" style="margin-top:0">タップすると「${esc(editTarget?editTarget.name||"この料理":"")}」の材料に入ります（単位も自動）。</p>`;
   h+='<div class="searchrow">';
   h+=`<input type="text" class="search" style="margin-bottom:0" id="sCat" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';deferRender(renderCatalog)">`;
   h+='<button class="newbtn" onclick="newCatalogItem()">＋新規</button>';
@@ -1737,7 +1737,7 @@ function saveCatItem(){
 }
 function deleteCatItem(){
   const c=catItem;
-  if(!confirm("「"+c.name+"」をカタログから削除しますか？\n（献立の材料や定番からは消えません）")) return;
+  if(!confirm("「"+c.name+"」をカタログから削除しますか？\n（料理の材料や定番からは消えません）")) return;
   if(c.custom) S.customCatalog=S.customCatalog.filter(x=>x.name!==c.key);
   else S.catalogOv[c.key]={deleted:true};
   save(); catOpenName=""; renderCatalog(); flash(c.name+" を削除しました");
@@ -1825,7 +1825,7 @@ function openQtyEdit(i){ qtyIdx=i; showModal(); renderQtyEdit(); }
 function renderQtyEdit(){
   const it=S.list.items[qtyIdx]; if(!it){ closeModal(); return; }
   let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${esc(it.n)}</b></div>`;
-  h+='<p class="note" style="margin-top:0">買う量を直しても、献立の材料は変わりません。</p>';
+  h+='<p class="note" style="margin-top:0">買う量を直しても、料理そのものの分量は変わりません。</p>';
   h+='<div style="display:flex;gap:8px;align-items:center;margin:10px 0 4px">';
   h+=`<input id="qi" type="number" step="any" inputmode="decimal" style="flex:1;font-size:22px;text-align:center" value="${it.q===""||it.q==null?"":it.q}" placeholder="数量">`;
   h+=`<input id="ui" type="text" style="width:90px;font-size:18px;text-align:center" value="${esc(it.u||"")}" placeholder="単位">`;
@@ -2025,7 +2025,7 @@ function assignOne(i,s){
   save(); renderAssignAll();
 }
 function addStoreHere(){
-  const n=prompt("店の名前（例：ツルハ）"); if(!n||!n.trim()) return;
+  const n=prompt("店の名前（例：〇〇スーパー 駅前店）"); if(!n||!n.trim()) return;
   const nm=n.trim();
   if(S.stores.includes(nm)){ flash("すでにあります"); return; }
   S.stores.push(nm); save(); renderAssignAll(); flash(nm+" を追加しました");
@@ -2078,7 +2078,7 @@ function setDefaultStore(n,v){
   save(); renderStoreSettings();
 }
 function addStore(){
-  const n=prompt("店の名前（例：ツルハ）"); if(!n||!n.trim()) return;
+  const n=prompt("店の名前（例：〇〇スーパー 駅前店）"); if(!n||!n.trim()) return;
   if(!S.stores.includes(n.trim())) S.stores.push(n.trim());
   save();
   if(document.getElementById("overlay").classList.contains("show")) renderStoreSettings(); else render();
