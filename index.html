@@ -204,6 +204,9 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .linkbtn{font-size:13px; font-weight:bold; color:var(--or-d); cursor:pointer;}
 .storebtn{border:1.5px solid var(--or); background:#fff; color:var(--or-d); border-radius:10px; padding:6px 9px; font-size:12px; font-weight:bold; flex-shrink:0; cursor:pointer; white-space:nowrap;}
 .storebtn.unset{border-color:#d8ccb8; color:#a2967f;}
+.kindgroup .kindhead{display:flex; align-items:center; gap:2px;}
+.kindgroup .draghandle{font-size:16px; padding:4px 6px 4px 0; color:#cdbfa8;}
+.kindgroup.dragging{opacity:.6;}
 .storehead{color:#fff; border-radius:12px; padding:10px 14px; margin:6px 0 10px; font-size:15px; display:flex; justify-content:space-between; align-items:center;}
 .storehead span{font-size:13px; opacity:.9;}
 .storehead .shname{font-size:15px; opacity:1;}
@@ -621,7 +624,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0723-40";
+const APP_VERSION="0724-41";
 let S=null;
 function newState(){
   return {
@@ -630,6 +633,7 @@ function newState(){
     family:3,
     goods:GOODS_SEED.slice(),
   storeColors:{},
+  kindOrder:["野菜","肉・魚","その他","定番"],
   shopFilter:"all",
     goodsSel:{},
     goodsStar:{},
@@ -721,6 +725,14 @@ function storeColor(name){
   const i=S.stores.indexOf(name);
   return i<0 ? "#b9ad99" : STORE_COLORS[i%STORE_COLORS.length];
 }
+/* 売り場を回る順番（自分で並べ替えできる） */
+function kindOrder(){
+  const base=["野菜","肉・魚","その他","定番"];
+  const cur=(S.kindOrder||[]).filter(k=>base.indexOf(k)>=0);
+  base.forEach(k=>{ if(cur.indexOf(k)<0) cur.push(k); });
+  return cur;
+}
+function commitKindOrder(ids){ S.kindOrder=ids.slice(); save(); }
 function setStoreColor(name,hex){
   if(!S.storeColors) S.storeColors={};
   S.storeColors[name]=hex; save();
@@ -868,7 +880,7 @@ function render(){
   if(TAB==="week"){ setHTML(v,rWeek()); enableSort(v.querySelector(".daylist"), commitDayOrder, false); }
   else if(TAB==="dish"){ setHTML(v,rDish()); enableSort(v.querySelector(".listcard"), commitDishOrder, false); }
   else if(TAB==="goods"){ setHTML(v,rGoods()); enableSort(v.querySelector(".listcard"), commitGoodsOrder, false); }
-  else setHTML(v,rShop());
+  else { setHTML(v,rShop()); enableSort(v.querySelector(".kindwrap"), commitKindOrder, false); }
 }
 /* 「この日の献立」が上に貼り付いている間だけ影を濃くする（浮いていることを伝える） */
 function watchStuck(){
@@ -1982,12 +1994,15 @@ function rShop(){
   if(shopFilter==="all"){
     const groups={};
     items.forEach((it,i)=>{ const k=it.daily?"定番":kindOf(it.n); (groups[k]=groups[k]||[]).push(i); });
-    ["野菜","肉・魚","その他","定番"].forEach(k=>{
+    h+='<div class="kindwrap">';
+    kindOrder().forEach(k=>{
       if(!groups[k]) return;
-      h+=`<div class="kindhead">${k}</div><div class="card listcard">`;
+      h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>${k}</div><div class="card listcard">`;
       groups[k].forEach(i=>{ h+=itemRow(i,true); });
-      h+='</div>';
+      h+='</div></div>';
     });
+    h+='</div>';
+    h+='<p class="note" style="margin:-2px 0 10px">☰を掴んで動かすと、売り場を回る順番に並べ替えられます。</p>';
     const pn=S.list.pantry||[], ex=S.list.excluded||[];
     h+='<div class="kindhead" style="display:flex;justify-content:space-between;align-items:center">調味料・常備品（切れてる物をタップ）<span class="linkbtn" style="font-size:12px" onclick="openPantryEdit()">✏️ 編集</span></div><div class="card">';
     if(pn.length){
@@ -2026,12 +2041,15 @@ function rShop(){
       /* 絞り込んでも売り場の並び（野菜→肉・魚→…）を保つ＝店内を行ったり来たりしない */
       const groups={};
       idxs.forEach(i=>{ const k=items[i].daily?"定番":kindOf(items[i].n); (groups[k]=groups[k]||[]).push(i); });
-      ["野菜","肉・魚","その他","定番"].forEach(k=>{
+      h+='<div class="kindwrap">';
+      kindOrder().forEach(k=>{
         if(!groups[k]) return;
-        h+=`<div class="kindhead">${k}</div><div class="card listcard">`;
+        h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>${k}</div><div class="card listcard">`;
         groups[k].forEach(i=>{ h+=itemRow(i,false); });
-        h+='</div>';
+        h+='</div></div>';
       });
+      h+='</div>';
+      h+='<p class="note" style="margin:-2px 0 10px">☰を掴んで動かすと、売り場を回る順番に並べ替えられます。</p>';
       h+='<p class="note">ほかの店で買った場合も、そのままチェックでOK。</p>';
     }
   }
