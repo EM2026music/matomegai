@@ -204,6 +204,13 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .linkbtn{font-size:13px; font-weight:bold; color:var(--or-d); cursor:pointer;}
 .storebtn{border:1.5px solid var(--or); background:#fff; color:var(--or-d); border-radius:10px; padding:6px 9px; font-size:12px; font-weight:bold; flex-shrink:0; cursor:pointer; white-space:nowrap;}
 .storebtn.unset{border-color:#d8ccb8; color:#a2967f;}
+.storehead{color:#fff; border-radius:12px; padding:10px 14px; margin:6px 0 10px; font-size:15px; display:flex; justify-content:space-between; align-items:center;}
+.storehead span{font-size:13px; opacity:.9;}
+.storehead .shname{font-size:15px; opacity:1;}
+.storehead b{font-size:17px;}
+.swatch{width:26px; height:26px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1.5px #ddd0bb; cursor:pointer; flex-shrink:0;}
+.swatch.on{box-shadow:0 0 0 3px #3c2d19;}
+.swatchrow{display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 2px;}
 .radiorow{display:flex; align-items:center; gap:12px; padding:11px 6px; font-size:15px; cursor:pointer; border-bottom:1px solid var(--line);}
 .radiorow:last-child{border-bottom:none;}
 .radio{width:20px; height:20px; border:2px solid #ddd0bb; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:9px; color:var(--or); flex-shrink:0;}
@@ -557,6 +564,8 @@ function emptyWeek(){ return [emptyDay(),emptyDay(),emptyDay(),emptyDay(),emptyD
 function onMeals(){ return MEALS.filter(m=>S.meals&&S.meals[m.k]); }
 function dayIds(dayObj){ let a=[]; onMeals().forEach(m=>{ a=a.concat(dayObj[m.k]||[]); }); return a; }
 const STORE_COLORS=["#e05a5a","#4a7ab5","#6aa84f","#b58a4a","#8a5ab5","#4ab5a8","#777777"];
+/* 色を自分で選ぶとき用のパレット（見分けやすい色をそろえた） */
+const COLOR_PALETTE=["#e05a5a","#e07b39","#c9a227","#6aa84f","#3f9e8c","#4a7ab5","#6a5ab5","#b5559b","#8a6a4a","#777777"];
 const GOODS_CATS={
   "食品":["卵","牛乳","米","食パン","ジャム","ヨーグルト","シリアル","バナナ"],
   "調味料":["サラダ油","しょうゆ","みそ","砂糖","塩"],
@@ -612,7 +621,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0723-39";
+const APP_VERSION="0723-40";
 let S=null;
 function newState(){
   return {
@@ -620,6 +629,8 @@ function newState(){
     plans:{},
     family:3,
     goods:GOODS_SEED.slice(),
+  storeColors:{},
+  shopFilter:"all",
     goodsSel:{},
     goodsStar:{},
     goodsQty:{},
@@ -706,8 +717,14 @@ function flash(msg){
 }
 function dish(id){ return S.dishes.find(d=>d.id===id); }
 function storeColor(name){
+  if(S.storeColors&&S.storeColors[name]) return S.storeColors[name];
   const i=S.stores.indexOf(name);
   return i<0 ? "#b9ad99" : STORE_COLORS[i%STORE_COLORS.length];
+}
+function setStoreColor(name,hex){
+  if(!S.storeColors) S.storeColors={};
+  S.storeColors[name]=hex; save();
+  if(document.getElementById("overlay").classList.contains("show")) renderStoreSettings(); else render();
 }
 let weekOffset=0; /* 0=今週 −1=先週 +1=来週 … */
 function mondayOf(d){ const t=new Date(d); const off=(t.getDay()+6)%7; t.setDate(t.getDate()-off); t.setHours(0,0,0,0); return t; }
@@ -1841,6 +1858,8 @@ function registerCatalog(name){
 
 /* ===== 買い物リスト ===== */
 let shopFilter="all";
+/* 絞り込みは端末に保存する＝店内でアプリを閉じても戻らない */
+function setShopFilter(v){ shopFilter=v; S.shopFilter=v; save(); render(); }
 function aggregate(){
   const map=new Map();
   curWeek().forEach(day=>dayIds(day).forEach(id=>{
@@ -1923,7 +1942,8 @@ function itemRow(i,withStock){
   r+='</div>';
   /* 下段：お店・家にある */
   r+='<div class="i2bot">';
-  r+=`<button class="storebtn ${it.store?"":"unset"}" onclick="openStoreModal(${i})">${esc(it.store||"店を選ぶ")} ▾</button>`;
+  const sc=it.store?storeColor(it.store):"";
+  r+=`<button class="storebtn ${it.store?"":"unset"}" ${sc?`style="border-color:${sc};color:${sc}"`:""} onclick="openStoreModal(${i})">${esc(it.store||"店を選ぶ")} ▾</button>`;
   if(withStock) r+=`<button class="stockbtn ${it.stock?"on":""}" onclick="togStock(${i})">${it.stock?"✓ 家にある":"家にある"}</button>`;
   if(it.need!=null) r+=`<span class="needq">必要 ${fmtQ(it.need)}${esc(it.u)}</span>`;
   r+='</div></div>';
@@ -1949,9 +1969,13 @@ function rShop(){
   h+=`<div class="pmeta">購入済み <b>${doneN} / ${buy.length}</b></div>`;
   h+=`<div class="pbar"><div class="pfill" style="width:${buy.length?Math.round(doneN/buy.length*100):0}%"></div></div>`;
   h+='<div class="catbar">';
-  h+=`<button class="fchip ${shopFilter==="all"?"on":""}" onclick="shopFilter='all';render()">すべて</button>`;
-  S.stores.forEach(s=>{ h+=`<button class="fchip ${shopFilter===s?"on":""}" onclick="shopFilter='${esc(s)}';render()">${esc(s)}</button>`; });
-  h+=`<button class="fchip ${shopFilter==="未定"?"on":""}" onclick="shopFilter='未定';render()">未定</button>`;
+  h+=`<button class="fchip ${shopFilter==="all"?"on":""}" onclick="setShopFilter('all')">すべて ${items.filter(x=>!x.stock).length}</button>`;
+  S.stores.forEach(st=>{
+    const cnt=items.filter(x=>!x.stock&&x.store===st).length, c=storeColor(st), on=shopFilter===st;
+    h+=`<button class="fchip ${on?"on":""}" style="${on?`background:${c};border-color:${c};color:#fff`:`border-color:${c};color:${c}`}" onclick="setShopFilter('${esc(st)}')">${esc(st)} ${cnt}</button>`;
+  });
+  const undN=items.filter(x=>!x.stock&&!x.store).length;
+  h+=`<button class="fchip ${shopFilter==="未定"?"on":""}" onclick="setShopFilter('未定')">未定 ${undN}</button>`;
   h+='</div>';
   const undf=items.filter(x=>!x.stock&&!x.store).length;
   h+=`<button class="btn sub wide" onclick="openAssignAll()" style="margin-bottom:6px">🏪 お店をまとめて決める${undf?`（未定 ${undf}品）`:""}</button>`;
@@ -1991,12 +2015,25 @@ function rShop(){
     const sel=shopFilter;
     const idxs=[];
     items.forEach((it,i)=>{ if(!it.stock&&((it.store||"未定")===sel)) idxs.push(i); });
-    h+=`<div class="pmeta" style="margin-top:4px">${esc(sel)}で買う予定　<b>${idxs.length}品</b></div>`;
-    h+='<div class="card listcard">';
-    if(!idxs.length) h+='<p class="note">この店で買う予定のものはありません</p>';
-    idxs.forEach(i=>{ h+=itemRow(i,false); });
-    h+='</div>';
-    h+='<p class="note">ほかの店で買った場合も、そのままチェックでOK。</p>';
+    const c=sel==="未定"?"#b9ad99":storeColor(sel);
+    const doneHere=idxs.filter(i=>items[i].done).length;
+    h+=`<div class="storehead" style="background:${c}"><span class="shname"><b>${esc(sel)}</b>で買う</span><span>${doneHere} / ${idxs.length}</span></div>`;
+    if(!idxs.length){
+      h+='<div class="card"><p class="note" style="margin:0">この店で買う物はありません。</p>';
+      if(undf) h+=`<p class="note" style="margin:6px 0 0">店が決まっていない物が${undf}品あります。<span class="linkbtn" onclick="openAssignAll()">お店を決める</span></p>`;
+      h+='</div>';
+    } else {
+      /* 絞り込んでも売り場の並び（野菜→肉・魚→…）を保つ＝店内を行ったり来たりしない */
+      const groups={};
+      idxs.forEach(i=>{ const k=items[i].daily?"定番":kindOf(items[i].n); (groups[k]=groups[k]||[]).push(i); });
+      ["野菜","肉・魚","その他","定番"].forEach(k=>{
+        if(!groups[k]) return;
+        h+=`<div class="kindhead">${k}</div><div class="card listcard">`;
+        groups[k].forEach(i=>{ h+=itemRow(i,false); });
+        h+='</div>';
+      });
+      h+='<p class="note">ほかの店で買った場合も、そのままチェックでOK。</p>';
+    }
   }
   if(buy.length&&doneN>=buy.length) h+='<p class="note" style="text-align:center;font-size:15px">🎉 全部買えました！おつかれさま！</p>';
   h+='<button class="cta" onclick="finishTrip()">買い物を完了</button>';
@@ -2111,9 +2148,18 @@ function renderStoreSettings(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>いつもの購入先</b></div>';
   h+='<div class="kindhead" style="margin-top:0">1. 店の管理</div><div class="card listcard">';
   S.stores.forEach((s,i)=>{
-    h+=`<div class="item"><div class="info"><div class="inm">${esc(s)}</div></div><button class="btn small gray" onclick="renStore(${i})">✏️ 変更</button><button class="btn small danger" onclick="delStore(${i})">削除</button></div>`;
+    const col=storeColor(s);
+    h+='<div style="padding:10px 0;border-bottom:1px solid var(--line)">';
+    h+=`<div class="item" style="border:0;padding:0"><div class="info"><div class="inm"><span class="swatch" style="background:${col};width:14px;height:14px;display:inline-block;vertical-align:-2px;margin-right:7px;box-shadow:none"></span>${esc(s)}</div></div><button class="btn small gray" onclick="renStore(${i})">✏️ 変更</button><button class="btn small danger" onclick="delStore(${i})">削除</button></div>`;
+    h+='<div class="swatchrow">';
+    COLOR_PALETTE.forEach(c=>{
+      h+=`<span class="swatch ${c.toLowerCase()===col.toLowerCase()?"on":""}" style="background:${c}" onclick="setStoreColor('${esc(s)}','${c}')"></span>`;
+    });
+    h+='</div></div>';
   });
-  h+='</div><button class="btn sub wide" onclick="addStore()">＋ 店を追加</button>';
+  h+='</div>';
+  h+='<p class="note" style="margin-top:0">丸をタップすると、その店の色を変えられます。買い物リストのタブと見出しに反映されます。</p>';
+  h+='<button class="btn sub wide" onclick="addStore()">＋ 店を追加</button>';
   h+='<div class="kindhead">2. 品物ごとのいつもの購入先</div>';
   h+=`<input type="text" class="search" id="sStore" placeholder="🔍 品物を検索" value="${esc(psSearch)}" oninput="psSearch=this.value;deferRender(renderStoreSettings)">`;
   const q=psSearch.trim();
@@ -2153,7 +2199,8 @@ function renStore(i){
   S.stores[i]=nn;
   Object.keys(S.storeMap).forEach(k=>{ if(S.storeMap[k]===old) S.storeMap[k]=nn; });
   if(S.list) S.list.items.forEach(it=>{ if(it.store===old) it.store=nn; });
-  if(shopFilter===old) shopFilter=nn;
+  if(S.storeColors&&S.storeColors[old]){ S.storeColors[nn]=S.storeColors[old]; delete S.storeColors[old]; }
+  if(shopFilter===old){ shopFilter=nn; S.shopFilter=nn; }
   save(); renderStoreSettings();
 }
 function delStore(i){
@@ -2162,7 +2209,8 @@ function delStore(i){
   S.stores.splice(i,1);
   Object.keys(S.storeMap).forEach(k=>{ if(S.storeMap[k]===old) delete S.storeMap[k]; });
   if(S.list) S.list.items.forEach(it=>{ if(it.store===old) it.store=""; });
-  if(shopFilter===old) shopFilter="all";
+  if(S.storeColors) delete S.storeColors[old];
+  if(shopFilter===old){ shopFilter="all"; S.shopFilter="all"; }
   save(); renderStoreSettings();
 }
 
@@ -2230,6 +2278,8 @@ window.addEventListener("popstate",function(e){
 });
 
 load();
+/* 保存していた店の絞り込みを復元（消した店なら「すべて」に戻す） */
+if(S.shopFilter&&(S.shopFilter==="all"||S.shopFilter==="未定"||S.stores.indexOf(S.shopFilter)>=0)) shopFilter=S.shopFilter; else shopFilter="all";
 /* 土台の履歴を1つ余分に確保しておく。
    これが無いと、ホーム画面から起動したPWAでは「戻る」の行き先が無く、
    popstateも起きずにアプリが即終了してしまう。 */
