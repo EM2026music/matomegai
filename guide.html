@@ -65,12 +65,18 @@ h1{margin-bottom:16px;font-size:clamp(30px,7vw,58px);line-height:1.14;letter-spa
 .optional-card h2{margin-bottom:11px;font-size:clamp(23px,5vw,37px);line-height:1.25}
 .optional-card p{color:var(--muted)}
 .mini-steps{display:grid;gap:10px;margin:16px 0 0;padding:0;counter-reset:mini;list-style:none}
-.mini-steps li{display:grid;grid-template-columns:31px 1fr;gap:10px;align-items:start}
-.mini-steps li::before{counter-increment:mini;content:counter(mini);display:grid;width:29px;height:29px;place-items:center;border-radius:9px;color:#fff;background:var(--green);font-size:12px;font-weight:950}
+.mini-steps li{position:relative;padding-left:41px;min-height:29px}
+.mini-steps li::before{counter-increment:mini;content:counter(mini);position:absolute;left:0;top:0;display:grid;width:29px;height:29px;place-items:center;border-radius:9px;color:#fff;background:var(--green);font-size:12px;font-weight:950}
 .optional-image{display:flex;justify-content:center;padding:14px;border-radius:17px;background:#edf5f0}
 .optional-image .screen{width:205px}
 
 .useful-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+.level-list{list-style:none;margin:0;padding:0;display:grid;gap:12px;max-width:640px;margin-inline:auto}
+.level-list li{display:flex;align-items:center;gap:16px;background:#fff;border-radius:16px;padding:16px 20px;box-shadow:var(--shadow)}
+.level-list .lv{flex:0 0 34px;width:34px;height:34px;border-radius:50%;background:var(--accent,#e07b39);color:#fff;font-weight:700;display:grid;place-items:center;font-size:16px}
+.level-list strong{display:block;font-size:16px;margin-bottom:2px}
+.level-list div{font-size:14px;color:var(--muted,#6b6257);min-width:0}
+.two-col{display:grid;grid-template-columns:minmax(0,1.28fr) minmax(0,.72fr);align-items:center;gap:38px}
 .useful{padding:21px;border:1px solid var(--line);border-radius:18px;background:#fff}
 .useful .icon{display:grid;width:43px;height:43px;margin-bottom:13px;place-items:center;border-radius:13px;background:#fff0e4;font-size:21px}
 .useful h3{margin-bottom:7px;font-size:17px}
@@ -102,6 +108,8 @@ details p{padding:0 34px 18px 0;color:var(--muted);font-size:14px}
   .step,.step:nth-child(even),.optional-card{grid-template-columns:1fr;gap:22px}
   .step:nth-child(even) .image-area,.step:nth-child(even) .copy{order:initial}
   .useful-grid{grid-template-columns:1fr}
+.two-col{grid-template-columns:1fr;gap:22px}
+.two-col .optional-image{order:-1}
 }
 @media(max-width:520px){
   .wrap{width:calc(100% - 24px)}
@@ -204,86 +212,120 @@ details p{padding:0 34px 18px 0;color:var(--muted);font-size:14px}
   </div>
 </section>
 
-<section class="optional" id="edit">
-  <div class="wrap optional-card">
-    <div class="optional-image"><div class="screen" data-full="assets/g7-edit.png"><img src="assets/g7-edit.png" alt="料理を編集する画面。材料・数量・単位を書き換えられる"></div></div>
+<!-- ===== 後半：使うほどラクになる ===== -->
+<section class="section white" id="level">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">ここからが本番</p>
+      <h2>使うほどラクになります</h2>
+      <p>基本の4ステップだけでも使えます。でもこの4つを覚えると、毎週の献立決めと買い物が別物になります。上から順に、効果の大きい順です。</p>
+    </div>
+    <ol class="level-list">
+      <li><span class="lv">1</span><div><strong>★を付ける</strong>230品から探さなくてよくなる</div></li>
+      <li><span class="lv">2</span><div><strong>先週をコピー</strong>献立決めが数秒で終わる</div></li>
+      <li><span class="lv">3</span><div><strong>お店で分ける</strong>その店の物だけ見ながら買える</div></li>
+      <li><span class="lv">4</span><div><strong>自分用に直す</strong>うちの分量・うちの料理にする</div></li>
+    </ol>
+  </div>
+</section>
+
+<section class="optional" style="background:#fdf3e9" id="fav">
+  <div class="wrap optional-card" style="background:#fff">
+    <div class="optional-image" style="background:#fdf3e9"><div class="screen" data-full="assets/g6-fav.png"><img src="assets/g6-fav.png" alt="料理タブ。よく作るで絞り込んだ状態"></div></div>
     <div>
-      <p class="eyebrow">自分の家に合わせる</p>
-      <h2>材料も分量も、<br>好きに書き換えられます</h2>
-      <p>入っている約230品はあくまで<strong>たたき台</strong>です。「うちのカレーはこうじゃない」で正解なので、遠慮なく直してください。直した内容はこの端末に保存され、次回からずっとその分量で計算されます。</p>
+      <p class="eyebrow">効果 いちばん大</p>
+      <h2>1. よく作る料理に★</h2>
+      <p>230品から毎回探すのが、いちばん時間を使います。いつも作る料理に★を付けておけば、次からはワンタップでその中だけを表示できます。</p>
       <ol class="mini-steps">
-        <li>「🍲 料理」タブで料理をタップすると編集画面が開きます</li>
-        <li><strong>材料・数量・単位</strong>をその場で書き換え（「✕」でその材料を削除）</li>
-        <li>足りない材料は「＋ 手入力で追加」、または「📖 カタログから選ぶ」</li>
-        <li>最後に「保存」</li>
+        <li>料理を選ぶ画面で、名前の右の「☆」をタップ</li>
+        <li>★（黄色）になれば登録完了</li>
+        <li>次からは先頭の「⭐よく作る」で絞り込む</li>
       </ol>
-      <div class="tip"><strong>「下の分量は◯人分」が基準です。</strong>ここが3人分なら、材料も3人分で書いてください。買い物リストでは、⚙設定の家族の人数に合わせて自動で増減します。</div>
+      <div class="tip"><strong>まず10〜20品付けてみてください。</strong>献立決めが「⭐を押す → 選ぶ」だけで終わります。</div>
     </div>
   </div>
 </section>
 
-<section class="section white" id="edit2">
-  <div class="wrap">
-    <div class="section-head">
-      <p class="eyebrow">こんなときは</p>
-      <h2>やりたいこと別のやり方</h2>
-      <p>編集まわりでよくある4つです。</p>
-    </div>
-    <div class="useful-grid">
-      <article class="useful"><div class="icon">🍚</div><h3>うちは量が多い</h3><p>編集画面の「増量版を作る」で、同じ料理の<strong>コピー</strong>ができます（名前の後ろに「食べ盛り」が付きます）。元の料理は残るので、家族の人数や日によって使い分けられます。</p></article>
-      <article class="useful"><div class="icon">➕</div><h3>ない料理を足したい</h3><p>「🍲 料理」タブ右上の「＋新規」から、自分の料理を1から作れます。料理名・カテゴリ・材料を入れて保存するだけ。作った料理も★を付けられます。</p></article>
-      <article class="useful"><div class="icon">📖</div><h3>材料の候補にない物</h3><p>手入力した材料は、保存時に「カタログにも登録しますか？」と聞かれます。登録しておくと、次からは他の料理でも<strong>選ぶだけ</strong>で使えます。</p></article>
-      <article class="useful"><div class="icon">🔗</div><h3>作り方を忘れる</h3><p>編集画面の下に<strong>レシピのURL</strong>と<strong>ひとことメモ</strong>を入れられます。クックパッドのリンクや「みりん多めが好み」などを書いておくと、次に作るとき助かります。</p></article>
+<section class="optional" id="copy">
+  <div class="wrap optional-card">
+    <div class="optional-image"><div class="screen" data-full="assets/g10-home.png"><img src="assets/g10-home.png" alt="ホーム画面の下部にある先週の献立をコピー"></div></div>
+    <div>
+      <p class="eyebrow">時短ワザ</p>
+      <h2>2. 先週の献立をコピー</h2>
+      <p>毎週ゼロから決める必要はありません。ホーム画面をいちばん下まで送ると「📋 先週の献立をコピー」があります。押すと先週の1週間がそのまま入るので、変えたい日だけ直せば完成です。</p>
+      <div class="tip"><strong>組み合わせも保存できます。</strong>「カレー＋サラダ」のようによく作るセットは、料理を2品以上入れた状態で「⭐ この組み合わせを保存する」。次からは1タップでまとめて入ります。</div>
     </div>
   </div>
 </section>
 
 <section class="optional" id="stores">
   <div class="wrap optional-card">
-    <div class="optional-image"><div class="screen" data-full="assets/g5-store.png"><img src="assets/g5-store.png" alt="買い物リストの上部にあるお店をまとめて決めるボタン"></div></div>
+    <div class="optional-image"><div class="screen" data-full="assets/g8-shop.png"><img src="assets/g8-shop.png" alt="スーパーで絞り込んだ買い物リスト。色付きのタブと売り場ごとの並び"></div></div>
     <div>
-      <p class="eyebrow">必要な人だけ</p>
-      <h2>買うお店ごとに分けられます</h2>
-      <p>「野菜はここ、日用品はあっち」のように、行く店が2つ以上あるときだけ使ってください。1店で済むなら、この機能は使わなくて大丈夫です。お店の名前は自由に登録できます。</p>
+      <p class="eyebrow">買い物がラクになる</p>
+      <h2>3. お店ごとに分ける</h2>
+      <p>行く店が2つ以上あるときに効きます。品物ごとに店を決めておくと、<strong>その店にいる間はその店の物だけ</strong>を表示できます。</p>
       <ol class="mini-steps">
-        <li>買い物リスト上部の「🏪 お店をまとめて決める」を押す</li>
-        <li>品物ごとにお店を選ぶ（「全部○○に」の一括ボタンもあります）</li>
-        <li>お店のタブを切り替えると、その店で買う物だけが表示されます</li>
+        <li><strong>お店のタブを押す</strong>（画像①）＝その店の物だけになります。数字は残り品数です</li>
+        <li><strong>店名の帯</strong>（画像②）で、今どの店を見ているか・何個買えたかが分かります</li>
+        <li><strong>☰を掴んで動かす</strong>（画像③）＝野菜・肉・魚などを、実際に店を回る順番に並べ替えられます</li>
       </ol>
-      <div class="tip"><strong>次回から自動になります。</strong>一度選んだお店は記憶され、来週から自動で振り分けられます。今回だけ変えたいときは「今回だけ」に切り替えてください。</div>
+      <div class="tip"><strong>タブは押しっぱなしで残ります。</strong>店内でアプリを閉じても、次に開いたときも同じ店のままです。並べ替えた順番も覚えています。</div>
     </div>
   </div>
 </section>
 
-<section class="section white" id="useful">
+<section class="section white" id="color">
+  <div class="wrap two-col">
+    <div>
+      <p class="eyebrow">見分けやすく</p>
+      <h2>お店に色を付けられます</h2>
+      <p>買い物リスト右上の「🏪 お店の設定」で、店ごとに好きな色を選べます。色はタブ・店名の帯・品物の店ボタンに反映されるので、ひと目でどこで買う物か分かります。</p>
+      <ol class="mini-steps">
+        <li>「🏪 お店の設定」を開く</li>
+        <li>店名の下に並ぶ丸から色をタップ</li>
+        <li>「＋ 店を追加」で店は何軒でも増やせます</li>
+      </ol>
+      <div class="tip"><strong>店をまとめて決めるなら</strong>買い物リストの「🏪 お店をまとめて決める」。一覧でポンポン振り分けられ、一度決めた店は次回から自動で入ります。</div>
+    </div>
+    <div class="optional-image"><div class="screen" data-full="assets/g9-color.png"><img src="assets/g9-color.png" alt="お店の設定画面。店ごとに色を選べる"></div></div>
+  </div>
+</section>
+
+<section class="optional" id="edit">
+  <div class="wrap optional-card">
+    <div class="optional-image"><div class="screen" data-full="assets/g7-edit.png"><img src="assets/g7-edit.png" alt="料理を編集する画面。材料・数量・単位を書き換えられる"></div></div>
+    <div>
+      <p class="eyebrow">自分の家に合わせる</p>
+      <h2>4. 材料も分量も書き換えOK</h2>
+      <p>入っている約230品は<strong>たたき台</strong>です。「うちのカレーはこうじゃない」で正解なので、遠慮なく直してください。直した内容はこの端末に保存され、次からずっとその分量で計算されます。</p>
+      <ol class="mini-steps">
+        <li>「🍲 料理」タブで料理をタップ</li>
+        <li>材料・数量・単位を書き換え（「✕」でその材料を削除）</li>
+        <li>足りない材料は「＋ 手入力で追加」か「📖 カタログから選ぶ」</li>
+        <li>「保存」を押す</li>
+      </ol>
+      <div class="tip"><strong>「下の分量は◯人分」が基準です。</strong>ここが3人分なら材料も3人分で書いてください。買い物リストでは、⚙設定の家族の人数に合わせて自動で増減します。</div>
+    </div>
+  </div>
+</section>
+
+<section class="section" id="useful">
   <div class="wrap">
     <div class="section-head">
-      <p class="eyebrow">慣れてきたら</p>
-      <h2>覚えておくと便利な4つ</h2>
-      <p>最初から全部使う必要はありません。</p>
+      <p class="eyebrow">知っておくと便利</p>
+      <h2>こんなときは、これ</h2>
+      <p>困ったときに思い出してください。</p>
     </div>
     <div class="useful-grid">
-      <article class="useful"><div class="icon">⭐</div><h3>よく作る料理</h3><p>料理の「☆」を押すと★になります。カテゴリの先頭に「⭐よく作る」が出て、いつもの料理だけをすぐ選べます。</p></article>
-      <article class="useful"><div class="icon">🛍️</div><h3>定番</h3><p>牛乳・パン・日用品など、献立と関係なく買う物を登録できます。個数も指定でき、⭐を付けると毎回自動でリストに入ります。</p></article>
-      <article class="useful"><div class="icon">🍱</div><h3>朝・昼も表示</h3><p>献立表の「表示する食事」で朝・昼をONにすると、1日が3段になり、朝ごはんやお弁当も管理できます。</p></article>
-      <article class="useful"><div class="icon">💾</div><h3>バックアップ</h3><p>機種変更前は「⚙設定 → バックアップ保存」。新しい端末でそのファイルを読み込めば、そのまま引き継げます。</p></article>
-    </div>
-  </div>
-</section>
-
-<section class="optional" style="background:#fdf3e9">
-  <div class="wrap optional-card" style="background:#fff">
-    <div class="optional-image" style="background:#fdf3e9"><div class="screen" data-full="assets/g6-fav.png"><img src="assets/g6-fav.png" alt="料理タブ。よく作るのフィルタが表示されている"></div></div>
-    <div>
-      <p class="eyebrow">いちばん効く工夫</p>
-      <h2>よく作る料理に★を付ける</h2>
-      <p>230品から毎回探すのは大変です。いつも作る料理に★を付けておくと、次からはワンタップでその中から選べます。</p>
-      <ol class="mini-steps">
-        <li>「🍲 料理」タブ、または料理を選ぶ画面を開く</li>
-        <li>料理の右にある「☆」をタップして★にする</li>
-        <li>カテゴリの先頭に出る「⭐よく作る」で絞り込む</li>
-      </ol>
-      <div class="tip"><strong>まず10〜20品ほど付けてみてください。</strong>献立決めが「★をタップ → 選ぶ」だけで終わるようになります。</div>
+      <article class="useful"><div class="icon">🗑</div><h3>1日ぶん消したい</h3><p>日付をタップして右上の「🗑 この日を空に」。朝・昼・夜をまとめて消せます。ホームで<strong>日付を長押し</strong>しても同じです。1品だけなら料理側を長押し。</p></article>
+      <article class="useful"><div class="icon">🍚</div><h3>うちは量が多い</h3><p>編集画面の「増量版を作る」でコピーができます（名前に「食べ盛り」が付きます）。元の料理は残るので、日によって使い分けられます。</p></article>
+      <article class="useful"><div class="icon">➕</div><h3>ない料理を足す</h3><p>「🍲 料理」タブ右上の「＋新規」から1から作れます。料理名・カテゴリ・材料を入れて保存するだけ。作った料理にも★を付けられます。</p></article>
+      <article class="useful"><div class="icon">🛍️</div><h3>毎回買う物がある</h3><p>「🛍️ 定番」タブに牛乳・パン・日用品などを登録。個数も指定でき、<strong>⭐を付けると毎回自動</strong>でリストに入ります。</p></article>
+      <article class="useful"><div class="icon">🧂</div><h3>調味料の買い忘れ</h3><p>買い物リストの下に「調味料・常備品」欄があります。切れている物をタップすると、その分だけリストに入ります。</p></article>
+      <article class="useful"><div class="icon">🍱</div><h3>朝ごはん・お弁当も</h3><p>ホームの「表示する食事」で朝・昼をONにすると1日が3段になり、朝食やお弁当も管理できます。OFFにしても中身は消えません。</p></article>
+      <article class="useful"><div class="icon">↕️</div><h3>並び順を変えたい</h3><p>☰を掴んで動かせます。料理の一覧、その日の献立、買い物の売り場グループ、定番——どれも自分の使いやすい順に並べ替えられます。</p></article>
+      <article class="useful"><div class="icon">💾</div><h3>機種変更する</h3><p>「⚙設定 → バックアップ保存」でファイルを保存し、新しい端末で「読み込み」。そのまま引き継げます。</p></article>
     </div>
   </div>
 </section>
@@ -296,8 +338,10 @@ details p{padding:0 34px 18px 0;color:var(--muted);font-size:14px}
     <details><summary>データはどこに保存されますか？</summary><p>お使いの端末の中だけに保存されます。献立や買い物の内容がインターネット上に送られることはありません。</p></details>
     <details><summary>ホーム画面に置けますか？</summary><p>置けます。iPhoneはSafariの共有ボタン →「ホーム画面に追加」、AndroidはChromeの右上「⋮」→「ホーム画面に追加」です。普通のアプリのように開けます。</p></details>
     <details><summary>電波がないスーパーでも使えますか？</summary><p>使えます。一度アプリを開いておけば、圏外でも買い物リストを見られます。</p></details>
-    <details><summary>料理を間違えて追加しました</summary><p>料理を選ぶ画面の「−」で1つずつ減らせます。その日の分をまとめて消したいときは、献立表で料理を長押ししてください。</p></details>
+    <details><summary>料理を間違えて追加しました</summary><p>料理を選ぶ画面の「−」で1つずつ減らせます。その日を丸ごと消すなら、日付をタップして右上の「🗑 この日を空に」。ホームで日付を長押ししても同じです。</p></details>
     <details><summary>材料や分量を変えても大丈夫ですか？</summary><p>大丈夫です。むしろ変えて使うものだと思ってください。「🍲 料理」タブで料理をタップ→材料・数量・単位を書き換えて「保存」。この端末の中だけで直るので、元に戻したくなったら⚙設定の「すべて初期化」で最初の状態に戻せます（ただし作った料理も消えます）。</p></details>
+    <details><summary>買い物の途中でアプリを閉じても大丈夫？</summary><p>大丈夫です。チェックした物・選んでいたお店のタブ・売り場の並び順は、すべて保存されています。次に開いたときは続きから使えます。</p></details>
+    <details><summary>数量が「必要 1.3本」と違うのはなぜ？</summary><p>お店では1.3本は買えないので、買える数に切り上げて表示しています。上の大きい数字が<strong>買う数</strong>、グレーの「必要◯」が献立で実際に使う量です。数字をタップすれば自分で直せます。</p></details>
     <details><summary>スマホとパソコンでデータは共有されますか？</summary><p>共有されません（端末ごとに別々です）。移したいときは「⚙設定 → バックアップ保存」でファイルを保存し、もう一方の端末で「読み込み」してください。</p></details>
     <details><summary>機種変更するとデータは消えますか？</summary><p>そのままでは移りません。古い端末で「⚙設定 → バックアップ保存」を行い、新しい端末で読み込んでください。</p></details>
     <details><summary>画面が古いまま更新されません</summary><p>「⚙設定 →🔄 アプリを最新に更新する」を押してください。保存したデータは消えません。</p></details>
