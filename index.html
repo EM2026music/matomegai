@@ -137,6 +137,17 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .addingto.b{background:#fdf1e5; color:#c96f28;}
 .addingto.l{background:#fbf3dd; color:#a37c12;}
 .addingto.d{background:#eaf1f9; color:#37608f;}
+.oldbox{background:#fff6e8; border:1.5px solid #f0cd9a; border-radius:14px; padding:13px 14px; margin-bottom:12px;}
+.oldbox .obt{font-weight:bold; font-size:14px; color:#a8631a;}
+.oldbox .obs{font-size:12.5px; color:#7d6a52; margin:4px 0 10px; line-height:1.6;}
+.oldbox .obr{display:flex; gap:8px; flex-wrap:wrap;}
+.oldbox .obr .btn{margin:0;}
+.ctalink.oldhint{color:#c07a1e; font-weight:bold;}
+.hrow{display:flex; align-items:center; gap:10px; padding:12px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
+.hrow .hw{font-weight:bold; font-size:14px;}
+.hrow .hs{font-size:12px; color:var(--sub); margin-top:2px;}
+.hrow .hbadge{margin-left:auto; font-size:11px; font-weight:bold; padding:4px 9px; border-radius:99px; background:#eef7ef; color:var(--green); white-space:nowrap;}
+.hrow .hbadge.part{background:#fdf1e5; color:#c96f28;}
 .listweek{background:#f2ece2; color:var(--ink); font-size:13px; font-weight:bold; padding:9px 12px; border-radius:10px; margin-bottom:10px;}
 .listweek.other{background:#fdf1e5; color:#c96f28;}
 .lwnote{display:block; font-size:11px; font-weight:normal; margin-top:2px;}
@@ -624,7 +635,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0724-41";
+const APP_VERSION="0724-42";
 let S=null;
 function newState(){
   return {
@@ -634,6 +645,7 @@ function newState(){
     goods:GOODS_SEED.slice(),
   storeColors:{},
   kindOrder:["野菜","肉・魚","その他","定番"],
+  history:[],
   shopFilter:"all",
     goodsSel:{},
     goodsStar:{},
@@ -1039,7 +1051,12 @@ function rWeek(){
   h+='</div>';
   h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると料理を移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
+  if(listIsOld()){
+    const nb=(S.list.items||[]).filter(x=>!x.stock&&!x.done).length;
+    h+=`<div class="ctalink oldhint" onclick="go('shop')">📅 「${weekRangeLabel(S.list.week)}」のリストが残っています${nb?`（未購入 ${nb}品）`:""} ›</div>`;
+  } else {
   h+='<div class="ctalink" onclick="go(\'shop\')">作り直さずに今のリストを見る ›</div>';
+  }
   h+='<div class="ctalink" onclick="copyPrevWeek()">📋 先週の献立をコピー</div>';
   h+='<div class="ctalink small" onclick="clearWeek()">今週の献立をクリア</div>';
   h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
@@ -1095,6 +1112,24 @@ function togMeal(k){
   if(modalOpen) renderFamily(); else render();
 }
 function clearWeek(){ if(confirm("この週の献立をすべて消しますか？")){ S.plans[curKey()]=emptyWeek(); save(); render(); } }
+/* ===== 買い物の履歴 ===== */
+/* 実際の「今週」（画面で先週/来週を見ていても影響されない） */
+function realKey(){ return keyOf(mondayOf(new Date())); }
+/* 持ち越し＝リストが実際の今週より前の週のものか */
+function listIsOld(){ return !!(S.list && S.list.items && S.list.items.length && S.list.week && S.list.week < realKey()); }
+/* 今のリストを履歴に残す（空なら何もしない） */
+function archiveList(how){
+  if(!S.list || !S.list.items || !S.list.items.length) return false;
+  const buy=S.list.items.filter(x=>!x.stock);
+  if(!S.history) S.history=[];
+  S.history.unshift({
+    week:S.list.week||"", at:Date.now(), how:how||"完了",
+    total:buy.length, done:buy.filter(x=>x.done).length,
+    items:S.list.items.map(x=>({n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""}))
+  });
+  S.history=S.history.slice(0,12);   /* 直近12回分だけ持つ */
+  return true;
+}
 function newList(){
   const need=pantryNeeded();
   return {items:aggregate(), pantry:need.names.map(n=>({n:n, buy:false})), excluded:need.excludedNames.map(n=>({n:n, buy:false})), week:curKey(), at:Date.now()};
@@ -1110,7 +1145,18 @@ function weekRangeLabel(key){
 function makeListGo(){
   const ag=aggregate();
   if(!ag.length&&!(S.list&&S.list.items.length)){ flash("先に献立か定番を選んでね"); return; }
-  if(S.list&&S.list.items.length){
+  if(S.list&&S.list.items.length&&S.list.week&&S.list.week!==curKey()){
+    /* 別の週のリストが残っている＝勝手に混ぜず、どうするか聞く */
+    const old=weekRangeLabel(S.list.week);
+    const nb=S.list.items.filter(x=>!x.stock&&!x.done).length;
+    const msg="「"+old+"」のリストが残っています（未購入 "+nb+"品）。"+String.fromCharCode(10,10)
+      +"［OK］この週のリストを新しく作る（残っていた分は履歴に保存）"+String.fromCharCode(10)
+      +"［キャンセル］そのまま前のリストを続ける";
+    if(confirm(msg)){
+      archiveList("切替");
+      S.list=newList(); save(); flash(weekRangeLabel(curKey())+" のリストを作りました");
+    }
+  } else if(S.list&&S.list.items.length){
     const r=syncList(ag);
     S.list.week=curKey();
     save();
@@ -1966,13 +2012,22 @@ function rShop(){
   if(!S.list||!S.list.items.length){
     h+='<div class="card" style="text-align:center;padding:26px 12px;"><p class="note" style="font-size:14px;margin:0">まだリストがありません。<br>献立と定番を選んで作りましょう。</p></div>';
     h+='<button class="cta" onclick="makeListGo()">📝 献立表からリストを作る</button>';
+    if((S.history||[]).length) h+=`<div class="ctalink small" onclick="openHistory()">🕘 買い物の履歴（${S.history.length}件）</div>`;
     return h;
   }
   const items=S.list.items;
   const buy=items.filter(x=>!x.stock);
   const doneN=buy.filter(x=>x.done).length;
   const lw=S.list.week;
-  if(lw){
+  if(listIsOld()){
+    const nb=items.filter(x=>!x.stock&&!x.done).length;
+    h+='<div class="oldbox">';
+    h+=`<div class="obt">📅 これは「${weekRangeLabel(lw)}」のリストです</div>`;
+    h+=`<div class="obs">${nb?`まだ ${nb}品 残っています。`:"すべて買い終わっています。"}今週のぶんを作ると、このリストは履歴に保存されます。</div>`;
+    h+='<div class="obr"><button class="btn small" onclick="startThisWeek()">今週のリストを作る</button>';
+    h+='<button class="btn small sub" onclick="openHistory()">履歴を見る</button></div>';
+    h+='</div>';
+  } else if(lw){
     const same=lw===curKey();
     h+=`<div class="listweek ${same?"":"other"}">📅 ${weekRangeLabel(lw)} の週のリスト`;
     if(!same) h+=`<span class="lwnote">（今ホームで見ている週とは別です）</span>`;
@@ -2026,6 +2081,7 @@ function rShop(){
     h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから追加</button>';
     h+='<div class="ctalink small" onclick="addManual()">キーボードで直接入力して追加</div>';
     h+='<div class="ctalink small" onclick="rebuildList()">リストをゼロから作り直す</div>';
+    if((S.history||[]).length) h+=`<div class="ctalink small" onclick="openHistory()">🕘 買い物の履歴（${S.history.length}件）</div>`;
   } else {
     const sel=shopFilter;
     const idxs=[];
@@ -2071,9 +2127,73 @@ function finishTrip(){
     const names=rest.slice(0,5).map(x=>"・"+x.n).join("\n")+(rest.length>5?"\n…ほか"+(rest.length-5)+"品":"");
     if(!confirm("⚠ まだ買っていない物が "+rest.length+"品 あります。\n\n"+names+"\n\nこのまま買い物を完了しますか？")) return;
   }
-  if(!confirm("買い物おつかれさま！\n"+wl+"リストを空にします。よろしいですか？\n（献立は消えません。定番の選択はリセットされます）")) return;
-  S.list=null; S.goodsSel={}; shopFilter="all";
+  if(!confirm("買い物おつかれさま！\n"+wl+"リストを空にします。よろしいですか？\n（履歴に残るので後から見返せます。献立は消えません）")) return;
+  archiveList("完了");
+  S.list=null; S.goodsSel={}; shopFilter="all"; S.shopFilter="all";
   save(); render(); flash("完了！おつかれさまでした🎉");
+}
+
+/* ===== 買い物の履歴を見る ===== */
+let histOpen=-1;
+function startThisWeek(){
+  const old=S.list&&S.list.week?weekRangeLabel(S.list.week):"";
+  if(!confirm("今週（"+weekRangeLabel(realKey())+"）のリストを新しく作ります。\n\n"
+    +(old?"「"+old+"」のリストは履歴に保存されます。\n\n":"")+"よろしいですか？")) return;
+  archiveList("切替");
+  weekOffset=0;                       /* 実際の今週に合わせる */
+  S.list=newList(); shopFilter="all"; S.shopFilter="all";
+  save(); render(); flash(weekRangeLabel(realKey())+" のリストを作りました");
+}
+function openHistory(){ histOpen=-1; showModal(); renderHistory(); }
+function renderHistory(){
+  const hs=S.history||[];
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>🕘 買い物の履歴</b></div>';
+  if(!hs.length){ h+='<p class="note">まだ履歴がありません。「買い物を完了」を押すとここに残ります。</p>'; }
+  else {
+    h+='<p class="note" style="margin-top:0">直近12回ぶんを保存しています。タップすると中身が見られます。</p>';
+    h+='<div class="card listcard">';
+    hs.forEach((r,i)=>{
+      const d=new Date(r.at);
+      const all=r.done>=r.total&&r.total>0;
+      h+=`<div class="hrow" onclick="histOpen=${histOpen===i?-1:i};renderHistory()">`;
+      h+=`<div style="min-width:0"><div class="hw">${esc(weekRangeLabel(r.week)||"（週なし）")} の週</div>`;
+      h+=`<div class="hs">${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")} に${esc(r.how||"完了")}</div></div>`;
+      h+=`<span class="hbadge ${all?"":"part"}">${r.done}/${r.total}品</span></div>`;
+      if(histOpen===i){
+        h+='<div style="padding:8px 2px 14px">';
+        if(!r.items.length) h+='<p class="note">中身がありません</p>';
+        r.items.forEach(it=>{
+          const mark=it.stock?"🏠":(it.done?"✓":"・");
+          h+=`<div class="sdrow"><span style="color:${it.done?"#9a8d7c":"inherit"}">${mark} ${esc(it.n)}${it.store?`<span style="font-size:11px;color:${storeColor(it.store)};margin-left:6px">${esc(it.store)}</span>`:""}</span>`;
+          h+=`<span class="sdq">${it.q===""?"":fmtQ(it.q)}${esc(it.u||"")}</span></div>`;
+        });
+        h+=`<button class="btn sub wide" style="margin-top:10px" onclick="event.stopPropagation();reuseHistory(${i})">📋 この内容で新しいリストを作る</button>`;
+        h+=`<div class="ctalink small" onclick="event.stopPropagation();delHistory(${i})">この履歴を削除</div>`;
+        h+='</div>';
+      }
+    });
+    h+='</div>';
+    h+='<div class="ctalink small" onclick="clearHistory()">履歴をすべて消す</div>';
+  }
+  setHTML(document.getElementById("modal"),h);
+}
+/* 過去のリストをそのまま復活させる（同じ物をまた買うとき用） */
+function reuseHistory(i){
+  const r=(S.history||[])[i]; if(!r) return;
+  if(S.list&&S.list.items.length&&!confirm("今あるリストを置き換えます。よろしいですか？\n（今のリストは履歴に保存されます）")) return;
+  archiveList("切替");
+  S.list={ items:r.items.map(x=>({n:x.n,q:x.q,u:x.u,stock:false,done:false,store:x.store||"",manual:true})),
+           pantry:[], excluded:[], week:realKey(), at:Date.now() };
+  shopFilter="all"; S.shopFilter="all";
+  save(); closeModal(); go('shop'); flash("履歴からリストを作りました");
+}
+function delHistory(i){
+  if(!confirm("この履歴を削除しますか？")) return;
+  S.history.splice(i,1); histOpen=-1; save(); renderHistory();
+}
+function clearHistory(){
+  if(!confirm("履歴をすべて消しますか？（元に戻せません）")) return;
+  S.history=[]; histOpen=-1; save(); renderHistory();
 }
 
 /* 店変更モーダル（今回だけ／標準にする） */
