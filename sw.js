@@ -3,10 +3,11 @@
    ・オンラインなら必ずサーバーの最新を取りに行く（ブラウザのキャッシュを使わない）
    ・オフラインならキャッシュから表示する
 */
-const CACHE = "matomegai-v3";
+const CACHE = "matomegai-v4";
 const ASSETS = [
   "./",
   "./index.html",
+  "./start.html",
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",

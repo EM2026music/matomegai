@@ -635,7 +635,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0724-42";
+const APP_VERSION="0724-43";
 let S=null;
 function newState(){
   return {
@@ -1059,6 +1059,7 @@ function rWeek(){
   }
   h+='<div class="ctalink" onclick="copyPrevWeek()">📋 先週の献立をコピー</div>';
   h+='<div class="ctalink small" onclick="clearWeek()">今週の献立をクリア</div>';
+  h+='<div class="ctalink small"><a href="start.html" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">📖 使い方ガイド</a></div>';
   h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
   return h;
 }
@@ -1075,7 +1076,9 @@ function setFamily(d){
 function openFamily(){ showModal(); renderFamily(); }
 function renderFamily(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>設定</b></div>';
-  h+='<div class="kindhead" style="margin-top:0">家族の人数</div>';
+  h+='<a class="btn sub wide" style="display:block;text-align:center;text-decoration:none;margin-top:0" href="start.html" target="_blank" rel="noopener">📖 使い方ガイドを見る</a>';
+  h+='<p class="note" style="margin-top:6px">画面写真つきで、便利な使い方までまとめています。</p>';
+  h+='<div class="kindhead">家族の人数</div>';
   h+='<div style="display:flex;align-items:center;justify-content:center;gap:26px;padding:6px 0 10px;">';
   h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(-1);renderFamily()">−</button>';
   h+=`<b style="font-size:26px">${S.family}人</b>`;
