@@ -9,8 +9,9 @@
     → ブラウザが開いて、すぐ使えます
 
  2) 使い方がわからないときは
-    「guide.html」をダブルクリック
+    「start.html」をダブルクリック
     → 画面写真つきの説明書が開きます
+    （落ち着いた見た目の「guide.html」もあります）
 
 
 【スマホで使いたいとき】
@@ -19,7 +20,7 @@
  こちらのほうが便利です（オフラインでも動きます）。
 
    アプリ  : https://em2026music.github.io/matomegai/
-   使い方  : https://em2026music.github.io/matomegai/guide.html
+   使い方  : https://em2026music.github.io/matomegai/start.html
 
  スマホでは、ブラウザで上のアプリのリンクを開いてから
    ・iPhone : 共有ボタン → 「ホーム画面に追加」
@@ -42,7 +43,8 @@
 【同梱ファイル】
 
  index.html ......... アプリ本体（これを開く）
- guide.html ......... 使い方ガイド
+ start.html ......... 使い方ガイド（これを開く）
+ guide.html ......... 使い方ガイド（シンプル版）
  assets/ ............ ガイド用の画面写真
  manifest.json ...... アプリとして登録するための設定
  sw.js .............. オフラインで動かすための仕組み

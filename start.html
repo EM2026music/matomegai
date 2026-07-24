@@ -1,0 +1,569 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>まとめ買いリスト — 献立を決めたら、買い物リストができる。</title>
+<meta name="description" content="1週間の献立を選ぶだけで、必要な材料が自動でまとまる買い物アプリ。無料・登録不要・スマホ内に保存。使い方をぜんぶ画面つきで説明します。">
+<link rel="icon" href="icon-192.png">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;min-width:0}
+:root{
+  --o:#FF6A2B; --o2:#FF9A3D; --y:#FFC53D; --t:#00BFA6; --p:#7C5CFF; --pk:#FF4E8E; --bl:#3D8BFF;
+  --ink:#171021; --sub:#6C6478; --line:#EDE6DC; --bg:#FFFCF7; --card:#fff;
+  --sh:0 18px 44px rgba(60,38,15,.10); --shs:0 6px 18px rgba(60,38,15,.08);
+  --r:26px;
+  --font:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic UI","Segoe UI",system-ui,-apple-system,sans-serif;
+}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{font-family:var(--font);color:var(--ink);background:var(--bg);line-height:1.75;
+  font-feature-settings:"palt";overflow-x:hidden;letter-spacing:.01em}
+img{max-width:100%;height:auto;display:block}
+a{color:inherit}
+.wrap{width:min(1120px,92vw);margin-inline:auto}
+
+/* ============ ヘッダー ============ */
+.hd{position:sticky;top:0;z-index:60;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:rgba(255,252,247,.82);border-bottom:1px solid rgba(0,0,0,.05)}
+.hd .wrap{display:flex;align-items:center;gap:12px;height:62px}
+.logo{display:flex;align-items:center;gap:9px;font-weight:900;font-size:15px;letter-spacing:.02em}
+.logo i{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;font-style:normal;font-size:17px;
+  background:linear-gradient(135deg,var(--o),var(--y));box-shadow:0 5px 14px rgba(255,106,43,.35)}
+.hd nav{margin-left:auto;display:flex;gap:4px}
+.hd nav a{font-size:13px;font-weight:700;color:var(--sub);text-decoration:none;padding:7px 11px;border-radius:99px}
+.hd nav a:hover{background:rgba(255,106,43,.1);color:var(--o)}
+.hd .go{background:linear-gradient(135deg,var(--o),var(--o2));color:#fff;text-decoration:none;font-weight:900;
+  font-size:13px;padding:10px 18px;border-radius:99px;white-space:nowrap;box-shadow:0 8px 20px rgba(255,106,43,.34)}
+@media(max-width:820px){.hd nav{display:none}.hd nav.m{display:flex;margin-left:auto}}
+.bar{position:fixed;top:0;left:0;height:3px;z-index:70;background:linear-gradient(90deg,var(--o),var(--pk),var(--p));width:0}
+
+/* ============ ヒーロー ============ */
+.hero{position:relative;padding:64px 0 0;overflow:hidden}
+.blob{position:absolute;border-radius:50%;filter:blur(64px);opacity:.5;pointer-events:none}
+.b1{width:460px;height:460px;background:#FFD8A8;top:-160px;right:-120px}
+.b2{width:380px;height:380px;background:#B8F2E6;bottom:40px;left:-150px}
+.b3{width:300px;height:300px;background:#FFD6E8;top:200px;left:44%}
+.hero .wrap{position:relative;z-index:1;display:grid;grid-template-columns:1fr minmax(0,400px);gap:46px;align-items:center}
+.tag{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid var(--line);
+  border-radius:99px;padding:7px 15px;font-size:12.5px;font-weight:800;box-shadow:var(--shs);margin-bottom:20px}
+.tag b{color:var(--o)}
+h1{font-size:clamp(33px,6.4vw,60px);line-height:1.24;font-weight:900;letter-spacing:-.02em}
+.grad{background:linear-gradient(100deg,var(--o) 0%,var(--pk) 48%,var(--p) 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent}
+.lead{font-size:clamp(15px,2.2vw,17.5px);color:var(--sub);margin-top:20px;max-width:34em;font-weight:500}
+.pills{display:flex;flex-wrap:wrap;gap:9px;margin-top:26px}
+.pill{background:#fff;border-radius:99px;padding:8px 15px;font-size:12.5px;font-weight:800;box-shadow:var(--shs);
+  border:1.5px solid var(--line);display:flex;align-items:center;gap:6px}
+.pill.a{border-color:#FFD9C2;color:#D9541B;background:#FFF4EC}
+.pill.b{border-color:#BFEDE6;color:#00806F;background:#EFFBF9}
+.pill.c{border-color:#D9D2FF;color:#5B3FE0;background:#F4F1FF}
+.pill.d{border-color:#FFD3E4;color:#D62A68;background:#FFF0F6}
+.cta-row{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:9px;text-decoration:none;font-weight:900;border-radius:99px;
+  padding:16px 30px;font-size:15.5px;transition:transform .15s,box-shadow .15s}
+.btn.pri{background:linear-gradient(135deg,var(--o),var(--o2));color:#fff;box-shadow:0 14px 30px rgba(255,106,43,.38)}
+.btn.pri:hover{transform:translateY(-2px);box-shadow:0 18px 38px rgba(255,106,43,.46)}
+.btn.gh{background:#fff;color:var(--ink);border:1.5px solid var(--line);box-shadow:var(--shs)}
+.btn.gh:hover{transform:translateY(-2px)}
+.free{font-size:12.5px;color:var(--sub);font-weight:700}
+
+/* 端末モック */
+.phone{position:relative;margin-inline:auto;width:min(300px,80vw);border-radius:38px;padding:11px;
+  background:linear-gradient(150deg,#2A2233,#161020);box-shadow:0 34px 70px rgba(30,18,8,.30)}
+.phone::before{content:"";position:absolute;top:19px;left:50%;transform:translateX(-50%);width:82px;height:5px;
+  background:#0d0912;border-radius:99px;z-index:2}
+.phone img{border-radius:29px}
+.float{position:absolute;background:#fff;border-radius:16px;padding:10px 14px;box-shadow:var(--sh);
+  font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:8px;white-space:nowrap;z-index:3}
+.float i{font-style:normal;font-size:16px}
+.f1{top:12%;left:-16%;animation:fl 5s ease-in-out infinite}
+.f2{bottom:22%;right:-6%;animation:fl 5s ease-in-out .9s infinite}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-11px)}}
+@media(max-width:900px){
+  .hero{padding-top:40px}
+  .hero .wrap{grid-template-columns:1fr;gap:34px;text-align:center}
+  .lead{margin-inline:auto}.pills,.cta-row{justify-content:center}
+  .f1{left:-6%}.f2{right:-4%}
+}
+@media(max-width:430px){.float{font-size:11.5px;padding:8px 11px}.f1{left:-3%}.f2{right:-2%}}
+
+/* 流れる料理名 */
+.marq{margin-top:56px;padding:18px 0;background:linear-gradient(90deg,#fff5ec,#f3fbf9,#f6f2ff);
+  border-block:1px solid var(--line);overflow:hidden;position:relative;z-index:1}
+.marq .row{display:flex;gap:10px;width:max-content;animation:slide 46s linear infinite}
+.marq b{background:#fff;border:1.5px solid var(--line);border-radius:99px;padding:7px 15px;font-size:13px;
+  font-weight:800;white-space:nowrap;box-shadow:0 2px 6px rgba(60,38,15,.05)}
+@keyframes slide{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+.marq .cap{text-align:center;font-size:11.5px;color:var(--sub);font-weight:800;letter-spacing:.09em;margin-bottom:12px}
+
+/* ============ 共通セクション ============ */
+section{padding:82px 0}
+.sec-h{text-align:center;max-width:660px;margin:0 auto 46px}
+.eyebrow{display:inline-block;font-size:11.5px;font-weight:900;letter-spacing:.13em;padding:6px 14px;
+  border-radius:99px;margin-bottom:14px}
+.e-o{background:#FFF0E7;color:#D9541B}.e-t{background:#E8FAF7;color:#00806F}
+.e-p{background:#F2EEFF;color:#5B3FE0}.e-k{background:#FFEFF5;color:#D62A68}.e-b{background:#EAF2FF;color:#2D6FD9}
+h2{font-size:clamp(25px,4.4vw,40px);line-height:1.32;font-weight:900;letter-spacing:-.015em}
+.sec-h p{color:var(--sub);margin-top:14px;font-size:15.5px;font-weight:500}
+.reveal{opacity:0;transform:translateY(26px);transition:opacity .7s cubic-bezier(.2,.7,.3,1),transform .7s cubic-bezier(.2,.7,.3,1)}
+.reveal.in{opacity:1;transform:none}
+
+/* 4ステップ帯 */
+.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.fl{background:var(--card);border-radius:22px;padding:24px 20px;box-shadow:var(--shs);position:relative;
+  border:1.5px solid var(--line);text-align:center}
+.fl .n{width:38px;height:38px;border-radius:13px;display:grid;place-items:center;color:#fff;font-weight:900;
+  font-size:16px;margin:0 auto 12px}
+.fl:nth-child(1) .n{background:linear-gradient(135deg,var(--o),var(--o2))}
+.fl:nth-child(2) .n{background:linear-gradient(135deg,var(--pk),#FF7BA8)}
+.fl:nth-child(3) .n{background:linear-gradient(135deg,var(--p),#9B84FF)}
+.fl:nth-child(4) .n{background:linear-gradient(135deg,var(--t),#4CD9C6)}
+.fl b{display:block;font-size:16px;margin-bottom:5px}
+.fl span{font-size:13px;color:var(--sub);font-weight:500}
+@media(max-width:820px){.flow{grid-template-columns:repeat(2,1fr)}}
+
+/* ステップ詳細 */
+.step{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:46px;align-items:center;
+  background:var(--card);border-radius:var(--r);padding:34px;box-shadow:var(--sh);margin-bottom:22px;
+  border:1.5px solid var(--line)}
+.step:nth-child(even){grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr)}
+.step:nth-child(even) .shot{order:2}
+.shot{border-radius:20px;padding:16px;display:flex;justify-content:center}
+.step:nth-child(1) .shot{background:linear-gradient(150deg,#FFF3E8,#FFE7D3)}
+.step:nth-child(2) .shot{background:linear-gradient(150deg,#FFEFF5,#FFE0EC)}
+.step:nth-child(3) .shot{background:linear-gradient(150deg,#F3F0FF,#E6E0FF)}
+.step:nth-child(4) .shot{background:linear-gradient(150deg,#E9FAF7,#D5F4EE)}
+.scr{width:216px;max-width:100%;border-radius:16px;overflow:hidden;border:1px solid #E2D9CB;background:#fff;
+  box-shadow:0 14px 32px rgba(41,31,22,.16);cursor:zoom-in}
+.badge{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:12px;
+  background:var(--ink);color:#fff;font-weight:900;font-size:15px;margin-bottom:14px}
+.step h3{font-size:clamp(20px,3vw,27px);font-weight:900;line-height:1.4;letter-spacing:-.01em}
+.step p{color:var(--sub);margin-top:12px;font-size:15px;font-weight:500}
+.act{margin-top:16px;display:inline-flex;align-items:center;gap:9px;background:#FFF6EF;border:1.5px dashed #FFB98C;
+  border-radius:14px;padding:11px 16px;font-weight:900;font-size:14.5px;color:#C9440F}
+.tip{margin-top:16px;background:#F7F9FC;border-left:4px solid var(--bl);border-radius:0 14px 14px 0;
+  padding:13px 16px;font-size:13.5px;color:#465063;font-weight:500}
+.tip b{color:var(--ink)}
+@media(max-width:900px){
+  .step,.step:nth-child(even){grid-template-columns:1fr;gap:24px;padding:22px 18px}
+  .step:nth-child(even) .shot{order:0}
+}
+
+/* レベル表 */
+.lv-grid{display:grid;gap:14px;max-width:760px;margin-inline:auto}
+.lv{display:flex;align-items:center;gap:18px;background:var(--card);border-radius:20px;padding:20px 24px;
+  box-shadow:var(--shs);border:1.5px solid var(--line);text-decoration:none;transition:transform .18s,box-shadow .18s}
+.lv:hover{transform:translateX(6px);box-shadow:var(--sh)}
+.lv .num{flex:0 0 46px;width:46px;height:46px;border-radius:15px;display:grid;place-items:center;
+  font-weight:900;font-size:19px;color:#fff}
+.lv:nth-child(1) .num{background:linear-gradient(135deg,var(--y),#FFA92B)}
+.lv:nth-child(2) .num{background:linear-gradient(135deg,var(--t),#3ED2BE)}
+.lv:nth-child(3) .num{background:linear-gradient(135deg,var(--bl),#6FA9FF)}
+.lv:nth-child(4) .num{background:linear-gradient(135deg,var(--p),#A18BFF)}
+.lv b{display:block;font-size:17px}
+.lv span{font-size:13.5px;color:var(--sub);font-weight:500}
+.lv .ar{margin-left:auto;color:#C9BFB0;font-size:20px;font-weight:900}
+@media(max-width:520px){.lv{padding:16px 16px;gap:13px}.lv .num{flex-basis:38px;width:38px;height:38px;font-size:16px}.lv b{font-size:15.5px}}
+
+/* 手順リスト */
+.ol{list-style:none;margin-top:18px;display:grid;gap:11px;counter-reset:s}
+.ol li{position:relative;padding-left:40px;font-size:14.5px;font-weight:500;color:#4A4356;min-height:28px}
+.ol li::before{counter-increment:s;content:counter(s);position:absolute;left:0;top:1px;width:28px;height:28px;
+  border-radius:9px;display:grid;place-items:center;font-size:12.5px;font-weight:900;color:#fff;background:var(--t)}
+.ol li b{color:var(--ink);font-weight:900}
+
+/* ベント */
+.bento{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+.bx{background:var(--card);border-radius:20px;padding:24px 22px;box-shadow:var(--shs);border:1.5px solid var(--line);
+  transition:transform .18s,box-shadow .18s}
+.bx:hover{transform:translateY(-4px);box-shadow:var(--sh)}
+.bx .ic{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;font-size:22px;margin-bottom:13px}
+.bx h4{font-size:16px;font-weight:900;margin-bottom:7px}
+.bx p{font-size:13.5px;color:var(--sub);font-weight:500;line-height:1.7}
+.bx p b{color:var(--ink)}
+.i1{background:#FFF0E7}.i2{background:#FFF7DE}.i3{background:#EAF9F5}.i4{background:#F1EEFF}
+.i5{background:#FFEEF4}.i6{background:#EAF2FF}.i7{background:#F0F6E9}.i8{background:#F5F1EA}
+@media(max-width:1000px){.bento{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:560px){.bento{grid-template-columns:1fr}}
+
+/* 色セクション */
+.colors{display:flex;gap:9px;flex-wrap:wrap;margin-top:18px}
+.sw{width:38px;height:38px;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,.14),inset 0 0 0 3px #fff}
+.two{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:46px;align-items:center;
+  background:var(--card);border-radius:var(--r);padding:34px;box-shadow:var(--sh);border:1.5px solid var(--line)}
+@media(max-width:900px){.two{grid-template-columns:1fr;gap:24px;padding:22px 18px}.two .shot{order:-1}}
+
+/* FAQ */
+.faq{max-width:740px;margin-inline:auto;display:grid;gap:11px}
+details{background:var(--card);border-radius:18px;border:1.5px solid var(--line);box-shadow:var(--shs);overflow:hidden}
+summary{cursor:pointer;list-style:none;padding:18px 54px 18px 22px;font-weight:800;font-size:15px;position:relative}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";position:absolute;right:20px;top:50%;transform:translateY(-50%);font-size:22px;
+  font-weight:400;color:var(--o);transition:transform .25s}
+details[open] summary::after{transform:translateY(-50%) rotate(45deg)}
+details p{padding:0 22px 20px;color:var(--sub);font-size:14px;font-weight:500}
+details p b{color:var(--ink)}
+
+/* 最後のCTA */
+.last{position:relative;overflow:hidden;background:linear-gradient(120deg,#FF6A2B,#FF4E8E 52%,#7C5CFF);
+  color:#fff;text-align:center;padding:76px 0;margin-top:20px}
+.last::before,.last::after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.14)}
+.last::before{width:340px;height:340px;top:-150px;left:-90px}
+.last::after{width:280px;height:280px;bottom:-140px;right:-60px}
+.last .wrap{position:relative;z-index:1}
+.last h2{color:#fff}
+.last p{margin-top:14px;opacity:.94;font-size:16px;font-weight:600}
+.last .btn.pri{background:#fff;color:var(--o);box-shadow:0 16px 34px rgba(0,0,0,.22);margin-top:28px}
+.last .btn.pri:hover{transform:translateY(-3px)}
+.last small{display:block;margin-top:16px;opacity:.9;font-size:13px;font-weight:600}
+footer{text-align:center;padding:34px 0;color:var(--sub);font-size:12.5px;font-weight:600}
+
+/* 拡大表示 */
+.lb{position:fixed;inset:0;background:rgba(20,12,6,.9);display:none;place-items:center;z-index:100;padding:20px;
+  backdrop-filter:blur(6px)}
+.lb.on{display:grid}
+.lb img{max-width:min(430px,92vw);max-height:88vh;border-radius:18px;box-shadow:0 30px 70px rgba(0,0,0,.5)}
+.lb .x{position:absolute;top:18px;right:20px;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.2);
+  color:#fff;border:0;font-size:24px;cursor:pointer}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.reveal{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+
+<div class="bar" id="bar"></div>
+
+<header class="hd">
+  <div class="wrap">
+    <div class="logo"><i>🛒</i>まとめ買いリスト</div>
+    <nav>
+      <a href="#steps">つかいかた</a>
+      <a href="#level">便利ワザ</a>
+      <a href="#shop">お店わけ</a>
+      <a href="#faq">よくある質問</a>
+    </nav>
+    <a class="go" href="./" target="_blank" rel="noopener">アプリを開く</a>
+  </div>
+</header>
+
+<!-- ============ ヒーロー ============ -->
+<div class="hero">
+  <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
+  <div class="wrap">
+    <div>
+      <div class="tag">🍳 <b>227品</b>の料理を収録 ・ 登録なしですぐ使える</div>
+      <h1>献立を決めたら、<br><span class="grad">買い物リストが<br>できてる。</span></h1>
+      <p class="lead">曜日を選んで、食べたい料理をタップするだけ。必要な材料が自動で合算されて、買う数まで出ます。「あれ何個いるんだっけ」がなくなります。</p>
+      <div class="pills">
+        <span class="pill a">💰 ずっと無料</span>
+        <span class="pill b">🚫 広告なし</span>
+        <span class="pill c">🔓 登録・ログイン不要</span>
+        <span class="pill d">📱 スマホの中だけに保存</span>
+      </div>
+      <div class="cta-row">
+        <a class="btn pri" href="./" target="_blank" rel="noopener">アプリを開く →</a>
+        <a class="btn gh" href="#steps">つかいかたを見る</a>
+      </div>
+      <p class="free" style="margin-top:14px">※ ブラウザで開くだけ。インストールも会員登録もいりません。</p>
+    </div>
+    <div style="position:relative">
+      <div class="phone"><img src="assets/g1-day.png" alt="1週間の献立表。曜日ごとに料理が並んでいる"></div>
+      <div class="float f1"><i>🥕</i>材料を自動で合算</div>
+      <div class="float f2"><i>🏪</i>お店ごとに振り分け</div>
+    </div>
+  </div>
+
+  <div class="marq">
+    <div class="cap">COLLECTION ／ 収録している料理の一部</div>
+    <div class="row" id="marq"></div>
+  </div>
+</div>
+
+<!-- ============ 4ステップ ============ -->
+<section id="steps">
+  <div class="wrap">
+    <div class="sec-h reveal">
+      <span class="eyebrow e-o">HOW TO USE</span>
+      <h2>やることは、たった4つ</h2>
+      <p>むずかしい設定はありません。1週間ぶん決めなくても大丈夫。まずは明日の1日だけでどうぞ。</p>
+    </div>
+
+    <div class="flow reveal" style="margin-bottom:52px">
+      <div class="fl"><div class="n">1</div><b>曜日を選ぶ</b><span>入れたい日をタップ</span></div>
+      <div class="fl"><div class="n">2</div><b>料理を選ぶ</b><span>「＋」を押すだけ</span></div>
+      <div class="fl"><div class="n">3</div><b>リストを見る</b><span>材料が自動で完成</span></div>
+      <div class="fl"><div class="n">4</div><b>買いながら押す</b><span>カゴに入れたら○</span></div>
+    </div>
+
+    <div class="step reveal">
+      <div class="shot"><div class="scr"><img src="assets/g1-day.png" alt="献立表で木曜日の行が赤枠で示されている"></div></div>
+      <div>
+        <div class="badge">1</div>
+        <h3>料理を入れたい日をタップ</h3>
+        <p>最初の画面が1週間の献立表です。決まっている日だけ入れれば大丈夫。空の日があっても問題ありません。</p>
+        <div class="act">👉 「料理を追加」の行をタップ</div>
+        <div class="tip"><b>先週と同じでいいときは？</b> 画面をいちばん下まで送ると「📋 先週の献立をコピー」。1週間ぶんがそのまま入ります。</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="shot"><div class="scr"><img src="assets/g2-plus.png" alt="料理を選ぶ画面。オレンジのプラスボタンが赤枠で示されている"></div></div>
+      <div>
+        <div class="badge">2</div>
+        <h3>食べたい料理の「＋」を押す</h3>
+        <p>227品から選べます。上の検索や、カテゴリ（主食・肉・魚…）でしぼり込めます。1日に何品でも入れられます。</p>
+        <div class="act">👉 オレンジの「＋」をタップ</div>
+        <div class="tip"><b>入れすぎたら？</b> 同じ場所に出る「−」で1つずつ減らせます。その日を丸ごと消すなら右上の「🗑 この日を空に」。</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="shot"><div class="scr"><img src="assets/g3-list.png" alt="献立表の下にある買い物リストを見るボタンが赤枠で示されている"></div></div>
+      <div>
+        <div class="badge">3</div>
+        <h3>「買い物リストを見る」を押す</h3>
+        <p>選んだ料理の材料が、ぜんぶ足し算されて1つのリストになります。玉ねぎを3つの料理で使うなら、ちゃんと合計で出ます。</p>
+        <div class="act">👉 オレンジの大きいボタンをタップ</div>
+        <div class="tip"><b>人数も自動で計算します。</b> ⚙設定で家族の人数を決めておけば、その人数ぶんに増減した量が出ます。</div>
+      </div>
+    </div>
+
+    <div class="step reveal">
+      <div class="shot"><div class="scr"><img src="assets/g4-check.png" alt="買い物リスト。左側の丸いチェックが赤枠で示されている"></div></div>
+      <div>
+        <div class="badge">4</div>
+        <h3>カゴに入れたら、左の丸を押す</h3>
+        <p>買った物にチェックが付いて、上のバーが伸びます。残り何品かがひと目で分かります。</p>
+        <div class="act">👉 品物の左の ○ をタップ</div>
+        <div class="tip"><b>「10個（必要 9.3個）」って？</b> お店では9.3個は買えないので、買える数に切り上げています。大きい数字が<b>買う数</b>、グレーが献立で実際に使う量です。数字を押せば自分で直せます。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 便利ワザ 導入 ============ -->
+<section id="level" style="background:linear-gradient(180deg,#fff,#FFF7F0)">
+  <div class="wrap">
+    <div class="sec-h reveal">
+      <span class="eyebrow e-k">LEVEL UP</span>
+      <h2>使うほど、ラクになります</h2>
+      <p>基本の4つだけでも使えます。でもこの4つを覚えると、毎週の献立決めと買い物が別モノになります。効果の大きい順です。</p>
+    </div>
+    <div class="lv-grid reveal">
+      <a class="lv" href="#fav"><div class="num">1</div><div><b>⭐ よく作る料理に★</b><span>227品から探さなくてよくなる</span></div><div class="ar">›</div></a>
+      <a class="lv" href="#copy"><div class="num">2</div><div><b>📋 先週の献立をコピー</b><span>献立決めが数秒で終わる</span></div><div class="ar">›</div></a>
+      <a class="lv" href="#shop"><div class="num">3</div><div><b>🏪 お店ごとに分ける</b><span>その店の物だけ見ながら買える</span></div><div class="ar">›</div></a>
+      <a class="lv" href="#edit"><div class="num">4</div><div><b>✏️ 材料を自分用に直す</b><span>うちの分量・うちの料理にする</span></div><div class="ar">›</div></a>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 1. ★ ============ -->
+<section id="fav" style="padding-top:40px">
+  <div class="wrap">
+    <div class="step reveal" style="margin-bottom:0">
+      <div class="shot" style="background:linear-gradient(150deg,#FFFAE8,#FFF1C9)">
+        <div class="scr"><img src="assets/g6-fav.png" alt="料理タブ。よく作るで絞り込んだ状態"></div>
+      </div>
+      <div>
+        <span class="eyebrow e-o">効果いちばん大</span>
+        <h3>1. よく作る料理に★を付ける</h3>
+        <p>227品から毎回探すのが、いちばん時間を使います。いつも作る料理に★を付けておけば、次からはワンタップでその中だけを表示できます。</p>
+        <ol class="ol">
+          <li>料理を選ぶ画面で、名前の右の「<b>☆</b>」をタップ</li>
+          <li>★（黄色）になれば登録完了</li>
+          <li>次からは先頭の「<b>⭐よく作る</b>」で絞り込む</li>
+        </ol>
+        <div class="tip"><b>まず10〜20品つけてみてください。</b> 献立決めが「⭐を押す → 選ぶ」だけで終わります。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 2. コピー ============ -->
+<section id="copy" style="padding-top:0">
+  <div class="wrap">
+    <div class="step reveal" style="margin-bottom:0">
+      <div class="shot" style="background:linear-gradient(150deg,#E9FAF7,#D2F3EC)">
+        <div class="scr"><img src="assets/g10-home.png" alt="ホーム画面の下部にある先週の献立をコピー"></div>
+      </div>
+      <div>
+        <span class="eyebrow e-t">時短ワザ</span>
+        <h3>2. 先週の献立をコピー</h3>
+        <p>毎週ゼロから決める必要はありません。ホーム画面をいちばん下まで送ると「📋 先週の献立をコピー」があります。押すと先週の1週間がそのまま入るので、変えたい日だけ直せば完成です。</p>
+        <div class="tip"><b>組み合わせも保存できます。</b> 「カレー＋サラダ」のようによく作るセットは、料理を2品以上入れた状態で「⭐ この組み合わせを保存する」。次からは1タップでまとめて入ります。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 3. お店 ============ -->
+<section id="shop" style="padding-top:0">
+  <div class="wrap">
+    <div class="step reveal" style="margin-bottom:22px">
+      <div class="shot" style="background:linear-gradient(150deg,#EAF2FF,#D6E6FF)">
+        <div class="scr"><img src="assets/g8-shop.png" alt="スーパーで絞り込んだ買い物リスト。色付きのタブと売り場ごとの並び"></div>
+      </div>
+      <div>
+        <span class="eyebrow e-b">買い物がラクになる</span>
+        <h3>3. お店ごとに分ける</h3>
+        <p>行く店が2つ以上あるときに効きます。品物ごとに店を決めておくと、<b>その店にいる間はその店の物だけ</b>を表示できます。</p>
+        <ol class="ol">
+          <li><b>お店のタブを押す</b>（画像①）＝その店の物だけに。数字は残り品数です</li>
+          <li><b>店名の帯</b>（画像②）で、今どの店を見ているか・何個買えたかが分かります</li>
+          <li><b>☰を掴んで動かす</b>（画像③）＝野菜・肉・魚などを、実際に店を回る順番に並べ替えられます</li>
+        </ol>
+        <div class="tip"><b>タブは押しっぱなしで残ります。</b> 店内でアプリを閉じても、次に開いたとき同じ店のままです。並べ替えた順番も覚えています。</div>
+      </div>
+    </div>
+
+    <div class="two reveal">
+      <div>
+        <span class="eyebrow e-p">見分けやすく</span>
+        <h3 style="font-size:clamp(19px,2.7vw,25px);font-weight:900;line-height:1.4">お店に好きな色を付けられます</h3>
+        <p style="color:var(--sub);margin-top:12px;font-size:15px;font-weight:500">買い物リスト右上の「🏪 お店の設定」で、店ごとに色を選べます。色はタブ・店名の帯・品物の店ボタンに反映されるので、ひと目でどこで買う物か分かります。</p>
+        <div class="colors">
+          <span class="sw" style="background:#e05a5a"></span><span class="sw" style="background:#e07b39"></span>
+          <span class="sw" style="background:#c9a227"></span><span class="sw" style="background:#6aa84f"></span>
+          <span class="sw" style="background:#3f9e8c"></span><span class="sw" style="background:#4a7ab5"></span>
+          <span class="sw" style="background:#6a5ab5"></span><span class="sw" style="background:#b5559b"></span>
+          <span class="sw" style="background:#8a6a4a"></span><span class="sw" style="background:#777"></span>
+        </div>
+        <ol class="ol">
+          <li>「<b>🏪 お店の設定</b>」を開く</li>
+          <li>店名の下に並ぶ丸から色をタップ</li>
+          <li>「＋ 店を追加」で店は何軒でも増やせます</li>
+        </ol>
+        <div class="tip"><b>まとめて決めるなら</b> 買い物リストの「🏪 お店をまとめて決める」。一覧でポンポン振り分けられ、一度決めた店は次回から自動で入ります。</div>
+      </div>
+      <div class="shot" style="background:linear-gradient(150deg,#F5F1FF,#E7DEFF)">
+        <div class="scr"><img src="assets/g9-color.png" alt="お店の設定画面。店ごとに色を選べる"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 4. 編集 ============ -->
+<section id="edit" style="padding-top:0">
+  <div class="wrap">
+    <div class="step reveal" style="margin-bottom:0">
+      <div class="shot" style="background:linear-gradient(150deg,#FFEFF5,#FFDFEC)">
+        <div class="scr"><img src="assets/g7-edit.png" alt="料理を編集する画面。材料・数量・単位を書き換えられる"></div>
+      </div>
+      <div>
+        <span class="eyebrow e-k">自分の家に合わせる</span>
+        <h3>4. 材料も分量も、書き換えOK</h3>
+        <p>入っている227品は<b>たたき台</b>です。「うちのカレーはこうじゃない」で正解なので、遠慮なく直してください。直した内容はこの端末に保存され、次からずっとその分量で計算されます。</p>
+        <ol class="ol">
+          <li>「🍲 料理」タブで料理をタップ</li>
+          <li>材料・数量・単位を書き換え（「✕」でその材料を削除）</li>
+          <li>足りない材料は「＋ 手入力で追加」か「📖 カタログから選ぶ」</li>
+          <li>「<b>保存</b>」を押す</li>
+        </ol>
+        <div class="tip"><b>「下の分量は◯人分」が基準です。</b> ここが3人分なら材料も3人分で書いてください。買い物リストでは、⚙設定の家族の人数に合わせて自動で増減します。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ 逆引き ============ -->
+<section style="background:linear-gradient(180deg,#FFF7F0,#fff)">
+  <div class="wrap">
+    <div class="sec-h reveal">
+      <span class="eyebrow e-p">CHEAT SHEET</span>
+      <h2>こんなときは、これ</h2>
+      <p>困ったときに思い出してください。</p>
+    </div>
+    <div class="bento reveal">
+      <div class="bx"><div class="ic i1">🗑</div><h4>1日ぶん消したい</h4><p>日付をタップして右上の「🗑 この日を空に」。朝・昼・夜まとめて消せます。ホームで<b>日付を長押し</b>でも同じ。1品だけなら料理側を長押し。</p></div>
+      <div class="bx"><div class="ic i2">🍚</div><h4>うちは量が多い</h4><p>編集画面の「増量版を作る」でコピーができます（名前に「食べ盛り」が付きます）。元の料理は残るので、日によって使い分けられます。</p></div>
+      <div class="bx"><div class="ic i3">➕</div><h4>ない料理を足す</h4><p>「🍲 料理」タブ右上の「＋新規」から1から作れます。料理名・カテゴリ・材料を入れて保存するだけ。作った料理にも★を付けられます。</p></div>
+      <div class="bx"><div class="ic i4">🛍️</div><h4>毎回買う物がある</h4><p>「🛍️ 定番」タブに牛乳・パン・日用品などを登録。個数も指定でき、<b>⭐を付けると毎回自動</b>でリストに入ります。</p></div>
+      <div class="bx"><div class="ic i5">🧂</div><h4>調味料の買い忘れ</h4><p>買い物リストの下に「調味料・常備品」欄があります。切れている物をタップすると、その分だけリストに入ります。</p></div>
+      <div class="bx"><div class="ic i6">🍱</div><h4>朝ごはん・お弁当も</h4><p>ホームの「表示する食事」で朝・昼をONにすると1日が3段になり、朝食やお弁当も管理できます。OFFにしても中身は消えません。</p></div>
+      <div class="bx"><div class="ic i7">↕️</div><h4>並び順を変えたい</h4><p>☰を掴んで動かせます。料理の一覧、その日の献立、買い物の売り場グループ、定番——どれも使いやすい順に並べ替えられます。</p></div>
+      <div class="bx"><div class="ic i8">💾</div><h4>機種変更する</h4><p>「⚙設定 → バックアップ保存」でファイルを保存し、新しい端末で「読み込み」。そのまま引き継げます。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FAQ ============ -->
+<section id="faq">
+  <div class="wrap">
+    <div class="sec-h reveal">
+      <span class="eyebrow e-t">Q &amp; A</span>
+      <h2>よくある質問</h2>
+    </div>
+    <div class="faq reveal">
+      <details><summary>無料ですか？ 登録は必要ですか？</summary><p>無料・広告なしです。登録もログインも必要ありません。リンクを開けばすぐ使えます。</p></details>
+      <details><summary>データはどこに保存されますか？</summary><p>お使いの端末の中だけに保存されます。献立や買い物の内容がインターネット上に送られることはありません。</p></details>
+      <details><summary>ホーム画面に置けますか？</summary><p>置けます。iPhoneは共有ボタン →「ホーム画面に追加」、Androidは右上の「⋮」→「ホーム画面に追加」。普通のアプリのように開けます。</p></details>
+      <details><summary>電波がないスーパーでも使えますか？</summary><p>使えます。一度開いたことがあれば、電波がなくてもリストの表示とチェックができます。</p></details>
+      <details><summary>買い物の途中でアプリを閉じても大丈夫？</summary><p>大丈夫です。チェックした物・選んでいたお店のタブ・売り場の並び順は、すべて保存されています。次に開いたときは続きから使えます。</p></details>
+      <details><summary>料理を間違えて追加しました</summary><p>料理を選ぶ画面の「−」で1つずつ減らせます。その日を丸ごと消すなら、日付をタップして右上の「🗑 この日を空に」。ホームで日付を長押ししても同じです。</p></details>
+      <details><summary>材料や分量を変えても大丈夫ですか？</summary><p>大丈夫です。むしろ変えて使うものだと思ってください。「🍲 料理」タブで料理をタップ → 材料・数量・単位を書き換えて「保存」。この端末の中だけで直るので、元に戻したくなったら⚙設定の「すべて初期化」で最初の状態に戻せます（ただし作った料理も消えます）。</p></details>
+      <details><summary>スマホとパソコンでデータは共有されますか？</summary><p>共有されません。端末ごとに別々です。移したいときは「⚙設定 → バックアップ保存」でファイルを保存し、移動先で「読み込み」してください。</p></details>
+      <details><summary>機種変更するとデータは消えますか？</summary><p>消えます。事前に「⚙設定 → バックアップ保存」でファイルを保存し、新しい端末で読み込んでください。</p></details>
+      <details><summary>画面が古いまま更新されません</summary><p>ホーム画面をいちばん下まで送ると「🔄 アプリを最新に更新する」があります。押しても献立や買い物のデータは消えません。</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CTA ============ -->
+<div class="last">
+  <div class="wrap">
+    <h2>まずは1日分だけ、<br>試してみませんか。</h2>
+    <p>明日の晩ごはんを1つ選ぶだけ。それだけで、買う物のリストができます。</p>
+    <a class="btn pri" href="./" target="_blank" rel="noopener">アプリを開く →</a>
+    <small>無料 ・ 広告なし ・ 登録不要 ・ データは端末の中だけ</small>
+  </div>
+</div>
+
+<footer>まとめ買いリスト｜献立から買い物リストを自動で作るアプリ</footer>
+
+<div class="lb" id="lb"><button class="x" id="lbx" aria-label="閉じる">×</button><img id="lbi" src="" alt=""></div>
+
+<script>
+/* 収録料理を流す */
+(function(){
+  var D=["カレー","ハンバーグ","しょうがやき","からあげ","肉じゃが","ハヤシライス","オムライス","チャーハン","ギョーザ","酢豚","麻婆豆腐","とんかつ","鮭のムニエル","ぶりの照り焼き","さばのみそ煮","えびフライ","天ぷら","肉豆腐","筑前煮","ロールキャベツ","グラタン","ドリア","ピザ","タコライス","ロコモコ丼","ビビンバ","中華丼","親子丼","牛丼","カツ丼","ヤキソバ","ナポリタン","カルボナーラ","ミートソース","冷し中華","肉うどん","みそラーメン","豚汁","けんちん汁","わかめのみそしる","ポテトサラダ","マカロニサラダ","きんぴらごぼう","ひじきの煮物","ほうれん草のおひたし","切り干し大根","茶わん蒸し","だし巻き卵","トースト","おにぎり","目玉焼き","フレンチトースト","カオマンガイ","シーフードピラフ","メンチカツ","エビチリ","八宝菜","青椒肉絲","春巻き","チキン南蛮"];
+  var row=document.getElementById("marq"), h="";
+  for(var k=0;k<2;k++) for(var i=0;i<D.length;i++) h+="<b>"+D[i]+"</b>";
+  row.innerHTML=h;
+})();
+
+/* スクロールで出てくる */
+(function(){
+  var els=document.querySelectorAll(".reveal");
+  if(!("IntersectionObserver" in window)){ for(var i=0;i<els.length;i++) els[i].classList.add("in"); return; }
+  var io=new IntersectionObserver(function(es){
+    es.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add("in"); io.unobserve(e.target); } });
+  },{rootMargin:"0px 0px -12% 0px"});
+  els.forEach(function(e){ io.observe(e); });
+})();
+
+/* 上の進み具合バー */
+(function(){
+  var bar=document.getElementById("bar"), t=false;
+  function up(){ var h=document.documentElement;
+    var p=h.scrollTop/((h.scrollHeight-h.clientHeight)||1);
+    bar.style.width=Math.min(100,Math.max(0,p*100))+"%"; t=false; }
+  addEventListener("scroll",function(){ if(!t){ t=true; requestAnimationFrame(up); } },{passive:true}); up();
+})();
+
+/* 画面写真を大きく見る */
+(function(){
+  var lb=document.getElementById("lb"), im=document.getElementById("lbi");
+  document.querySelectorAll(".scr img").forEach(function(g){
+    g.parentNode.addEventListener("click",function(){
+      im.src=g.getAttribute("src"); im.alt=g.getAttribute("alt")||""; lb.classList.add("on");
+      document.body.style.overflow="hidden";
+    });
+  });
+  function close(){ lb.classList.remove("on"); im.src=""; document.body.style.overflow=""; }
+  lb.addEventListener("click",close);
+  document.getElementById("lbx").addEventListener("click",close);
+  addEventListener("keydown",function(e){ if(e.key==="Escape") close(); });
+})();
+</script>
+</body>
+</html>
