@@ -654,7 +654,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0726-45";
+const APP_VERSION="0726-46";
 let S=null;
 function newState(){
   return {
@@ -2593,8 +2593,14 @@ function copyShareLink(){
   const r=document.createRange(); r.selectNode(box); getSelection().removeAllRanges(); getSelection().addRange(r);
   document.execCommand("copy"); getSelection().removeAllRanges(); flash("コピーしました");
 }
-function renderShareQr(){
-  const el=document.getElementById("shareQr"); if(!el||typeof qrcode==="undefined") return;
+function renderShareQr(tries){
+  const el=document.getElementById("shareQr"); if(!el) return;
+  /* qrcode-generatorはdefer読み込みのため、開いた直後はまだ無いことがある。最大3秒だけ待って再試行 */
+  if(typeof qrcode==="undefined"){
+    if((tries||0)>30) return;
+    setTimeout(function(){ renderShareQr((tries||0)+1); },100);
+    return;
+  }
   el.innerHTML="";
   const qr=qrcode(0,"M"); qr.addData(shareLink()); qr.make();
   el.innerHTML=qr.createSvgTag({cellSize:4,margin:2});
