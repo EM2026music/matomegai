@@ -78,14 +78,23 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .nm{font-size:15px; font-weight:bold;}
 .ings{font-size:12px; color:var(--sub); margin-top:2px;}
 .arrow{color:#d5c8b2; font-size:18px;}
-.draghandle{color:#cdbfa8; font-size:19px; padding:6px 12px 6px 2px; touch-action:none; -webkit-user-select:none; user-select:none; flex-shrink:0; cursor:grab;}
+.draghandle{color:#c99a52; padding:8px 12px 8px 3px; touch-action:none; -webkit-user-select:none; user-select:none; flex-shrink:0; cursor:grab; font-size:0; display:inline-flex; align-items:center; border-radius:9px; transition:background .12s,color .12s;}
+.draghandle::before{content:""; width:12px; height:18px; background-image:radial-gradient(currentColor 1.5px, transparent 1.7px); background-size:6px 6px; opacity:.9;}
+.draghandle:hover,.draghandle:active{background:var(--or-bg); color:var(--or-d);}
 .dishrow,.ingrow,.pickrow,.assignrow,.selchips .chip{-webkit-user-select:none; user-select:none;}
 .dragging-active,.dragging-active *{-webkit-user-select:none !important; user-select:none !important; cursor:grabbing !important;}
 /* 入力欄だけは必ず文字入力・選択できるようにする（上のuser-select:noneを打ち消す） */
 input,textarea,select,[contenteditable]{-webkit-user-select:text !important; user-select:text !important; -webkit-touch-callout:default !important; cursor:auto !important;}
-.chip .draghandle{color:rgba(255,255,255,.8); padding:0 4px 0 0; font-size:14px;}
+.chip .draghandle{color:rgba(255,255,255,.9); padding:0 5px 0 0;}
 .dbody{flex:1; min-width:0;}
 .dishrow.dragging,.chip.dragging{opacity:.5;}
+/* つまんで動かしていることが分かる見た目 */
+.drag-ghost{position:fixed; z-index:9999; margin:0 !important; pointer-events:none; background:#fff;
+  border-radius:14px; box-shadow:0 18px 42px rgba(60,38,15,.32); opacity:.97; transform:scale(1.04);
+  will-change:left,top; animation:ghostpop .14s ease;}
+@keyframes ghostpop{from{transform:scale(1);}to{transform:scale(1.04);}}
+.drag-src{opacity:1 !important; position:relative; outline:2px dashed var(--or); outline-offset:-2px; border-radius:12px; background:var(--or-bg);}
+.drag-src>*{opacity:.25;}
 .dishrow.dragging{background:var(--or-bg); border-radius:10px;}
 .catrow{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
 .catrow:last-child{border-bottom:none;}
@@ -216,7 +225,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .storebtn{border:1.5px solid var(--or); background:#fff; color:var(--or-d); border-radius:10px; padding:6px 9px; font-size:12px; font-weight:bold; flex-shrink:0; cursor:pointer; white-space:nowrap;}
 .storebtn.unset{border-color:#d8ccb8; color:#a2967f;}
 .kindgroup .kindhead{display:flex; align-items:center; gap:2px;}
-.kindgroup .draghandle{font-size:16px; padding:4px 6px 4px 0; color:#cdbfa8;}
+.kindgroup .draghandle{padding:5px 8px 5px 0; color:#c99a52;}
 .kindgroup.dragging{opacity:.6;}
 .storehead{color:#fff; border-radius:12px; padding:10px 14px; margin:6px 0 10px; font-size:15px; display:flex; justify-content:space-between; align-items:center;}
 .storehead span{font-size:13px; opacity:.9;}
@@ -635,7 +644,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0724-43";
+const APP_VERSION="0724-44";
 let S=null;
 function newState(){
   return {
@@ -923,11 +932,25 @@ function enableSort(container, commit, horiz){
     handle.addEventListener("pointerdown", function(e){
       e.preventDefault(); e.stopPropagation();
       const item=handle.closest("[data-id]"); if(!item) return;
-      item.classList.add("dragging");
+      const rect=item.getBoundingClientRect();
+      const offX=e.clientX-rect.left, offY=e.clientY-rect.top;
+      let moved=false;
+      /* 指について動く半透明の複製（＝つまんで運んでいる感） */
+      const ghost=item.cloneNode(true);
+      ghost.classList.add("drag-ghost");
+      ghost.style.width=rect.width+"px";
+      ghost.style.left=rect.left+"px";
+      ghost.style.top=rect.top+"px";
+      document.body.appendChild(ghost);
+      item.classList.add("drag-src");
       document.body.classList.add("dragging-active");
+      if(navigator.vibrate){ try{ navigator.vibrate(12); }catch(_){} }
       if(window.getSelection){ try{ window.getSelection().removeAllRanges(); }catch(_){} }
       function move(ev){
         if(ev.cancelable) ev.preventDefault();
+        moved=true;
+        ghost.style.left=(ev.clientX-offX)+"px";
+        ghost.style.top=(ev.clientY-offY)+"px";
         const others=[...container.querySelectorAll("[data-id]")].filter(x=>x!==item);
         let target=null;
         for(const o of others){
@@ -945,9 +968,15 @@ function enableSort(container, commit, horiz){
         window.removeEventListener("pointermove",move);
         window.removeEventListener("pointerup",up);
         window.removeEventListener("pointercancel",up);
-        item.classList.remove("dragging");
+        /* ゴーストを元の行の位置へスッと戻してから消す＝着地の余韻 */
+        const fr=item.getBoundingClientRect();
+        ghost.style.transition="left .16s cubic-bezier(.2,.7,.3,1),top .16s cubic-bezier(.2,.7,.3,1),transform .16s ease,opacity .16s ease";
+        ghost.style.left=fr.left+"px"; ghost.style.top=fr.top+"px";
+        ghost.style.transform="scale(1)"; ghost.style.opacity="0";
+        setTimeout(()=>{ ghost.remove(); }, 180);
+        item.classList.remove("drag-src");
         document.body.classList.remove("dragging-active");
-        commit([...container.querySelectorAll("[data-id]")].map(x=>x.getAttribute("data-id")));
+        if(moved) commit([...container.querySelectorAll("[data-id]")].map(x=>x.getAttribute("data-id")));
       }
       window.addEventListener("pointermove",move,{passive:false});
       window.addEventListener("pointerup",up);
@@ -1049,7 +1078,7 @@ function rWeek(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">☰を掴んで別の曜日にドロップすると料理を移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
+  h+='<p class="note" style="margin-top:-2px">各行の左にある<b>⣿つまみ</b>を押したまま動かすと、料理を別の曜日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
   if(listIsOld()){
     const nb=(S.list.items||[]).filter(x=>!x.stock&&!x.done).length;
@@ -1580,7 +1609,7 @@ let catEdit=[];
 function openCatEdit(){ catEdit=S.cats.map(c=>({old:c, name:c})); showModal(); renderCatEdit(); }
 function renderCatEdit(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>カテゴリの編集</b></div>';
-  h+='<p class="note" style="margin-top:0">名前を書き換え・☰を掴んでドラッグで並べ替え。料理の一覧と、料理を選ぶ画面に反映されます。</p>';
+  h+='<p class="note" style="margin-top:0">名前を書き換え。左の<b>⣿つまみ</b>を押したまま動かすと並べ替えできます。料理の一覧と、料理を選ぶ画面に反映されます。</p>';
   h+='<div class="card listcard">';
   catEdit.forEach((c,i)=>{
     const cnt=c.old?S.dishes.filter(d=>d.cat===c.old).length:0;
@@ -2060,7 +2089,7 @@ function rShop(){
       h+='</div></div>';
     });
     h+='</div>';
-    h+='<p class="note" style="margin:-2px 0 10px">☰を掴んで動かすと、売り場を回る順番に並べ替えられます。</p>';
+    h+='<p class="note" style="margin:-2px 0 10px">左の<b>⣿つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
     const pn=S.list.pantry||[], ex=S.list.excluded||[];
     h+='<div class="kindhead" style="display:flex;justify-content:space-between;align-items:center">調味料・常備品（切れてる物をタップ）<span class="linkbtn" style="font-size:12px" onclick="openPantryEdit()">✏️ 編集</span></div><div class="card">';
     if(pn.length){
@@ -2108,7 +2137,7 @@ function rShop(){
         h+='</div></div>';
       });
       h+='</div>';
-      h+='<p class="note" style="margin:-2px 0 10px">☰を掴んで動かすと、売り場を回る順番に並べ替えられます。</p>';
+      h+='<p class="note" style="margin:-2px 0 10px">左の<b>⣿つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
       h+='<p class="note">ほかの店で買った場合も、そのままチェックでOK。</p>';
     }
   }
