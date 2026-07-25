@@ -1,0 +1,19 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    /* 共有買い物リストの部屋。中身は端末側で暗号化された文字列のみ。
+       - 読み書きは「匿名サインイン済み」であることだけを条件にする（アカウント登録は無い）
+       - roomId は32文字のランダム値なので、知っている人だけが実質アクセスできる
+       - フィールドを限定し、サイズも上限（200KB・買い物リストには十分すぎる余裕）を設ける */
+    match /rooms/{roomId} {
+      allow read: if request.auth != null;
+      allow create, update: if request.auth != null
+        && request.resource.data.keys().hasOnly(['ciphertext','updatedAt','expiresAt'])
+        && request.resource.data.ciphertext is string
+        && request.resource.data.ciphertext.size() < 200000
+        && request.resource.data.updatedAt is timestamp
+        && request.resource.data.expiresAt is timestamp;
+      allow delete: if false;
+    }
+  }
+}

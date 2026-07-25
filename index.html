@@ -227,6 +227,10 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .kindgroup .kindhead{display:flex; align-items:center; gap:2px;}
 .kindgroup .draghandle{padding:5px 8px 5px 0; color:#c99a52;}
 .kindgroup.dragging{opacity:.6;}
+.sharechip{display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:bold; color:var(--green); background:#eef7ef; border-radius:99px; padding:4px 10px; margin-left:8px;}
+.sharelinkbox{background:#f7f2e8; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12px; word-break:break-all; color:var(--sub); margin-bottom:8px;}
+.shareqr{display:flex; justify-content:center; margin:14px 0;}
+.shareqr svg{width:180px; height:180px;}
 .storehead{color:#fff; border-radius:12px; padding:10px 14px; margin:6px 0 10px; font-size:15px; display:flex; justify-content:space-between; align-items:center;}
 .storehead span{font-size:13px; opacity:.9;}
 .storehead .shname{font-size:15px; opacity:1;}
@@ -311,6 +315,12 @@ nav button.on .ic{background:#f7e7d4;}
 </nav>
 <div id="overlay" onclick="if(event.target===this)closeModal()"><div id="modal"></div></div>
 <div id="flash" class="flash"></div>
+
+<!-- 買い物リストの共有機能でのみ使用。defer＝アプリ本体の起動を絶対に待たせない（電波が悪くても本体は即起動） -->
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
 
 <script>
 /* ===== 献立テンプレ（初期データ・基準3人分の目安） =====
@@ -644,7 +654,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0724-44";
+const APP_VERSION="0726-45";
 let S=null;
 function newState(){
   return {
@@ -656,6 +666,7 @@ function newState(){
   kindOrder:["野菜","肉・魚","その他","定番"],
   history:[],
   shopFilter:"all",
+  share:{active:false, roomId:"", key:""},
     goodsSel:{},
     goodsStar:{},
     goodsQty:{},
@@ -677,6 +688,7 @@ function load(){
   if(!S||!S.dishes) S=newState();
   if(!S.family) S.family=3;
   if(!S.recent) S.recent=[];
+  if(!S.share) S.share={active:false, roomId:"", key:""};
   if(!S.goodsStar) S.goodsStar={};
   if(!S.goodsQty) S.goodsQty={};
   if(!S.weekView) S.weekView="main";
@@ -729,7 +741,7 @@ function load(){
     S.dishes.push({id:"s"+i, cat:sd[0], name:sd[1], sv:3, ing:sd[2].map(x=>({n:x[0],q:x[1],u:x[2]}))});
   });
 }
-function save(){ localStorage.setItem(KEY,JSON.stringify(S)); }
+function save(){ localStorage.setItem(KEY,JSON.stringify(S)); if(S.share&&S.share.active) scheduleSharePush(); }
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function fmtQ(q){
   if(q===""||q==null||isNaN(q)) return "";
@@ -2040,7 +2052,8 @@ function itemRow(i,withStock){
   return r;
 }
 function rShop(){
-  let h='<div class="pagehead"><div class="ptitle">買い物リスト</div><span class="linkbtn" onclick="openStoreSettings()">🏪 お店の設定</span></div>';
+  let h=`<div class="pagehead"><div class="ptitle">買い物リスト${S.share&&S.share.active?'<span class="sharechip">👥 共有中</span>':''}</div>`;
+  h+=`<span class="linkbtn" onclick="openShareModal()">👥 共有</span> <span class="linkbtn" onclick="openStoreSettings()">🏪 お店の設定</span></div>`;
   if(!S.list||!S.list.items.length){
     h+='<div class="card" style="text-align:center;padding:26px 12px;"><p class="note" style="font-size:14px;margin:0">まだリストがありません。<br>献立と定番を選んで作りましょう。</p></div>';
     h+='<button class="cta" onclick="makeListGo()">📝 献立表からリストを作る</button>';
@@ -2403,6 +2416,190 @@ function resetAll(){
   S=newState(); save(); render();
 }
 
+/* ===== 買い物リストの共有（任意機能・オプトイン） =====
+   ・共有するのは「今の買い物リストの中身とチェック状態」だけ。献立・自作レシピ・買い物の履歴はサーバーに一切触れない
+   ・端末で暗号化してから送るので、Firebase運営者にも中身は読めない（意味の分からない文字列だけが保存される）
+   ・鍵は共有リンクのURLの#以降にだけ存在し、サーバーには送られない */
+const FB_CONFIG={
+  apiKey:"AIzaSyA77Nr7HpwGBLF6VmIhuZck4mBC6FUuV5c",
+  authDomain:"matomegai-share.firebaseapp.com",
+  projectId:"matomegai-share",
+  storageBucket:"matomegai-share.firebasestorage.app",
+  messagingSenderId:"222704603611",
+  appId:"1:222704603611:web:8d5e5a481c73690faa97fe"
+};
+let fbDb=null, fbReady=null, shareUnsub=null, sharePushTimer=null, lastPushedJSON="";
+function fbInit(){
+  if(fbReady) return fbReady;
+  fbReady=new Promise(function(resolve,reject){
+    /* CDNはdefer読み込みなので、ページ表示直後は firebase がまだ無いことがある。最大5秒だけ待つ */
+    let tries=0;
+    (function waitLib(){
+      if(typeof firebase!=="undefined"&&typeof qrcode!=="undefined"){
+        try{
+          if(!firebase.apps.length) firebase.initializeApp(FB_CONFIG);
+          fbDb=firebase.firestore();
+          firebase.auth().signInAnonymously().then(function(){ resolve(); }).catch(reject);
+        }catch(e){ reject(e); }
+        return;
+      }
+      if(++tries>50){ reject(new Error("firebase-not-loaded")); return; }
+      setTimeout(waitLib,100);
+    })();
+  });
+  return fbReady;
+}
+/* --- 暗号化（AES-GCM 256bit）。鍵は共有リンクの#以降だけに存在する --- */
+function b64u(bytes){ let s=""; for(let i=0;i<bytes.length;i++) s+=String.fromCharCode(bytes[i]); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
+function ub64u(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; const s=atob(str); const a=new Uint8Array(s.length); for(let i=0;i<s.length;i++) a[i]=s.charCodeAt(i); return a; }
+function genRoomId(){ return b64u(crypto.getRandomValues(new Uint8Array(16))); }
+function genShareKey(){ return crypto.subtle.generateKey({name:"AES-GCM",length:256},true,["encrypt","decrypt"]); }
+function exportShareKey(key){ return crypto.subtle.exportKey("raw",key).then(function(raw){ return b64u(new Uint8Array(raw)); }); }
+function importShareKey(b64){ return crypto.subtle.importKey("raw",ub64u(b64),"AES-GCM",false,["encrypt","decrypt"]); }
+function encryptJSON(key,obj){
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const data=new TextEncoder().encode(JSON.stringify(obj));
+  return crypto.subtle.encrypt({name:"AES-GCM",iv:iv},key,data).then(function(ct){
+    const ctA=new Uint8Array(ct), out=new Uint8Array(iv.length+ctA.length);
+    out.set(iv,0); out.set(ctA,iv.length);
+    return b64u(out);
+  });
+}
+function decryptJSON(key,b64){
+  const all=ub64u(b64), iv=all.slice(0,12), ct=all.slice(12);
+  return crypto.subtle.decrypt({name:"AES-GCM",iv:iv},key,ct).then(function(pt){ return JSON.parse(new TextDecoder().decode(pt)); });
+}
+/* --- 部屋との出入り --- */
+function shareDoc(roomId){ return fbDb.collection("rooms").doc(roomId); }
+function sharedPayload(){
+  const items=((S.list&&S.list.items)||[]).map(function(x){ return {n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""}; });
+  return {week:(S.list&&S.list.week)||"", items:items};
+}
+function scheduleSharePush(){
+  if(!S.share||!S.share.active) return;
+  clearTimeout(sharePushTimer);
+  sharePushTimer=setTimeout(doSharePush,500);
+}
+function doSharePush(){
+  if(!S.share||!S.share.active) return;
+  const payload=sharedPayload(), json=JSON.stringify(payload);
+  if(json===lastPushedJSON) return;
+  fbInit().then(function(){ return importShareKey(S.share.key); })
+    .then(function(key){ return encryptJSON(key,payload); })
+    .then(function(ct){
+      lastPushedJSON=json;
+      const exp=new Date(Date.now()+14*24*60*60*1000);
+      return shareDoc(S.share.roomId).set({
+        ciphertext:ct,
+        updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
+        expiresAt:firebase.firestore.Timestamp.fromDate(exp)
+      });
+    }).catch(function(e){ console.warn("share push failed",e); });
+}
+function shareSubscribe(){
+  if(!S.share||!S.share.roomId) return;
+  fbInit().then(function(){
+    if(shareUnsub) shareUnsub();
+    shareUnsub=shareDoc(S.share.roomId).onSnapshot(function(snap){
+      if(snap.metadata.hasPendingWrites) return;   /* 自分の書き込みの反射は無視（無限ループ防止） */
+      if(!snap.exists) return;
+      const data=snap.data(); if(!data||!data.ciphertext) return;
+      importShareKey(S.share.key).then(function(key){ return decryptJSON(key,data.ciphertext); })
+        .then(function(payload){
+          const json=JSON.stringify(payload);
+          if(json===lastPushedJSON) return;   /* 内容が同じなら何もしない */
+          lastPushedJSON=json;
+          applySharedPayload(payload);
+        }).catch(function(e){ console.warn("share decrypt failed",e); });
+    }, function(e){ console.warn("share listen failed",e); });
+  }).catch(function(){});
+}
+function applySharedPayload(payload){
+  if(!S.list) S.list={items:[],pantry:[],excluded:[],week:payload.week||"",at:Date.now()};
+  S.list.items=(payload.items||[]).map(function(x){ return {n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""}; });
+  if(payload.week) S.list.week=payload.week;
+  save();
+  if(TAB==="shop") render();
+  flash("共有リストが更新されました");
+}
+function startShare(){
+  if(!S.list||!S.list.items.length){ flash("先に買い物リストを作ってね"); return; }
+  fbInit().then(function(){ return genShareKey(); })
+    .then(function(key){ return exportShareKey(key); })
+    .then(function(b64){
+      S.share={active:true, roomId:genRoomId(), key:b64};
+      save(); lastPushedJSON="";
+      shareSubscribe(); doSharePush();
+      renderShareModal();
+    }).catch(function(e){ alert("共有を開始できませんでした。電波の良い場所でもう一度お試しください。"); console.warn(e); });
+}
+function shareLink(){
+  if(!S.share||!S.share.roomId) return "";
+  return location.origin+location.pathname+"?share="+S.share.roomId+"#k="+S.share.key;
+}
+function joinShareFromInput(text){
+  const t=(text||"").trim();
+  const m=t.match(/[?&]share=([^&#]+)/), k=t.match(/[#&]k=([^&]+)/);
+  if(!m||!k){ flash("招待リンクの形が違うみたい"); return; }
+  joinShare(decodeURIComponent(m[1]), decodeURIComponent(k[1]));
+}
+function joinShare(roomId,key){
+  if(S.list&&S.list.items.length&&!confirm("参加すると、今の買い物リストは共有中の内容に置き換わります。よろしいですか？")) return;
+  fbInit().then(function(){ return shareDoc(roomId).get(); })
+    .then(function(snap){
+      if(!snap.exists) throw new Error("no-room");
+      return importShareKey(key).then(function(k){ return decryptJSON(k,snap.data().ciphertext); });
+    }).then(function(payload){
+      S.share={active:true, roomId:roomId, key:key};
+      lastPushedJSON="";
+      applySharedPayload(payload);
+      shareSubscribe();
+      closeModal(); go("shop");
+      flash("共有リストに参加しました");
+    }).catch(function(e){ alert("参加できませんでした。招待リンクが正しいか確認してください。"); console.warn(e); });
+}
+function stopShare(){
+  if(!confirm("この端末の共有をやめます。相手の共有は続きます。よろしいですか？")) return;
+  if(shareUnsub){ shareUnsub(); shareUnsub=null; }
+  S.share={active:false, roomId:"", key:""};
+  save(); renderShareModal(); flash("共有をやめました");
+}
+/* --- 共有画面 --- */
+function openShareModal(){ showModal(); renderShareModal(); }
+function renderShareModal(){
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>👥 買い物リストの共有</b></div>';
+  if(S.share&&S.share.active){
+    h+='<p class="note" style="margin-top:0">共有中です。チェックした/しないが、お互いの端末にすぐ反映されます。</p>';
+    h+='<div class="kindhead">招待用リンク</div>';
+    h+=`<div class="sharelinkbox" id="shareLinkBox">${esc(shareLink())}</div>`;
+    h+='<button class="btn sub wide" onclick="copyShareLink()">🔗 リンクをコピー</button>';
+    h+='<div id="shareQr" class="shareqr"></div>';
+    h+='<p class="note">このリンクを知っている人だけが、この買い物リストを見られます。人に見せる時だけ共有してください。</p>';
+    h+='<button class="btn danger small" onclick="stopShare()">この端末の共有をやめる</button>';
+  } else {
+    h+='<p class="note" style="margin-top:0">家族と買い物リストをリアルタイムで共有できます。品物の名前はこの端末で暗号化されるので、運営者にも中身は読めません。献立や自作レシピは送られません。</p>';
+    h+='<button class="btn wide" onclick="startShare()">🔗 共有を始める（招待を作る）</button>';
+    h+='<div class="kindhead">招待を受け取った場合</div>';
+    h+='<input type="text" class="search" id="joinLinkInput" placeholder="届いたリンクをここに貼り付け">';
+    h+='<button class="btn sub wide" onclick="joinShareFromInput(document.getElementById(\'joinLinkInput\').value)">参加する</button>';
+  }
+  setHTML(document.getElementById("modal"),h);
+  if(S.share&&S.share.active) renderShareQr();
+}
+function copyShareLink(){
+  const link=shareLink();
+  if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(link).then(function(){ flash("コピーしました"); }); return; }
+  const box=document.getElementById("shareLinkBox");
+  const r=document.createRange(); r.selectNode(box); getSelection().removeAllRanges(); getSelection().addRange(r);
+  document.execCommand("copy"); getSelection().removeAllRanges(); flash("コピーしました");
+}
+function renderShareQr(){
+  const el=document.getElementById("shareQr"); if(!el||typeof qrcode==="undefined") return;
+  el.innerHTML="";
+  const qr=qrcode(0,"M"); qr.addData(shareLink()); qr.make();
+  el.innerHTML=qr.createSvgTag({cellSize:4,margin:2});
+}
+
 /* ===== モーダル ===== */
 let modalOpen=false, modalClosing=false;
 function showModal(){
@@ -2450,12 +2647,26 @@ window.addEventListener("popstate",function(e){
 load();
 /* 保存していた店の絞り込みを復元（消した店なら「すべて」に戻す） */
 if(S.shopFilter&&(S.shopFilter==="all"||S.shopFilter==="未定"||S.stores.indexOf(S.shopFilter)>=0)) shopFilter=S.shopFilter; else shopFilter="all";
+/* 招待リンク（?share=部屋ID#k=鍵）で開かれた場合は、参加するか確認してURLをきれいにする */
+let pendingShareJoin=null;
+(function(){
+  const sp=new URLSearchParams(location.search);
+  const shareParam=sp.get("share");
+  const hashM=location.hash.match(/(?:^|&)k=([^&]+)/);
+  if(shareParam&&hashM) pendingShareJoin={roomId:shareParam, key:decodeURIComponent(hashM[1])};
+})();
 /* 土台の履歴を1つ余分に確保しておく。
    これが無いと、ホーム画面から起動したPWAでは「戻る」の行き先が無く、
    popstateも起きずにアプリが即終了してしまう。 */
-history.replaceState({tab:"week", base:true},"");
+history.replaceState({tab:"week", base:true},"",pendingShareJoin?location.pathname:location.href);
 history.pushState({tab:"week"},"");
 render();
+if(S.share&&S.share.active) shareSubscribe();
+if(pendingShareJoin){
+  setTimeout(function(){
+    if(confirm("買い物リストの共有に参加しますか？\n（今のリストがあれば、共有中の内容に置き換わります）")) joinShare(pendingShareJoin.roomId,pendingShareJoin.key);
+  },400);
+}
 
 /* アプリとしてインストール＆オフライン対応（http/https のときだけ） */
 let swReloaded=false;
