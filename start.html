@@ -99,7 +99,7 @@ h1{font-size:clamp(33px,6.4vw,60px);line-height:1.24;font-weight:900;letter-spac
 .marq .cap{text-align:center;font-size:11.5px;color:var(--sub);font-weight:800;letter-spacing:.09em;margin-bottom:12px}
 
 /* ============ 目次（TOP画面で一覧できる案内） ============ */
-.toc-sec{padding:34px 0 8px}
+.toc-sec{padding:20px 0 6px;position:relative;z-index:2}
 .toc-cap{text-align:center;font-size:11.5px;color:var(--sub);font-weight:800;letter-spacing:.09em;margin-bottom:14px}
 .toc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:11px}
 .toc-card{display:flex;align-items:center;gap:11px;background:#fff;border:1.5px solid var(--line);border-radius:16px;
@@ -270,6 +270,22 @@ footer{text-align:center;padding:34px 0;color:var(--sub);font-size:12.5px;font-w
   </div>
 </header>
 
+<!-- ============ 目次 ============ -->
+<section class="toc-sec">
+  <div class="wrap">
+    <p class="toc-cap">このページの内容</p>
+    <div class="toc-grid">
+      <a class="toc-card" href="#steps"><span class="toc-ic">📱</span><span class="toc-tx"><b>つかいかた</b><small>まず4ステップだけ見る</small></span></a>
+      <a class="toc-card" href="#level"><span class="toc-ic">⭐</span><span class="toc-tx"><b>便利ワザ</b><small>もっとラクになる4つのコツ</small></span></a>
+      <a class="toc-card" href="#shop"><span class="toc-ic">🏪</span><span class="toc-tx"><b>お店で分ける</b><small>買い物を店ごとに整理</small></span></a>
+      <a class="toc-card" href="#share"><span class="toc-ic">👥</span><span class="toc-tx"><b>家族と共有</b><small>リアルタイムでリストを共有</small></span></a>
+      <a class="toc-card" href="#week"><span class="toc-ic">🕘</span><span class="toc-tx"><b>買い物の履歴</b><small>過去のリストを見返す</small></span></a>
+      <a class="toc-card" href="#useful"><span class="toc-ic">💡</span><span class="toc-tx"><b>困ったときは</b><small>よくあるお悩み解決</small></span></a>
+      <a class="toc-card" href="#faq"><span class="toc-ic">❓</span><span class="toc-tx"><b>よくある質問</b><small>Q&amp;A</small></span></a>
+    </div>
+  </div>
+</section>
+
 <!-- ============ ヒーロー ============ -->
 <div class="hero">
   <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
@@ -302,22 +318,6 @@ footer{text-align:center;padding:34px 0;color:var(--sub);font-size:12.5px;font-w
     <div class="row" id="marq"></div>
   </div>
 </div>
-
-<!-- ============ 目次 ============ -->
-<section class="toc-sec">
-  <div class="wrap">
-    <p class="toc-cap">このページの内容</p>
-    <div class="toc-grid">
-      <a class="toc-card" href="#steps"><span class="toc-ic">📱</span><span class="toc-tx"><b>つかいかた</b><small>まず4ステップだけ見る</small></span></a>
-      <a class="toc-card" href="#level"><span class="toc-ic">⭐</span><span class="toc-tx"><b>便利ワザ</b><small>もっとラクになる4つのコツ</small></span></a>
-      <a class="toc-card" href="#shop"><span class="toc-ic">🏪</span><span class="toc-tx"><b>お店で分ける</b><small>買い物を店ごとに整理</small></span></a>
-      <a class="toc-card" href="#share"><span class="toc-ic">👥</span><span class="toc-tx"><b>家族と共有</b><small>リアルタイムでリストを共有</small></span></a>
-      <a class="toc-card" href="#week"><span class="toc-ic">🕘</span><span class="toc-tx"><b>買い物の履歴</b><small>過去のリストを見返す</small></span></a>
-      <a class="toc-card" href="#useful"><span class="toc-ic">💡</span><span class="toc-tx"><b>困ったときは</b><small>よくあるお悩み解決</small></span></a>
-      <a class="toc-card" href="#faq"><span class="toc-ic">❓</span><span class="toc-tx"><b>よくある質問</b><small>Q&amp;A</small></span></a>
-    </div>
-  </div>
-</section>
 
 <!-- ============ 4ステップ ============ -->
 <section id="steps">
