@@ -23,6 +23,12 @@ p,li,summary,h1,h2,h3{overflow-wrap:anywhere}
 .brand{display:flex;align-items:center;gap:9px;font-size:14px;font-weight:900;text-decoration:none;min-width:0}
 .brand img{width:38px;height:38px;border-radius:11px;flex-shrink:0}
 .open{display:inline-flex;min-height:42px;align-items:center;justify-content:center;padding:9px 16px;border-radius:12px;color:#fff;background:var(--orange);font-size:13px;font-weight:900;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.menubtn{width:40px;height:40px;flex-shrink:0;border:1px solid var(--line);background:#fff;border-radius:12px;font-size:17px;color:var(--orange-dark);cursor:pointer}
+.mnav{max-width:min(980px,calc(100% - 32px));margin:0 auto;display:flex;flex-direction:column;max-height:0;overflow:hidden;
+  transition:max-height .28s cubic-bezier(.2,.7,.3,1);background:#fff}
+.mnav.open{max-height:440px}
+.mnav a{padding:13px 6px;font-size:14.5px;font-weight:800;color:var(--ink);text-decoration:none;border-top:1px solid var(--line)}
+.mnav a:active{background:var(--cream)}
 
 .hero{padding:56px 0 48px;text-align:center;background:#fff}
 .eyebrow{margin-bottom:12px;color:var(--orange-dark);font-size:12px;font-weight:900;letter-spacing:.12em}
@@ -141,6 +147,16 @@ details p{padding:0 34px 18px 0;color:var(--muted);font-size:14px}
 <nav class="nav">
   <a class="brand" href="#top"><img src="assets/icon-192.png" alt=""><span>まとめ買いリスト｜使い方</span></a>
   <a class="open" href="https://em2026music.github.io/matomegai/">アプリを開く →</a>
+  <button class="menubtn" id="menuBtn" aria-label="目次を開く" aria-expanded="false" aria-controls="mNav">☰</button>
+</nav>
+<nav class="mnav" id="mNav">
+  <a href="#guide">📱 つかいかた</a>
+  <a href="#level">✨ 便利ワザ</a>
+  <a href="#stores">🏪 お店わけ</a>
+  <a href="#share">👥 共有</a>
+  <a href="#week">🕘 履歴</a>
+  <a href="#useful">💡 こんなときは</a>
+  <a href="#faq">❓ よくある質問</a>
 </nav>
 
 <header class="hero" id="top">
@@ -410,6 +426,12 @@ details p{padding:0 34px 18px 0;color:var(--muted);font-size:14px}
   <button type="button" aria-label="閉じる">×</button><img src="" alt="拡大したアプリ画面">
 </div>
 <script>
+(()=>{const btn=document.getElementById('menuBtn'),nav=document.getElementById('mNav');
+if(btn&&nav){
+  const shutMenu=()=>{nav.classList.remove('open');btn.textContent='☰';btn.setAttribute('aria-expanded','false')};
+  btn.addEventListener('click',()=>{const o=nav.classList.toggle('open');btn.textContent=o?'✕':'☰';btn.setAttribute('aria-expanded',o?'true':'false')});
+  nav.querySelectorAll('a').forEach(a=>a.addEventListener('click',shutMenu));
+}})();
 (()=>{const box=document.getElementById('lightbox'),img=box.querySelector('img'),close=box.querySelector('button');let prev=null;
 const open=el=>{prev=el;img.src=el.dataset.full;box.classList.add('open');document.body.style.overflow='hidden';close.focus()};
 const shut=()=>{box.classList.remove('open');img.src='';document.body.style.overflow='';if(prev)prev.focus()};
