@@ -691,7 +691,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-55";
+const APP_VERSION="0801-56";
 let S=null;
 function newState(){
   return {
@@ -875,21 +875,14 @@ function setStoreColor(name,hex){
   S.storeColors[name]=hex; save();
   if(document.getElementById("overlay").classList.contains("show")) renderStoreSettings(); else render();
 }
-let weekOffset=0; /* 0=今週 −1=先週 +1=来週 … */
 function mondayOf(d){ const t=new Date(d); const off=(t.getDay()+6)%7; t.setDate(t.getDate()-off); t.setHours(0,0,0,0); return t; }
 function keyOf(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 function mondayAt(off){ const m=mondayOf(new Date()); m.setDate(m.getDate()+off*7); return m; }
 function keyAt(off){ return keyOf(mondayAt(off)); }
 function datesAt(off){ const m=mondayAt(off); return DAYS.map((_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
 function weekAt(key,create){ if(!S.plans[key]){ if(!create) return emptyWeek(); S.plans[key]=emptyWeek(); } return S.plans[key]; }
-function curMonday(){ return mondayAt(weekOffset); }
-function curKey(){ return keyOf(curMonday()); }
-function curWeek(create){
-  const k=curKey();
-  if(!S.plans[k]){ if(!create) return emptyWeek(); S.plans[k]=emptyWeek(); }
-  return S.plans[k];
-}
-function weekDates(){ const m=curMonday(); return DAYS.map((_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
+/* 献立表は「月〜日の週」ではなく買い物期間そのものを表示するので、
+   週単位の取り出しは editor のミニカレンダー（weekAt/keyAt）だけが使う */
 /* ===== 買い物の期間 =====
    買い物リストは「月〜日の1週間」に固定せず、開始曜日・日数・最終日にどこまで
    食べるかを自分で決められる（例：土曜に買って、次の土曜のお昼まで＝土開始・8日・昼まで）*/
@@ -925,6 +918,35 @@ function periodDef(){
 }
 function periodStart(){ return periodDef().fromDate; }
 function periodKey(){ return periodDef().from; }
+/* ===== 献立表は「買い物期間そのもの」を表示する =====
+   perOffset=0 が今の買い物期間。◀▶ は1期間ぶんずつ前後に見るだけで、
+   買い物リストの中身（＝S.period）は変わらない */
+let perOffset=0;
+function viewPeriod(){
+  const pd=periodDef(), n=pd.days*perOffset;
+  return {fromDate:addDays(pd.fromDate,n), toDate:addDays(pd.toDate,n), days:pd.days, lastMeal:pd.lastMeal};
+}
+function viewDates(){
+  const v=viewPeriod(), out=[];
+  for(let i=0;i<v.days;i++) out.push(addDays(v.fromDate,i));
+  return out;
+}
+/* 日付キー("2026-08-01") → 書き込める1日分。保存は今まで通り「月曜はじまりの週」ごと */
+function dayObj(dk,create){
+  const d=dFromKey(dk);
+  if(!d) return emptyDay();
+  const wk=weekAt(keyOf(mondayOf(d)),create);
+  return wk[(d.getDay()+6)%7]||emptyDay();
+}
+function dkLabel(dk){
+  const d=dFromKey(dk); if(!d) return "";
+  return (d.getMonth()+1)+"/"+d.getDate()+"("+DAYS[(d.getDay()+6)%7]+")";
+}
+/* 期間の見出し（月をまたぐ時も分かるように） */
+function periodRangeText(v){
+  const f=v.fromDate, t=v.toDate;
+  return (f.getMonth()+1)+"/"+f.getDate()+"("+DAYS[(f.getDay()+6)%7]+")〜"+(t.getMonth()+1)+"/"+t.getDate()+"("+DAYS[(t.getDay()+6)%7]+")";
+}
 /* 期間が過ぎていたら、同じ長さのまま今日を含む所まで進める。
    起動時に1回だけ行う（画面表示のたびに動かすと「← 前の期間」で戻れなくなるため） */
 function rollPeriodIfPast(){
@@ -974,40 +996,43 @@ function lpStart(fn){ lpFired=false; clearTimeout(lpTimer); lpTimer=setTimeout(f
 function lpEnd(){ clearTimeout(lpTimer); }
 function lpTap(fn){ if(lpFired){ lpFired=false; return; } fn(); }
 /* その日に入れた料理を、朝・昼・夜まとめて消す */
-function clearDay(i){
-  const wk=curWeek(true);
+function clearDay(dk){
+  const day=dayObj(dk,true);
   const ms=onMeals();
   const parts=[];
   ms.forEach(m=>{
-    const ns=(wk[i][m.k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
+    const ns=(day[m.k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
     if(ns.length) parts.push((ms.length>1?m.icon+" "+m.label+"：":"")+ns.join("・"));
   });
   if(!parts.length){ flash("この日はまだ空です"); return; }
-  const dt=weekDates()[i];
-  const label=`${dt.getMonth()+1}/${dt.getDate()}(${DAYS[i]})`;
+  const label=dkLabel(dk);
   if(!confirm(label+" に入れた料理をすべて消しますか？\n\n"+parts.join("\n"))) return;
-  ms.forEach(m=>{ wk[i][m.k]=[]; });
+  ms.forEach(m=>{ day[m.k]=[]; });
   pickDetail=""; save();
   if(document.getElementById("overlay").classList.contains("show")) renderPicker();
   render(); flash(label+" を空にしました");
 }
 /* その日・その食事の献立をまとめて消す */
-function clearSlot(i,k){
-  const wk=curWeek(true); const names=(wk[i][k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
+function clearSlot(dk,k){
+  const day=dayObj(dk,true); const names=(day[k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
   if(!names.length) return;
-  const dt=weekDates()[i]; const ml=MEALS.find(m=>m.k===k);
-  const label=`${dt.getMonth()+1}/${dt.getDate()}(${DAYS[i]})${onMeals().length>1?"の"+ml.label:""}`;
+  const ml=MEALS.find(m=>m.k===k);
+  const label=dkLabel(dk)+(onMeals().length>1?"の"+ml.label:"");
   if(!confirm(label+" の料理を消しますか？\n\n"+names.join("・"))) return;
-  wk[i][k]=[]; save(); render(); flash(label+" を空にしました");
+  day[k]=[]; save(); render(); flash(label+" を空にしました");
 }
-/* 先週の献立をこの週にコピー */
+/* 1つ前の期間の献立を、今見ている期間に日ごとコピーする */
 function copyPrevWeek(){
-  const prev=S.plans[keyAt(weekOffset-1)];
-  if(!prev||!prev.some(d=>dayIds(d).length)){ flash("先週の献立がまだありません"); return; }
-  const cur=curWeek();
-  if(cur.some(d=>dayIds(d).length)&&!confirm("この週の献立を、先週の内容に置き換えますか？")) return;
-  S.plans[curKey()]=prev.map(d=>({b:(d.b||[]).slice(), l:(d.l||[]).slice(), d:(d.d||[]).slice()}));
-  save(); render(); flash("先週の献立をコピーしました");
+  const dates=viewDates();
+  const prev=dates.map(d=>dayObj(keyOf(addDays(d,-dates.length))));
+  if(!prev.some(d=>dayIds(d).length)){ flash("1つ前の期間には献立がありません"); return; }
+  if(dates.some(d=>dayIds(dayObj(keyOf(d))).length)
+     && !confirm("今見ている期間の献立を、1つ前の期間の内容に置き換えますか？")) return;
+  dates.forEach(function(d,i){
+    const tgt=dayObj(keyOf(d),true), src=prev[i];
+    tgt.b=(src.b||[]).slice(); tgt.l=(src.l||[]).slice(); tgt.d=(src.d||[]).slice();
+  });
+  save(); render(); flash("1つ前の期間の献立をコピーしました");
 }
 /* よく作る料理（★） */
 function togFav(id,from){
@@ -1020,7 +1045,7 @@ function togFav(id,from){
 function favCount(){ return Object.keys(S.favs||{}).filter(id=>dish(id)).length; }
 /* 献立セット（カレー＋サラダ＋スープ などの組み合わせ） */
 function saveSet(){
-  const slot=curWeek()[pickDay][pickMeal]||[];
+  const slot=dayObj(pickKey)[pickMeal]||[];
   if(slot.length<2){ flash("2品以上のときに保存できます"); return; }
   const names=slot.map(id=>dish(id)).filter(Boolean).map(x=>x.name);
   const n=prompt("この組み合わせの名前", names.slice(0,2).join("＋"));
@@ -1032,7 +1057,7 @@ function saveSet(){
 }
 function applySet(i){
   const st=(S.sets||[])[i]; if(!st) return;
-  const slot=curWeek(true)[pickDay][pickMeal];
+  const slot=dayObj(pickKey,true)[pickMeal];
   st.ids.forEach(id=>{ if(dish(id)) slot.push(id); });
   save(); renderPicker(); flash(st.name+" を追加しました");
 }
@@ -1042,8 +1067,8 @@ function delSet(i){
   S.sets.splice(i,1); save(); renderPicker();
 }
 function togWeekView(){ S.weekView=(S.weekView==="main"?"all":"main"); save(); render(); }
-function shiftWeek(d){ weekOffset+=d; render(); }
-function gotoThisWeek(){ weekOffset=0; render(); }
+function shiftWeek(d){ perOffset+=d; render(); }
+function gotoThisWeek(){ perOffset=0; render(); }
 
 /* ===== タブ切り替え ===== */
 let TAB="week";
@@ -1208,17 +1233,22 @@ function commitGoodsOrder(ids){
   save();
 }
 /* 曜日ごとの献立を入れ替え（日付は固定、中身が移動） */
+/* 日付の行を入れ替える。ids は並べ替え後の日付キーの順番 */
 function commitDayOrder(ids){
-  const oldW=curWeek(true);
-  const order=ids.map(x=>+x);
-  /* 曜日が7つ揃っていない/番号がおかしい時は、並べ替えを捨てて現状維持。
+  const dates=viewDates().map(d=>keyOf(d));
+  /* 日付が揃っていない/知らない日付が混じっている時は捨てて現状維持。
      ここで取りこぼすと、その日の献立がまるごと消えてしまうため */
-  if(order.length!==oldW.length||order.some(i=>!(i>=0&&i<oldW.length))){ render(); return; }
-  const newW=order.map(i=>oldW[i]||emptyDay());
-  S.plans[curKey()]=newW;
+  if(ids.length!==dates.length||ids.some(k=>dates.indexOf(k)<0)||new Set(ids).size!==ids.length){ render(); return; }
+  /* いったん中身を控えてから、新しい順番で書き戻す */
+  const snap={};
+  dates.forEach(function(k){ const o=dayObj(k); snap[k]={b:(o.b||[]).slice(), l:(o.l||[]).slice(), d:(o.d||[]).slice()}; });
+  dates.forEach(function(k,i){
+    const src=snap[ids[i]], tgt=dayObj(k,true);
+    tgt.b=src.b.slice(); tgt.l=src.l.slice(); tgt.d=src.d.slice();
+  });
   save(); render();
 }
-function commitWeekOrder(ids){ curWeek(true)[pickDay][pickMeal]=ids.slice(); save(); }
+function commitWeekOrder(ids){ dayObj(pickKey,true)[pickMeal]=ids.slice(); save(); }
 
 /* ===== 献立表（週） ===== */
 /* LINEなどの「アプリの中のブラウザ」で開かれていないか。
@@ -1240,21 +1270,21 @@ function inAppWarn(){
     +`<button class="btn small sub" onclick="S.iabOk=true;save();render()">わかった（閉じる）</button></div>`;
 }
 function rWeek(){
-  const dates=weekDates(); const todayStr=new Date().toDateString();
-  const wk=curWeek();
-  const decided=wk.filter(d=>dayIds(d).length).length;
+  const vp=viewPeriod();
+  const dates=viewDates(); const todayStr=new Date().toDateString();
+  const decided=dates.filter(d=>dayIds(dayObj(keyOf(d))).length).length;
   const ms=onMeals();
   const nItems=aggregate().length;
-  const label=weekOffset===0?"今週":weekOffset===-1?"先週":weekOffset===1?"来週":(weekOffset<0?weekOffset+"週":"+"+weekOffset+"週");
+  const label=perOffset===0?"買い物のぶん":perOffset===-1?"1つ前の期間":perOffset===1?"次の期間":(perOffset<0?perOffset+"期間":"+"+perOffset+"期間");
   let h='<div class="pagehead"><div class="ptitle">献立表</div>';
   h+='<button class="pill" onclick="openFamily()">⚙ 設定</button></div>';
   h+=inAppWarn();
   h+='<div class="weeknav">';
   h+='<button class="wnav" onclick="shiftWeek(-1)">◀</button>';
-  h+=`<div class="wlabel"><b>${label}</b><span>${dates[0].getMonth()+1}/${dates[0].getDate()}〜${dates[6].getMonth()+1}/${dates[6].getDate()}</span></div>`;
+  h+=`<div class="wlabel"><b>${label}</b><span>${periodRangeText(vp)}</span></div>`;
   h+='<button class="wnav" onclick="shiftWeek(1)">▶</button>';
   h+='</div>';
-  if(weekOffset!==0) h+='<div class="ctalink small" style="margin-top:-4px;margin-bottom:8px" onclick="gotoThisWeek()">↩ 今週にもどる</div>';
+  if(perOffset!==0) h+='<div class="ctalink small" style="margin-top:-4px;margin-bottom:8px" onclick="gotoThisWeek()">↩ 買い物のぶんにもどる</div>';
   h+='<div class="summaryrow">';
   h+=`<div class="summary" style="margin:0"><b>${S.family}人分</b>・<b>${decided}日</b>決定・買うもの<b>${nItems}品</b></div>`;
   h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"副菜まで全部見る":"メインだけ表示"}</button>`;
@@ -1267,20 +1297,26 @@ function rWeek(){
   });
   h+='</div>';
   h+='<div class="daylist">';
-  DAYS.forEach((w,i)=>{
-    const dt=dates[i]; const isT=dt.toDateString()===todayStr;
-    const cls=(i===5?"sat ":i===6?"sun ":"")+(isT?"today":"");
-    const total=dayIds(wk[i]).length;
-    h+=`<div class="dayrow ${cls}" data-id="${i}" onclick="openDay(${i})">`;
+  dates.forEach((dt,i)=>{
+    const wd=(dt.getDay()+6)%7, w=DAYS[wd], dk=keyOf(dt);
+    const isT=dt.toDateString()===todayStr;
+    const cls=(wd===5?"sat ":wd===6?"sun ":"")+(isT?"today":"");
+    const dayo=dayObj(dk);
+    const total=dayIds(dayo).length;
+    /* 最終日は「どこまで食べるか」の指定より後の食事を出さない */
+    const isLast=(i===dates.length-1);
+    const lim=MEAL_ORDER.indexOf(vp.lastMeal);
+    const ms2=isLast?ms.filter(m=>MEAL_ORDER.indexOf(m.k)<=lim):ms;
+    h+=`<div class="dayrow ${cls}" data-id="${dk}" onclick="openDay('${dk}')">`;
     /* つまみは曜日の左＝いちばん左に置く（動かせる物の目印は左端が分かりやすい） */
     if(total) h+='<span class="draghandle" data-sort onclick="event.stopPropagation()"></span>';
     else h+='<span class="dgspace"></span>';
-    h+=`<div class="dcol"${total?` onpointerdown="event.stopPropagation();lpStart(function(){clearDay(${i})})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()"`:""}><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
+    h+=`<div class="dcol"${total?` onpointerdown="event.stopPropagation();lpStart(function(){clearDay('${dk}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()"`:""}><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
     if(total){
       if(ms.length>1){
         h+='<div class="dmain mealcols">';
-        ms.forEach(m=>{
-          const names=(wk[i][m.k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
+        ms2.forEach(m=>{
+          const names=(dayo[m.k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
           let body;
           if(!names.length) body='<div class="mnames empty">＋</div>';
           else if(S.weekView==="main"){
@@ -1289,12 +1325,12 @@ function rWeek(){
           } else {
             body=`<div class="mnames">${esc(names.join("・"))}</div>`;
           }
-          h+=`<div class="mealcol ${m.k}" onpointerdown="event.stopPropagation();lpStart(function(){clearSlot(${i},'${m.k}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()" onclick="event.stopPropagation();lpTap(function(){openDayMeal(${i},'${m.k}')})"><div class="mlabel">${m.label}</div><div class="mbody">${body}</div></div>`;
+          h+=`<div class="mealcol ${m.k}" onpointerdown="event.stopPropagation();lpStart(function(){clearSlot('${dk}','${m.k}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()" onclick="event.stopPropagation();lpTap(function(){openDayMeal('${dk}','${m.k}')})"><div class="mlabel">${m.label}</div><div class="mbody">${body}</div></div>`;
         });
         h+='</div>';
       } else {
-        const names=(wk[i][ms[0].k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
-        h+=`<div class="dmain" onpointerdown="event.stopPropagation();lpStart(function(){clearSlot(${i},'${ms[0].k}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()" onclick="event.stopPropagation();lpTap(function(){openDayMeal(${i},'${ms[0].k}')})"><div class="dtitle mnames big">${esc(names[0]||"")}</div>`;
+        const names=(dayo[ms[0].k]||[]).map(id=>dish(id)).filter(Boolean).map(x=>x.name);
+        h+=`<div class="dmain" onpointerdown="event.stopPropagation();lpStart(function(){clearSlot('${dk}','${ms[0].k}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()" onclick="event.stopPropagation();lpTap(function(){openDayMeal('${dk}','${ms[0].k}')})"><div class="dtitle mnames big">${esc(names[0]||"")}</div>`;
         if(names.length>1){
           h+=(S.weekView==="main")
             ? `<div class="more">ほか${names.length-1}品</div>`
@@ -1303,10 +1339,10 @@ function rWeek(){
         h+='</div>';
       }
       h+='<span class="chev">›</span>';
-    } else if(ms.length>1){
+    } else if(ms2.length>1){
       h+='<div class="dmain mealcols">';
-      ms.forEach(m=>{
-        h+=`<div class="mealcol ${m.k}" onclick="event.stopPropagation();openDayMeal(${i},'${m.k}')"><div class="mlabel">${m.label}</div><div class="mnames" style="color:#c2b6a2">＋</div></div>`;
+      ms2.forEach(m=>{
+        h+=`<div class="mealcol ${m.k}" onclick="event.stopPropagation();openDayMeal('${dk}','${m.k}')"><div class="mlabel">${m.label}</div><div class="mnames" style="color:#c2b6a2">＋</div></div>`;
       });
       h+='</div><span class="chev">›</span>';
     } else {
@@ -1315,7 +1351,7 @@ function rWeek(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">各行の左にある<b>☰つまみ</b>を押したまま動かすと、料理を別の曜日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
+  h+='<p class="note" style="margin-top:-2px">各行の左にある<b>☰つまみ</b>を押したまま動かすと、料理を別の日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
   {const _pd=periodDef(), _f=_pd.fromDate, _t=_pd.toDate;
    h+=`<div class="perchip" onclick="openFamily()">📅 買い物のぶん <b>${_f.getMonth()+1}/${_f.getDate()}${wdOf(_f)} 〜 ${_t.getMonth()+1}/${_t.getDate()}${wdOf(_t)}</b> <span class="pcedit">変更</span></div>`;}
@@ -1326,10 +1362,10 @@ function rWeek(){
   /* 押せると分かるように、まとまった行ボタンにする */
   h+='<div class="menulist">';
   if(!listIsOld()) h+='<div class="mrow" onclick="go(\'shop\')"><span class="mic">🧾</span><span class="mtx">作り直さずに今のリストを見る</span><span class="mar">›</span></div>';
-  h+='<div class="mrow" onclick="copyPrevWeek()"><span class="mic">📋</span><span class="mtx">先週の献立をコピー</span><span class="mar">›</span></div>';
+  h+='<div class="mrow" onclick="copyPrevWeek()"><span class="mic">📋</span><span class="mtx">1つ前の期間の献立をコピー</span><span class="mar">›</span></div>';
   h+='<div class="mrow" onclick="openFamily()"><span class="mic">⚙</span><span class="mtx">設定（人数・買い物の期間）</span><span class="mar">›</span></div>';
   h+='<a class="mrow" href="start.html" target="_blank" rel="noopener"><span class="mic">📖</span><span class="mtx">使い方ガイド</span><span class="mar">›</span></a>';
-  h+='<div class="mrow danger" onclick="clearWeek()"><span class="mic">🗑</span><span class="mtx">今週の献立をクリア</span><span class="mar">›</span></div>';
+  h+='<div class="mrow danger" onclick="clearWeek()"><span class="mic">🗑</span><span class="mtx">この期間の献立をクリア</span><span class="mar">›</span></div>';
   h+='</div>';
   h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
   return h;
@@ -1428,7 +1464,13 @@ function togMeal(k){
   /* 設定画面から押された時はそちらを、ホームから押された時はホームを描き直す */
   if(modalOpen) renderFamily(); else render();
 }
-function clearWeek(){ if(confirm("この週の献立をすべて消しますか？")){ S.plans[curKey()]=emptyWeek(); save(); render(); } }
+function clearWeek(){
+  const dates=viewDates();
+  if(!dates.some(d=>dayIds(dayObj(keyOf(d))).length)){ flash("この期間はまだ空です"); return; }
+  if(!confirm(periodRangeText(viewPeriod())+" の献立をすべて消しますか？")) return;
+  dates.forEach(function(d){ const o=dayObj(keyOf(d),true); o.b=[]; o.l=[]; o.d=[]; });
+  save(); render(); flash("この期間の献立を消しました");
+}
 /* 買い物リストの期間を変える（日付で指定する） */
 function wdOf(d){ return d?"("+DAYS[(d.getDay()+6)%7]+")":""; }
 function setPeriod(k,v){
@@ -1612,10 +1654,10 @@ function rebuildList(){
 }
 
 /* ===== 献立ピッカー（日ごと） ===== */
-let pickDay=0, pickSearch="", pickCat="", pickDetail="", pickMeal="d";
+let pickKey="", pickSearch="", pickCat="", pickDetail="", pickMeal="d";
 function defaultMeal(){ const ms=onMeals(); return (ms.some(m=>m.k==="d")?"d":(ms[0]||{k:"d"}).k); }
-function openDay(d){ openDayMeal(d, defaultMeal()); }
-function openDayMeal(d,k){ pickDay=d; pickSearch=""; pickCat=""; pickDetail=""; pickMeal=k; showModal(); renderPicker(); }
+function openDay(dk){ openDayMeal(dk, defaultMeal()); }
+function openDayMeal(dk,k){ pickKey=dk; pickSearch=""; pickCat=""; pickDetail=""; pickMeal=k; showModal(); renderPicker(); }
 /* 材料を見る＝スクロール位置に触らない独立ポップアップで表示（画面上に重ねるだけ） */
 function showDishDetail(id){
   const dd=dish(id); if(!dd) return;
@@ -1638,27 +1680,26 @@ function closeDishDetail(){
   if(el) el.remove();
 }
 function renderPicker(){
-  const dt=weekDates()[pickDay];
-  const wkNow=curWeek();
-  const dayHas=onMeals().reduce((n,m)=>n+((wkNow[pickDay][m.k]||[]).length),0);
+  const dt=dFromKey(pickKey)||new Date();
+  const day=dayObj(pickKey);
+  const dayHas=onMeals().reduce((n,m)=>n+((day[m.k]||[]).length),0);
   /* 中身を作り替えるとスクロール位置が飛ぶので、再描画の前後で保持する（材料を開いた時など） */
   const modalEl0=document.getElementById("modal");
   const savedScroll=modalEl0?modalEl0.scrollTop:0;
-  let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b>`;
-  if(dayHas) h+=`<span class="linkbtn daywipe" onclick="clearDay(${pickDay})">🗑 この日を空に</span>`;
+  let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[(dt.getDay()+6)%7]}曜日</b>`;
+  if(dayHas) h+=`<span class="linkbtn daywipe" onclick="clearDay('${pickKey}')">🗑 この日を空に</span>`;
   h+='</div>';
-  const wk=curWeek();
   const ms=onMeals();
   if(!ms.some(m=>m.k===pickMeal)) pickMeal=defaultMeal();
   if(ms.length>1){
     h+='<div class="mealpick"><div class="mplabel">どの食事に入れる？</div><div class="mprow">';
     ms.forEach(m=>{
-      const n=(wk[pickDay][m.k]||[]).length;
+      const n=(day[m.k]||[]).length;
       h+=`<button class="mchip ${m.k} ${pickMeal===m.k?"on":""}" onclick="pickMeal='${m.k}';pickDetail='';renderPicker()">${m.icon} ${m.label}${n?`<span class="mcnt">${n}</span>`:""}</button>`;
     });
     h+='</div></div>';
   }
-  const slot=wk[pickDay][pickMeal]||[];
+  const slot=day[pickMeal]||[];
   if(slot.length){
     h+='<div class="selbox"><div class="selttl">✓ '+(ms.length>1?MEALS.find(m=>m.k===pickMeal).label+"の":"この日の")+'献立（'+slot.length+'品）</div><div class="selrows">';
     slot.forEach((id,j)=>{
@@ -1736,7 +1777,7 @@ function renderPicker(){
     requestAnimationFrame(function(){ modalEl0.scrollTop=savedScroll; });
   }
 }
-function rmPick(j){ curWeek(true)[pickDay][pickMeal].splice(j,1); if(!curWeek()[pickDay][pickMeal].length) pickDetail=""; save(); renderPicker(); }
+function rmPick(j){ dayObj(pickKey,true)[pickMeal].splice(j,1); if(!dayObj(pickKey)[pickMeal].length) pickDetail=""; save(); renderPicker(); }
 /* カタログの品物を「そのまま食べる」1品の献立にして、その日に入れる */
 function addRawDish(name,unit){
   let d=S.dishes.find(x=>x.name===name);
@@ -1744,20 +1785,20 @@ function addRawDish(name,unit){
     d={id:"u"+(S.nextId++), name:name, cat:"そのまま", sv:S.family||3, url:"", memo:"", ing:[{n:name, q:1, u:unit||""}]};
     S.dishes.push(d);
   }
-  curWeek(true)[pickDay][pickMeal].push(d.id);
+  dayObj(pickKey,true)[pickMeal].push(d.id);
   S.recent=[d.id,...S.recent.filter(x=>x!==d.id)].slice(0,10);
   pickSearch="";
   save(); renderPicker(); flash(name+" を追加（料理にも登録しました）");
 }
 function pickRemoveOne(id){
-  const slot=curWeek(true)[pickDay][pickMeal];
+  const slot=dayObj(pickKey,true)[pickMeal];
   const i=slot.lastIndexOf(id);
   if(i>=0){ slot.splice(i,1); flash(dish(id).name+" を1つ減らしました"); }
   if(!slot.length) pickDetail="";
   save(); renderPicker();
 }
 function pickAdd(id){
-  curWeek(true)[pickDay][pickMeal].push(id);
+  dayObj(pickKey,true)[pickMeal].push(id);
   S.recent=[id,...S.recent.filter(x=>x!==id)].slice(0,10);
   const cur=MEALS.find(m=>m.k===pickMeal);
   save(); flash(dish(id).name+" を"+(onMeals().length>1?cur.label+"に":"")+"追加"); renderPicker();
@@ -1815,7 +1856,7 @@ function openEditor(id){
       ing:d.ing.map(x=>({n:x.n, q:(typeof x.q==="number"&&isFinite(x.q))?Math.round(x.q*f*100)/100:x.q, u:x.u}))};
   }
   else editTarget={id:null, name:"", cat:dishCat||"主食", sv:S.family||3, url:"", memo:"", ing:[{n:"",q:"",u:""}]};
-  edWeekOff=weekOffset; edMeal=defaultMeal();
+  edWeekOff=0; edMeal=defaultMeal();
   editorLive=true;
   showModal(); renderEditor();
 }
@@ -2545,7 +2586,7 @@ function startThisWeek(){
   if(!confirm("今回（"+now+"）のリストを新しく作ります。\n\n"
     +(old?"「"+old+"」のリストは履歴に保存されます。\n\n":"")+"よろしいですか？")) return;
   archiveList("切替");
-  weekOffset=0;                       /* 実際の今週に合わせる */
+  perOffset=0;                        /* 今の買い物期間に合わせる */
   S.list=newList(); shopFilter="all"; S.shopFilter="all";
   save(); render(); flash(now+" のリストを作りました");
 }
