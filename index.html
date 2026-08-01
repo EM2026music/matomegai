@@ -721,7 +721,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-58";
+const APP_VERSION="0801-60";
 let S=null;
 function newState(){
   return {
@@ -1773,7 +1773,7 @@ function openDayMeal(dk,k){ pickKey=dk; pickSearch=""; pickCat=""; pickDetail=""
 /* 材料を見る＝スクロール位置に触らない独立ポップアップで表示（画面上に重ねるだけ） */
 function showDishDetail(id){
   const dd=dish(id); if(!dd) return;
-  const fam=S.family, base=dd.sv||3, fct=fam/base;
+  const fam=S.family, base=Math.max(1,Number(dd.sv)||3), fct=fam/base;
   let h='<div class="dishpop-bg" id="dishpopBg" onclick="if(event.target===this)closeDishDetail()"><div class="dishpop">';
   h+=`<div class="dishpop-head"><b>${esc(dd.name)}</b><span class="dishpop-x" onclick="closeDishDetail()">×</span></div>`;
   dd.ing.forEach(g=>{
@@ -1963,7 +1963,7 @@ function openEditor(id){
   if(id){
     /* 「下の分量は◯人分」は必ず設定（歯車）の人数で表示する。
        数字がズレて見えないよう、材料の分量もその人数ぶんに換算してから開く */
-    const d=dish(id), fam=S.family||3, f=fam/(d.sv||3);
+    const d=dish(id), fam=S.family||3, f=fam/Math.max(1,Number(d.sv)||3);
     editTarget={id:id, name:d.name, cat:d.cat, sv:fam, url:d.url||"", memo:d.memo||"",
       ing:d.ing.map(x=>({n:x.n, q:(typeof x.q==="number"&&isFinite(x.q))?Math.round(x.q*f*100)/100:x.q, u:x.u}))};
   }
@@ -2478,7 +2478,7 @@ function aggregate(){
   const map=new Map();
   periodIds().forEach(id=>{
     const d=dish(id); if(!d) return;
-    const f=S.family/(d.sv||3);
+    const f=S.family/Math.max(1,Number(d.sv)||3);
     d.ing.forEach(g=>{
       if(excludeUnit(g.n)||pantryUnit(g.n)) return; /* 除外品と常備品はリストに出さない（下部の確認コーナーへ） */
       const k=g.n+"|"+g.u;
@@ -2541,7 +2541,9 @@ function setUnit(u){ const el=document.getElementById("ui"); if(el) el.value=u; 
 function saveQty(){
   const it=S.list.items[qtyIdx]; if(!it) return;
   const qv=document.getElementById("qi").value;
-  it.q=(qv===""?"":Number(qv));
+  /* マイナスや異常な数は入れさせない（買う量として意味を成さないため） */
+  const n=Number(qv);
+  it.q=(qv===""||!isFinite(n))?"":Math.max(0,n);
   it.u=document.getElementById("ui").value.trim();
   save(); closeModal(); flash(it.n+" の量を更新しました");
 }
@@ -2983,7 +2985,14 @@ function decryptJSON(key,b64){
   return crypto.subtle.decrypt({name:"AES-GCM",iv:iv},key,ct).then(function(pt){ return JSON.parse(new TextDecoder().decode(pt)); });
 }
 /* --- 部屋との出入り --- */
-function shareDoc(roomId){ return fbDb.collection("rooms").doc(roomId); }
+/* 部屋IDはリンク経由＝外から来る文字列。"/" などが混じると別の場所を指しうるので、
+   自分たちが作る形（base64url）だけ通す */
+function safeRoomId(id){ const s=String(id||""); return /^[A-Za-z0-9_-]{8,64}$/.test(s)?s:""; }
+function shareDoc(roomId){
+  const id=safeRoomId(roomId);
+  if(!id) throw new Error("bad-room-id");
+  return fbDb.collection("rooms").doc(id);
+}
 function sharedPayload(){
   const items=((S.list&&S.list.items)||[]).map(function(x){ return {n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""}; });
   return {week:(S.list&&S.list.week)||"", items:items};
@@ -3028,9 +3037,25 @@ function shareSubscribe(){
   }).catch(function(){});
 }
 function applySharedPayload(payload){
-  if(!S.list) S.list={items:[],pantry:[],excluded:[],week:payload.week||"",at:Date.now()};
-  S.list.items=(payload.items||[]).map(function(x){ return {n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""}; });
-  if(payload.week) S.list.week=payload.week;
+  /* 相手の端末から届いたデータ＝こちらでは中身を保証できない。
+     形がおかしい物が1つ混じるだけで買い物画面が壊れるので、必ず整えてから使う */
+  if(!payload||typeof payload!=="object") return;
+  if(!S.list) S.list={items:[],pantry:[],excluded:[],week:String(payload.week||""),at:Date.now()};
+  const src=Array.isArray(payload.items)?payload.items:[];
+  S.list.items=src
+    .filter(function(x){ return x&&typeof x==="object"&&String(x.n==null?"":x.n).trim(); })
+    .slice(0,500)
+    .map(function(x){
+      const num=(typeof x.q==="number"&&isFinite(x.q))?x.q:null;
+      return {
+        n:String(x.n).trim().slice(0,80),
+        q:num!==null?num:String(x.q==null?"":x.q).slice(0,20),
+        u:String(x.u==null?"":x.u).slice(0,20),
+        done:!!x.done, stock:!!x.stock,
+        store:String(x.store==null?"":x.store).slice(0,40)
+      };
+    });
+  if(payload.week) S.list.week=String(payload.week).slice(0,10);
   save();
   if(TAB==="shop") render();
   flash("共有リストが更新されました");
