@@ -264,9 +264,12 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .selbox.stuck .sbig{display:none;}
 .selbox.stuck .selbig{padding:8px 12px;}
 .selbox.stuck .selttl{margin-bottom:6px;}
-.selbox.stuck .selrows{max-height:112px;}
+.selbox.stuck .selrows.more{max-height:112px;}
 .selbox .selttl{font-size:12px; color:var(--green); font-weight:bold; margin-bottom:8px;}
-.selrows{display:flex; flex-direction:column; gap:8px; max-height:148px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;}
+/* 品数が少なく収まる時はスクロール領域にしない＝実機でタップがスクロールと誤認識され
+   反応しなくなる不具合を防ぐ（.moreは中身が実際に収まらない時だけJSで付与） */
+.selrows{display:flex; flex-direction:column; gap:8px;}
+.selrows.more{max-height:148px; overflow-y:auto; -webkit-overflow-scrolling:touch; overscroll-behavior:contain;}
 /* 3品以上は材料行を隠して1行化＝多くても画面を埋め尽くさない */
 .selrows.compact .selbig{padding:9px 12px;}
 .selrows.compact .sbig{display:none;}
@@ -295,6 +298,15 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .ingrow input.q{width:64px;}
 .ingrow input.u{width:64px;}
 .ingrow .rm{border:none; background:none; color:var(--danger); font-size:18px; cursor:pointer; padding:0 4px;}
+/* 材料ポップアップ（#modalとは別の独立レイヤー＝スクロール位置に無関係に上へ重ねて出す） */
+.dishpop-bg{position:fixed; inset:0; background:rgba(60,45,25,.45); z-index:21; display:flex; align-items:center; justify-content:center; padding:20px;}
+.dishpop{background:#fff; width:100%; max-width:420px; max-height:80vh; overflow-y:auto; -webkit-overflow-scrolling:touch; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25);}
+.dishpop-head{display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; gap:10px;}
+.dishpop-head b{font-size:17px;}
+.dishpop-x{font-size:24px; color:var(--sub); cursor:pointer; padding:0 4px; flex-shrink:0;}
+.dishpop-memo{font-size:13px; color:var(--sub); background:#f8f3ea; border-radius:10px; padding:8px 10px; margin-top:8px; white-space:pre-wrap;}
+.dishpop-url{display:block; margin-top:10px; font-size:13px; color:var(--green);}
+.dishpop-foot{margin-top:6px; border-top:1px solid var(--line); text-align:center;}
 /* 下タブ */
 nav{position:fixed; bottom:0; left:0; right:0; z-index:10; display:flex; background:#fff; border-top:1px solid var(--line); padding:6px 8px calc(10px + env(safe-area-inset-bottom));}
 nav button{flex:1; border:none; background:none; font-size:11px; color:#a2967f; cursor:pointer; font-weight:600;}
@@ -654,7 +666,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0727-48";
+const APP_VERSION="0801-49";
 let S=null;
 function newState(){
   return {
@@ -1323,7 +1335,27 @@ let pickDay=0, pickSearch="", pickCat="", pickDetail="", pickMeal="d";
 function defaultMeal(){ const ms=onMeals(); return (ms.some(m=>m.k==="d")?"d":(ms[0]||{k:"d"}).k); }
 function openDay(d){ openDayMeal(d, defaultMeal()); }
 function openDayMeal(d,k){ pickDay=d; pickSearch=""; pickCat=""; pickDetail=""; pickMeal=k; showModal(); renderPicker(); }
-function togSelDetail(id){ pickDetail=(pickDetail===id?"":id); renderPicker(); }
+/* 材料を見る＝スクロール位置に触らない独立ポップアップで表示（画面上に重ねるだけ） */
+function showDishDetail(id){
+  const dd=dish(id); if(!dd) return;
+  const fam=S.family, base=dd.sv||3, fct=fam/base;
+  let h='<div class="dishpop-bg" id="dishpopBg" onclick="if(event.target===this)closeDishDetail()"><div class="dishpop">';
+  h+=`<div class="dishpop-head"><b>${esc(dd.name)}</b><span class="dishpop-x" onclick="closeDishDetail()">×</span></div>`;
+  dd.ing.forEach(g=>{
+    const q=(typeof g.q==="number")?roundQ(g.q*fct,g.u):g.q;
+    h+=`<div class="sdrow"><span>${esc(g.n)}</span><span class="sdq">${esc(String(q))}${esc(g.u||"")}</span></div>`;
+  });
+  if(dd.memo) h+=`<div class="dishpop-memo">${esc(dd.memo)}</div>`;
+  if(dd.url) h+=`<a class="dishpop-url" href="${esc(dd.url)}" target="_blank" rel="noopener">🔗 レシピを見る</a>`;
+  h+=`<div class="dishpop-foot"><span class="ctalink" onclick="closeDishDetail();openEditor('${id}')">✎ この料理を編集</span></div>`;
+  h+='</div></div>';
+  closeDishDetail();
+  document.body.insertAdjacentHTML("beforeend",h);
+}
+function closeDishDetail(){
+  const el=document.getElementById("dishpopBg");
+  if(el) el.remove();
+}
 function renderPicker(){
   const dt=weekDates()[pickDay];
   const wkNow=curWeek();
@@ -1351,23 +1383,9 @@ function renderPicker(){
     slot.forEach((id,j)=>{
       const ds=dish(id); if(!ds) return;
       const ig=ds.ing.slice(0,4).map(x=>x.n).join("・");
-      h+=`<div class="selbig" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="sbmain" onclick="togSelDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span></div>`;
+      h+=`<div class="selbig" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="sbmain" onclick="event.stopPropagation();showDishDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span></div>`;
     });
     h+='</div></div>';
-    if(pickDetail){
-      const dd=dish(pickDetail);
-      if(dd&&slot.includes(pickDetail)){
-        const fam=S.family, base=dd.sv||3, fct=fam/base;
-        h+=`<div class="card" style="margin-top:-2px"><div class="kindhead" style="margin-top:0">${esc(dd.name)}の材料（${fam}人分${fam!==base?`／テンプレは${base}人分`:""}）</div>`;
-        dd.ing.forEach(g=>{
-          const q=(typeof g.q==="number")?roundQ(g.q*fct,g.u):g.q;
-          h+=`<div class="sdrow"><span>${esc(g.n)}</span><span class="sdq">${fmtQ(q)}${esc(g.u)}</span></div>`;
-        });
-        if(dd.memo) h+=`<p class="note">📝 ${esc(dd.memo)}</p>`;
-        if(dd.url&&/^https?:\/\//.test(dd.url)) h+=`<a href="${esc(dd.url)}" target="_blank" rel="noopener" class="linkbtn" style="display:inline-block;margin-top:6px">🔗 レシピを開く</a>`;
-        h+=`<div class="ctalink small" onclick="openEditor('${pickDetail}')">この料理を編集</div></div>`;
-      }
-    }
   }
   /* よく使う組み合わせ（献立セット） */
   if((S.sets||[]).length){
@@ -1427,7 +1445,7 @@ function renderPicker(){
   const sr=document.querySelector("#modal .selrows");
   if(sr){
     if(slot.length>=3) sr.classList.add("compact");
-    if(sr.scrollHeight>sr.clientHeight+2) sr.classList.add("more");
+    if(sr.scrollHeight>150) sr.classList.add("more"); /* 制約を付ける前の自然な高さで判定（148pxの枠+余裕） */
   }
   enableSort(sr, commitWeekOrder, false);
   enableSort(document.querySelector("#modal .picklist"), commitDishOrder, false);
@@ -2644,6 +2662,7 @@ function closeModal(){
 }
 let exitArmed=false;
 window.addEventListener("popstate",function(e){
+  closeDishDetail();
   const ov=document.getElementById("overlay");
   /* まずモーダルが開いていれば閉じる（表示だけ残っている食い違いも拾う） */
   if(modalOpen||ov.classList.contains("show")){
