@@ -664,7 +664,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-52";
+const APP_VERSION="0801-53";
 let S=null;
 function newState(){
   return {
@@ -1329,7 +1329,7 @@ function clearWeek(){ if(confirm("この週の献立をすべて消しますか�
 /* 買い物リストの期間を変える */
 function setPeriod(k,v){
   if(!S.period) S.period={};
-  if(k==="days") S.period.days=Math.max(1,Math.min(21,Number(v)||7));
+  if(k==="days"){ const n=Number(v); S.period.days=(String(v).trim()!==""&&isFinite(n))?Math.max(1,Math.min(21,Math.round(n)||1)):7; }
   else S.period[k]=(k==="start")?Number(v):v;
   save(); renderFamily(); render();
 }
@@ -1676,6 +1676,8 @@ function rDish(){
 
 /* 献立エディタ */
 let editTarget=null, edWeekOff=0, edMeal="d", editFromPicker=false;
+/* 編集中かどうか。カタログを重ねて開いている間もtrueのまま＝戻るボタンで書きかけを失わない */
+let editorLive=false;
 /* 料理を選ぶ画面から「＋新規」で作った時は、保存したらその場でその日に追加する */
 function pickNewDish(){
   editFromPicker=true;
@@ -1693,6 +1695,7 @@ function openEditor(id){
   }
   else editTarget={id:null, name:"", cat:dishCat||"主食", sv:S.family||3, url:"", memo:"", ing:[{n:"",q:"",u:""}]};
   edWeekOff=weekOffset; edMeal=defaultMeal();
+  editorLive=true;
   showModal(); renderEditor();
 }
 /* 編集画面から直接カレンダーに入れる */
@@ -1796,7 +1799,9 @@ function cleanIng(){ return editTarget.ing.filter(g=>g.n.trim()).map(g=>({n:g.n.
 /* 編集画面を開いたまま「戻る」を押した時は、黙って保存してから閉じる。
    ←ボタンをわざわざ押さなくてよくするため（確認ダイアログは出さない） */
 function autoSaveEditorIfOpen(){
-  if(!document.getElementById("edName")) return;        /* 編集画面が出ていない */
+  /* 編集画面そのものが出ていなくても、材料カタログを重ねて開いている最中は
+     まだ編集中なので保存する（ここを取りこぼすと書きかけが丸ごと消える） */
+  if(!editorLive) return;
   const t=editTarget;
   if(!t||!t.name||!t.name.trim()) return;               /* 名前が空なら保存しない */
   if(t.id&&!dish(t.id)) return;                         /* 削除された直後は何もしない */
@@ -1826,18 +1831,22 @@ function saveDish(){
   if(t.id){ const d=dish(t.id); d.name=t.name.trim(); d.cat=t.cat; d.sv=sv; d.url=t.url.trim(); d.memo=t.memo.trim(); d.ing=ing; }
   else { newId="u"+(S.nextId++); S.dishes.push({id:newId, name:t.name.trim(), cat:t.cat, sv:sv, url:t.url.trim(), memo:t.memo.trim(), ing:ing}); }
   save();
+  editorLive=false;   /* 保存済み＝この先の「戻る」で二重保存しない */
   /* 料理を選ぶ画面の「＋新規」から来た時は、閉じずにその場でその日に追加する */
   if(newId&&editFromPicker){ editFromPicker=false; pickAdd(newId); return; }
   editFromPicker=false;
   closeModal(); if(!unknown.length) flash("保存しました");
 }
 function copyDish(){
+  autoSaveEditorIfOpen();   /* 元の料理に書きかけがあれば、それも保存してからコピーする */
+  editorLive=false;         /* 保存済み＝閉じる時に二重保存しない */
   const t=editTarget;
   S.dishes.push({id:"u"+(S.nextId++), name:t.name.trim()+"（食べ盛り）", cat:t.cat, sv:Math.max(1,Number(t.sv)||3), ing:cleanIng()});
   save(); closeModal(); flash("コピーを作りました。分量を調整してね");
 }
 function delDish(){
   if(!confirm("この料理を削除しますか？")) return;
+  editorLive=false;   /* 消したものを「戻る」で復活させない */
   const id=editTarget.id;
   S.dishes=S.dishes.filter(d=>d.id!==id);
   Object.keys(S.plans).forEach(k=>{ S.plans[k]=S.plans[k].map(day=>({b:(day.b||[]).filter(x=>x!==id), l:(day.l||[]).filter(x=>x!==id), d:(day.d||[]).filter(x=>x!==id)})); });
@@ -2845,7 +2854,9 @@ function showModal(){
   history.pushState({modal:1,tab:TAB},"");
 }
 function closeModal(){
-  editFromPicker=false;
+  /* 外側をタップして閉じた時も、編集中なら保存してから閉じる */
+  autoSaveEditorIfOpen();
+  editFromPicker=false; editorLive=false;
   /* modalClosing で二重呼び出しを防ぐ（二重に history.back() するとアプリごと閉じてしまう） */
   if(modalOpen&&!modalClosing){ modalClosing=true; history.back(); return; }
   if(!modalOpen){ document.getElementById("overlay").classList.remove("show"); render(); }
@@ -2853,7 +2864,16 @@ function closeModal(){
 let exitArmed=false;
 window.addEventListener("popstate",function(e){
   closeDishDetail();
+  const ov0=document.getElementById("overlay");
+  /* 材料カタログを重ねて開いている最中の「戻る」は、閉じずに編集画面へ戻すだけ */
+  if(editorLive&&!modalClosing&&ov0.classList.contains("show")&&catMode==="ing"&&document.getElementById("sCat")){
+    catMode="";
+    history.pushState({modal:1,tab:TAB},"");
+    renderEditor();
+    return;
+  }
   autoSaveEditorIfOpen();
+  editorLive=false;
   const ov=document.getElementById("overlay");
   /* まずモーダルが開いていれば閉じる（表示だけ残っている食い違いも拾う） */
   if(modalOpen||ov.classList.contains("show")){
