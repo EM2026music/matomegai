@@ -664,7 +664,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-53";
+const APP_VERSION="0801-54";
 let S=null;
 function newState(){
   return {
@@ -694,8 +694,19 @@ function newState(){
     nextId:1
   };
 }
+let recoveredFrom=null;   /* バックアップから復旧した時刻（起動後に知らせる） */
 function load(){
-  try{const j=localStorage.getItem(KEY); if(j) S=JSON.parse(j);}catch(e){}
+  let raw=null;
+  try{ raw=localStorage.getItem(KEY); }catch(e){}
+  if(raw){ try{ S=JSON.parse(raw); }catch(e){ S=null; } }
+  if((!S||!S.dishes)&&raw){
+    /* 保存データが壊れている。まっさらに戻す前に、自動バックアップから救出を試みる。
+       ここを素通りさせると「入れたはずの献立が全部消える」ので必ず先に試すこと */
+    const rec=recoverFromBak();
+    if(rec){ S=rec.state; recoveredFrom=rec.at; }
+    /* 壊れた元データも捨てずに取っておく（後から手で救えるように） */
+    try{ localStorage.setItem(KEY+"_broken", raw.slice(0,300000)); }catch(e){}
+  }
   if(!S||!S.dishes) S=newState();
   if(!S.family) S.family=3;
   if(!S.recent) S.recent=[];
@@ -752,7 +763,22 @@ function load(){
     S.dishes.push({id:"s"+i, cat:sd[0], name:sd[1], sv:3, ing:sd[2].map(x=>({n:x[0],q:x[1],u:x[2]}))});
   });
 }
-function save(){ localStorage.setItem(KEY,JSON.stringify(S)); if(S.share&&S.share.active) scheduleSharePush(); }
+/* 保存。容量オーバーやプライベートモードで失敗しても落ちないようにし、
+   「入れたのに保存されていない」状態に黙って陥らないよう1度だけ知らせる */
+let saveFailed=false;
+function save(){
+  try{
+    localStorage.setItem(KEY,JSON.stringify(S));
+    if(saveFailed){ saveFailed=false; flash("保存できるようになりました"); }
+  }catch(e){
+    if(!saveFailed){
+      saveFailed=true;
+      alert("⚠ 保存できませんでした。\n\n端末の空き容量が足りないか、ブラウザのプライベートモードで開いている可能性があります。\n\nこのままだと入力した内容が残りません。空き容量を空けるか、通常のモードで開き直してください。");
+    }
+    return;   /* 保存できていないので共有にも送らない */
+  }
+  if(S.share&&S.share.active) scheduleSharePush();
+}
 /* ===== 自動バックアップ（1日1回・3世代） =====
    何かの拍子に献立が消えても、設定画面から前の日の状態に戻せるようにする */
 const BAK_KEY=KEY+"_bak";
@@ -764,8 +790,23 @@ function makeDailyBackup(){
     let baks=readBaks();
     if(baks.length&&baks[0].d===today) return;   /* 今日の分はもう取ってある */
     baks.unshift({d:today, at:Date.now(), s:raw});
-    localStorage.setItem(BAK_KEY,JSON.stringify(baks.slice(0,3)));
+    try{
+      localStorage.setItem(BAK_KEY,JSON.stringify(baks.slice(0,3)));
+    }catch(e){
+      /* 容量が足りないなら世代を減らして再挑戦。それでも駄目ならバックアップは諦める
+         （本体の保存を圧迫してデータを失う方が困るため） */
+      try{ localStorage.setItem(BAK_KEY,JSON.stringify(baks.slice(0,1))); }
+      catch(e2){ try{ localStorage.removeItem(BAK_KEY); }catch(e3){} }
+    }
   }catch(e){}
+}
+/* 保存データが壊れていた時、自動バックアップの新しい順に読めるものを探す */
+function recoverFromBak(){
+  const baks=readBaks();
+  for(let i=0;i<baks.length;i++){
+    try{ const o=JSON.parse(baks[i].s); if(o&&o.dishes&&o.dishes.length) return {state:o, at:baks[i].at}; }catch(e){}
+  }
+  return null;
 }
 function restoreBak(i){
   const baks=readBaks(); const b=baks[i]; if(!b) return;
@@ -777,6 +818,8 @@ function restoreBak(i){
   location.reload();
 }
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+/* リンクとして開いてよいURLだけ通す（javascript: などを弾く） */
+function safeUrl(u){ const s=String(u||"").trim(); return /^https?:\/\//i.test(s)?s:""; }
 function fmtQ(q){
   if(q===""||q==null||isNaN(q)) return "";
   if(q===0.25) return "1/4"; if(q===0.5) return "1/2"; if(q===0.75) return "3/4";
@@ -1506,7 +1549,7 @@ function showDishDetail(id){
     h+=`<div class="sdrow"><span>${esc(g.n)}</span><span class="sdq">${esc(String(q))}${esc(g.u||"")}</span></div>`;
   });
   if(dd.memo) h+=`<div class="dishpop-memo">${esc(dd.memo)}</div>`;
-  if(dd.url) h+=`<a class="dishpop-url" href="${esc(dd.url)}" target="_blank" rel="noopener">🔗 レシピを見る</a>`;
+  if(safeUrl(dd.url)) h+=`<a class="dishpop-url" href="${esc(safeUrl(dd.url))}" target="_blank" rel="noopener">🔗 レシピを見る</a>`;
   h+=`<div class="dishpop-foot"><span class="ctalink" onclick="closeDishDetail();openEditor('${id}')">✎ この料理を編集</span></div>`;
   h+='</div></div>';
   closeDishDetail();
@@ -1787,7 +1830,7 @@ function renderEditor(){
   });
   h+='<div style="margin-top:4px"><button class="btn sub small wide" onclick="openCatalogForIng()">📖 カタログから選ぶ</button></div>';
   h+=`<div style="margin-top:14px"><input type="text" style="width:100%" placeholder="参考レシピのURL（任意）" value="${esc(t.url)}" oninput="editTarget.url=this.value"></div>`;
-  if(t.url&&/^https?:\/\//.test(t.url.trim())) h+=`<div style="margin-top:6px"><a href="${esc(t.url.trim())}" target="_blank" rel="noopener" class="linkbtn">🔗 レシピを開く</a></div>`;
+  if(safeUrl(t.url)) h+=`<div style="margin-top:6px"><a href="${esc(safeUrl(t.url))}" target="_blank" rel="noopener" class="linkbtn">🔗 レシピを開く</a></div>`;
   h+=`<div style="margin-top:8px"><input type="text" style="width:100%" placeholder="ひとことメモ（任意：味付けのコツなど）" value="${esc(t.memo)}" oninput="editTarget.memo=this.value"></div>`;
   h+='<div class="row2"><button class="btn" onclick="saveDish()">保存</button>';
   if(t.id) h+='<button class="btn sub" onclick="copyDish()">増量版を作る</button><button class="btn danger" onclick="delDish()">削除</button>';
@@ -2921,6 +2964,14 @@ let pendingShareJoin=null;
 history.replaceState({tab:"week", base:true},"",pendingShareJoin?location.pathname:location.href);
 history.pushState({tab:"week"},"");
 render();
+if(recoveredFrom){
+  const d=new Date(recoveredFrom);
+  setTimeout(function(){
+    alert("⚠ 保存データが壊れていたため、自動バックアップから復元しました。\n\n"
+      +(d.getMonth()+1)+"/"+d.getDate()+" "+String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")
+      +" 時点の状態です。\nそれ以降に入れた分は入っていないことがあります。");
+  },600);
+}
 if(S.share&&S.share.active) shareSubscribe();
 if(pendingShareJoin){
   setTimeout(function(){
