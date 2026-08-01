@@ -721,7 +721,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-60";
+const APP_VERSION="0801-61";
 let S=null;
 function newState(){
   return {
@@ -3002,21 +3002,37 @@ function scheduleSharePush(){
   clearTimeout(sharePushTimer);
   sharePushTimer=setTimeout(doSharePush,500);
 }
+let sharePushRetry=0;
 function doSharePush(){
   if(!S.share||!S.share.active) return;
   const payload=sharedPayload(), json=JSON.stringify(payload);
   if(json===lastPushedJSON) return;
+  const room=S.share.roomId;
+  /* 送った印は先に付ける（自分の書き込みが跳ね返ってきた時に無視するため）。
+     ただし失敗したら必ず元に戻す。戻さないと「送れていないのに送信済み」に
+     なり、その変更が相手に永久に届かない */
+  const prev=lastPushedJSON;
+  lastPushedJSON=json;
   fbInit().then(function(){ return importShareKey(S.share.key); })
     .then(function(key){ return encryptJSON(key,payload); })
     .then(function(ct){
-      lastPushedJSON=json;
       const exp=new Date(Date.now()+14*24*60*60*1000);
-      return shareDoc(S.share.roomId).set({
+      return shareDoc(room).set({
         ciphertext:ct,
         updatedAt:firebase.firestore.FieldValue.serverTimestamp(),
         expiresAt:firebase.firestore.Timestamp.fromDate(exp)
       });
-    }).catch(function(e){ console.warn("share push failed",e); });
+    })
+    .then(function(){ sharePushRetry=0; })
+    .catch(function(e){
+      console.warn("share push failed",e);
+      if(lastPushedJSON===json) lastPushedJSON=prev;   /* 送れていないので取り消す */
+      if(!S.share||!S.share.active||S.share.roomId!==room) return;
+      if(sharePushRetry>=5) return;                     /* 諦める。次に何か変えた時また送る */
+      const wait=Math.min(30000, 2000*Math.pow(2,sharePushRetry++));
+      clearTimeout(sharePushTimer);
+      sharePushTimer=setTimeout(doSharePush,wait);
+    });
 }
 function shareSubscribe(){
   if(!S.share||!S.share.roomId) return;

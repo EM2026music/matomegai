@@ -6,7 +6,12 @@ service cloud.firestore {
        - roomId は32文字のランダム値なので、知っている人だけが実質アクセスできる
        - フィールドを限定し、サイズも上限（200KB・買い物リストには十分すぎる余裕）を設ける */
     match /rooms/{roomId} {
-      allow read: if request.auth != null;
+      /* get だけを許可し、list（一覧取得）は許可しない。
+         read にすると匿名ログインだけで rooms を丸ごと列挙でき、
+         全員ぶんの暗号文を一括ダウンロードされたり、
+         列挙したIDを片っ端から上書きして壊されたりする。
+         roomId は128bitの乱数なので、知っている人だけが取り出せる状態にする */
+      allow get: if request.auth != null;
       allow create, update: if request.auth != null
         && request.resource.data.keys().hasOnly(['ciphertext','updatedAt','expiresAt'])
         && request.resource.data.ciphertext is string
