@@ -298,6 +298,9 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .ingrow input.q{width:64px;}
 .ingrow input.u{width:64px;}
 .ingrow .rm{border:none; background:none; color:var(--danger); font-size:18px; cursor:pointer; padding:0 4px;}
+.iabwarn{background:#fff4e5; border:1px solid #f0c48a; border-radius:12px; padding:12px; margin-bottom:12px; font-size:13px; line-height:1.6; color:#7a5a2a;}
+.iabwarn b{color:#b5651d;}
+.iabwarn div{margin:6px 0 10px;}
 /* 材料ポップアップ（#modalとは別の独立レイヤー＝スクロール位置に無関係に上へ重ねて出す） */
 .dishpop-bg{position:fixed; inset:0; background:rgba(60,45,25,.45); z-index:21; display:flex; align-items:center; justify-content:center; padding:20px;}
 .dishpop{background:#fff; width:100%; max-width:420px; max-height:80vh; overflow-y:auto; -webkit-overflow-scrolling:touch; border-radius:16px; padding:16px; box-shadow:0 10px 30px rgba(0,0,0,.25);}
@@ -652,16 +655,16 @@ function excludeUnit(name){ return (S.excludeList||[]).find(x=>x.n===name); }
 /* 今週の献立で実際に使う常備品・除外品 */
 function pantryNeeded(){
   const pset=new Set(), eset=new Set();
-  curWeek().forEach(day=>dayIds(day).forEach(id=>{
+  periodIds().forEach(id=>{
     const d=dish(id); if(!d) return;
     d.ing.forEach(g=>{ if(excludeUnit(g.n)) eset.add(g.n); else if(pantryUnit(g.n)) pset.add(g.n); });
-  }));
+  });
   return {names:[...pset], excludedNames:[...eset]};
 }
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-51";
+const APP_VERSION="0801-52";
 let S=null;
 function newState(){
   return {
@@ -674,6 +677,7 @@ function newState(){
   history:[],
   shopFilter:"all",
   share:{active:false, roomId:"", key:""},
+  period:{start:0, days:7, lastMeal:"d"},
     goodsSel:{},
     goodsStar:{},
     goodsQty:{},
@@ -816,6 +820,60 @@ function curWeek(create){
   return S.plans[k];
 }
 function weekDates(){ const m=curMonday(); return DAYS.map((_,i)=>{ const d=new Date(m); d.setDate(m.getDate()+i); return d; }); }
+/* ===== 買い物の期間 =====
+   買い物リストは「月〜日の1週間」に固定せず、開始曜日・日数・最終日にどこまで
+   食べるかを自分で決められる（例：土曜に買って、次の土曜のお昼まで＝土開始・8日・昼まで）*/
+const MEAL_ORDER=["b","l","d"];
+function periodDef(){
+  const p=S.period||{};
+  return {
+    start:(typeof p.start==="number")?p.start:0,        /* 0=月 … 6=日 */
+    days:Math.max(1,Math.min(21,p.days||7)),
+    lastMeal:MEAL_ORDER.indexOf(p.lastMeal)>=0?p.lastMeal:"d"
+  };
+}
+/* 今の買い物期間の初日（今日を含む直近の「開始曜日」までさかのぼる） */
+function periodStart(){
+  const pd=periodDef();
+  const t=new Date(); t.setHours(0,0,0,0);
+  const cur=(t.getDay()+6)%7;
+  const s=new Date(t); s.setDate(t.getDate()-((cur-pd.start+7)%7));
+  return s;
+}
+function periodKey(){ return keyOf(periodStart()); }
+/* 日付から、その日の献立を取り出す（週をまたいでも拾える） */
+function dayAt(date){
+  const wk=S.plans[keyOf(mondayOf(date))];
+  if(!wk) return emptyDay();
+  return wk[(date.getDay()+6)%7]||emptyDay();
+}
+/* 期間内の「日付」と「その日に数える食事」の一覧 */
+function periodSlots(){
+  const pd=periodDef(), s=periodStart(), ms=onMeals().map(m=>m.k), out=[];
+  const lim=MEAL_ORDER.indexOf(pd.lastMeal);
+  for(let i=0;i<pd.days;i++){
+    const d=new Date(s); d.setDate(s.getDate()+i);
+    const keys=(i===pd.days-1)?ms.filter(k=>MEAL_ORDER.indexOf(k)<=lim):ms.slice();
+    out.push({date:d, keys:keys});
+  }
+  return out;
+}
+/* 期間内に出てくる料理IDを全部集める */
+function periodIds(){
+  let a=[];
+  periodSlots().forEach(function(sl){
+    const day=dayAt(sl.date);
+    sl.keys.forEach(function(k){ a=a.concat(day[k]||[]); });
+  });
+  return a;
+}
+/* "2026-08-01"＋日数 →「8/1〜8/8」 */
+function periodLabel(startKey,days){
+  const p=(startKey||"").split("-"); if(p.length!==3) return "";
+  const s=new Date(+p[0],+p[1]-1,+p[2]);
+  const e=new Date(s); e.setDate(s.getDate()+(Math.max(1,days||7)-1));
+  return `${s.getMonth()+1}/${s.getDate()}〜${e.getMonth()+1}/${e.getDate()}`;
+}
 /* 長押しで消す（タップは通常動作のまま） */
 let lpTimer=null, lpFired=false;
 function lpStart(fn){ lpFired=false; clearTimeout(lpTimer); lpTimer=setTimeout(function(){ lpFired=true; if(navigator.vibrate) navigator.vibrate(30); fn(); },550); }
@@ -1069,6 +1127,24 @@ function commitDayOrder(ids){
 function commitWeekOrder(ids){ curWeek(true)[pickDay][pickMeal]=ids.slice(); save(); }
 
 /* ===== 献立表（週） ===== */
+/* LINEなどの「アプリの中のブラウザ」で開かれていないか。
+   ここで入力すると、ホーム画面のアイコンから開いた時とは別の場所に保存されてしまい、
+   「入れたのに消えた」ように見えるので、はっきり知らせる */
+function inAppBrowser(){
+  const ua=navigator.userAgent||"";
+  if(/Line\//i.test(ua)) return "LINE";
+  if(/FBAN|FBAV/i.test(ua)) return "Facebook";
+  if(/Instagram/i.test(ua)) return "Instagram";
+  return "";
+}
+function inAppWarn(){
+  const app=inAppBrowser();
+  if(!app||S.iabOk) return "";
+  return `<div class="iabwarn"><b>⚠ ${app}の中のブラウザで開いています</b>`
+    +`<div>ここで入れた献立は、ホーム画面のアイコンから開いた時とは<b>別の場所に保存</b>されます。`
+    +`いつものアイコンから開き直してください（右上「…」→「ブラウザで開く」でも移れます）。</div>`
+    +`<button class="btn small sub" onclick="S.iabOk=true;save();render()">わかった（閉じる）</button></div>`;
+}
 function rWeek(){
   const dates=weekDates(); const todayStr=new Date().toDateString();
   const wk=curWeek();
@@ -1078,6 +1154,7 @@ function rWeek(){
   const label=weekOffset===0?"今週":weekOffset===-1?"先週":weekOffset===1?"来週":(weekOffset<0?weekOffset+"週":"+"+weekOffset+"週");
   let h='<div class="pagehead"><div class="ptitle">献立表</div>';
   h+='<button class="pill" onclick="openFamily()">⚙ 設定</button></div>';
+  h+=inAppWarn();
   h+='<div class="weeknav">';
   h+='<button class="wnav" onclick="shiftWeek(-1)">◀</button>';
   h+=`<div class="wlabel"><b>${label}</b><span>${dates[0].getMonth()+1}/${dates[0].getDate()}〜${dates[6].getMonth()+1}/${dates[6].getDate()}</span></div>`;
@@ -1143,9 +1220,10 @@ function rWeek(){
   h+='</div>';
   h+='<p class="note" style="margin-top:-2px">各行の左にある<b>⣿つまみ</b>を押したまま動かすと、料理を別の曜日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
+  h+=`<div class="ctalink small" style="margin-top:-6px;color:#a2957f" onclick="openFamily()">買い物のぶん：${periodLabel(periodKey(),periodDef().days)}（変更 ›）</div>`;
   if(listIsOld()){
     const nb=(S.list.items||[]).filter(x=>!x.stock&&!x.done).length;
-    h+=`<div class="ctalink oldhint" onclick="go('shop')">📅 「${weekRangeLabel(S.list.week)}」のリストが残っています${nb?`（未購入 ${nb}品）`:""} ›</div>`;
+    h+=`<div class="ctalink oldhint" onclick="go('shop')">📅 「${listRangeLabel()}」のリストが残っています${nb?`（未購入 ${nb}品）`:""} ›</div>`;
   } else {
   h+='<div class="ctalink" onclick="go(\'shop\')">作り直さずに今のリストを見る ›</div>';
   }
@@ -1175,7 +1253,27 @@ function renderFamily(){
   h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(-1);renderFamily()">−</button>';
   h+=`<b style="font-size:26px">${S.family}人</b>`;
   h+='<button class="btn sub" style="width:56px;font-size:20px" onclick="setFamily(1);renderFamily()">＋</button></div>';
-  h+='<p class="note" style="text-align:center;margin-top:0">料理ごとの分量（基準3人分）を、この人数に自動換算します</p>';
+  h+='<p class="note" style="text-align:center;margin-top:0">料理ごとの分量を、この人数に自動換算します</p>';
+  /* 買い物の期間（週をまたいでもOK） */
+  const pd=periodDef();
+  h+='<div class="kindhead">買い物リストの期間</div>';
+  h+='<p class="note" style="margin-top:0">買い物に行く曜日から、次に買いに行く前の日までを指定します。週をまたいでも大丈夫です。</p>';
+  h+='<div style="font-size:13px;color:#8a7a63;margin:6px 0 4px">買いに行く曜日</div>';
+  h+='<div class="goodsgrid">';
+  DAYS.forEach(function(w,i){
+    h+=`<button class="gbtn ${pd.start===i?"sel":""}" onclick="setPeriod('start',${i})">${w}${pd.start===i?'<span class="gchk">✓</span>':''}</button>`;
+  });
+  h+='</div>';
+  h+='<div style="display:flex;align-items:center;gap:8px;margin:10px 0 4px;font-size:14px;">その日から<input type="number" min="1" max="21" style="width:64px" value="'+pd.days+'" onchange="setPeriod(\'days\',this.value)">日分</div>';
+  if(onMeals().length>1){
+    h+='<div style="font-size:13px;color:#8a7a63;margin:8px 0 4px">最終日はどこまで食べる？</div>';
+    h+='<div class="goodsgrid">';
+    onMeals().forEach(function(m){
+      h+=`<button class="gbtn ${pd.lastMeal===m.k?"sel":""}" onclick="setPeriod('lastMeal','${m.k}')">${m.icon} ${m.label}まで${pd.lastMeal===m.k?'<span class="gchk">✓</span>':''}</button>`;
+    });
+    h+='</div>';
+  }
+  h+=`<p class="note">今回のぶん：<b>${periodLabel(periodKey(),pd.days)}</b>（${pd.days}日分${onMeals().length>1?"・最終日は"+(MEALS.find(m=>m.k===pd.lastMeal)||{label:""}).label+"まで":""}）</p>`;
   h+='<div class="kindhead">献立表に出す食事</div>';
   h+='<p class="note" style="margin-top:0">朝・昼・夜の表示切替は<b>ホーム画面の「表示する食事」</b>から直接できます。</p>';
   h+='<div class="goodsgrid">';
@@ -1228,18 +1326,25 @@ function togMeal(k){
   if(modalOpen) renderFamily(); else render();
 }
 function clearWeek(){ if(confirm("この週の献立をすべて消しますか？")){ S.plans[curKey()]=emptyWeek(); save(); render(); } }
+/* 買い物リストの期間を変える */
+function setPeriod(k,v){
+  if(!S.period) S.period={};
+  if(k==="days") S.period.days=Math.max(1,Math.min(21,Number(v)||7));
+  else S.period[k]=(k==="start")?Number(v):v;
+  save(); renderFamily(); render();
+}
 /* ===== 買い物の履歴 ===== */
 /* 実際の「今週」（画面で先週/来週を見ていても影響されない） */
 function realKey(){ return keyOf(mondayOf(new Date())); }
 /* 持ち越し＝リストが実際の今週より前の週のものか */
-function listIsOld(){ return !!(S.list && S.list.items && S.list.items.length && S.list.week && S.list.week < realKey()); }
+function listIsOld(){ return !!(S.list && S.list.items && S.list.items.length && S.list.week && S.list.week < periodKey()); }
 /* 今のリストを履歴に残す（空なら何もしない） */
 function archiveList(how){
   if(!S.list || !S.list.items || !S.list.items.length) return false;
   const buy=S.list.items.filter(x=>!x.stock);
   if(!S.history) S.history=[];
   S.history.unshift({
-    week:S.list.week||"", at:Date.now(), how:how||"完了",
+    week:S.list.week||"", days:S.list.days||7, at:Date.now(), how:how||"完了",
     total:buy.length, done:buy.filter(x=>x.done).length,
     items:S.list.items.map(x=>({n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""}))
   });
@@ -1248,33 +1353,28 @@ function archiveList(how){
 }
 function newList(){
   const need=pantryNeeded();
-  return {items:aggregate(), pantry:need.names.map(n=>({n:n, buy:false})), excluded:need.excludedNames.map(n=>({n:n, buy:false})), week:curKey(), at:Date.now()};
+  return {items:aggregate(), pantry:need.names.map(n=>({n:n, buy:false})), excluded:need.excludedNames.map(n=>({n:n, buy:false})), week:periodKey(), days:periodDef().days, at:Date.now()};
 }
-/* "2026-07-20"（月曜）→「7/20〜7/26」 */
-function weekRangeLabel(key){
-  if(!key) return "";
-  const p=key.split("-"); if(p.length!==3) return "";
-  const mon=new Date(+p[0], +p[1]-1, +p[2]);
-  const sun=new Date(mon); sun.setDate(mon.getDate()+6);
-  return `${mon.getMonth()+1}/${mon.getDate()}〜${sun.getMonth()+1}/${sun.getDate()}`;
-}
+/* リスト・履歴の期間ラベル（古い履歴は1週間ぶんとして表示） */
+function weekRangeLabel(key,days){ return periodLabel(key, days||7); }
+function listRangeLabel(){ return S.list?periodLabel(S.list.week, S.list.days):""; }
 function makeListGo(){
   const ag=aggregate();
   if(!ag.length&&!(S.list&&S.list.items.length)){ flash("先に献立か定番を選んでね"); return; }
-  if(S.list&&S.list.items.length&&S.list.week&&S.list.week!==curKey()){
-    /* 別の週のリストが残っている＝勝手に混ぜず、どうするか聞く */
-    const old=weekRangeLabel(S.list.week);
+  if(S.list&&S.list.items.length&&S.list.week&&S.list.week!==periodKey()){
+    /* 前の期間のリストが残っている＝勝手に混ぜず、どうするか聞く */
+    const old=listRangeLabel();
     const nb=S.list.items.filter(x=>!x.stock&&!x.done).length;
     const msg="「"+old+"」のリストが残っています（未購入 "+nb+"品）。"+String.fromCharCode(10,10)
-      +"［OK］この週のリストを新しく作る（残っていた分は履歴に保存）"+String.fromCharCode(10)
+      +"［OK］今回のリストを新しく作る（残っていた分は履歴に保存）"+String.fromCharCode(10)
       +"［キャンセル］そのまま前のリストを続ける";
     if(confirm(msg)){
       archiveList("切替");
-      S.list=newList(); save(); flash(weekRangeLabel(curKey())+" のリストを作りました");
+      S.list=newList(); save(); flash(listRangeLabel()+" のリストを作りました");
     }
   } else if(S.list&&S.list.items.length){
     const r=syncList(ag);
-    S.list.week=curKey();
+    S.list.week=periodKey(); S.list.days=periodDef().days;
     save();
     if(r.added||r.removed||r.updated) flash(`リストを更新：追加${r.added}・削除${r.removed}・数量変更${r.updated}（チェックは保持）`);
   } else {
@@ -2093,7 +2193,7 @@ let shopFilter="all";
 function setShopFilter(v){ shopFilter=v; S.shopFilter=v; save(); render(); }
 function aggregate(){
   const map=new Map();
-  curWeek().forEach(day=>dayIds(day).forEach(id=>{
+  periodIds().forEach(id=>{
     const d=dish(id); if(!d) return;
     const f=S.family/(d.sv||3);
     d.ing.forEach(g=>{
@@ -2103,7 +2203,7 @@ function aggregate(){
       if(map.has(k)){ const m=map.get(k); if(typeof q==="number"&&typeof m.q==="number") m.q+=q; }
       else map.set(k,{n:g.n, q:q, u:g.u});
     });
-  }));
+  });
   const items=[...map.values()].map(x=>{
     const buy=buyQty(x.q,x.u);
     const need=(typeof x.q==="number")?((x.q>=10)?Math.round(x.q):Math.round(x.q*10)/10):x.q;
@@ -2196,15 +2296,15 @@ function rShop(){
   if(listIsOld()){
     const nb=items.filter(x=>!x.stock&&!x.done).length;
     h+='<div class="oldbox">';
-    h+=`<div class="obt">📅 これは「${weekRangeLabel(lw)}」のリストです</div>`;
-    h+=`<div class="obs">${nb?`まだ ${nb}品 残っています。`:"すべて買い終わっています。"}今週のぶんを作ると、このリストは履歴に保存されます。</div>`;
-    h+='<div class="obr"><button class="btn small" onclick="startThisWeek()">今週のリストを作る</button>';
+    h+=`<div class="obt">📅 これは「${listRangeLabel()}」のリストです</div>`;
+    h+=`<div class="obs">${nb?`まだ ${nb}品 残っています。`:"すべて買い終わっています。"}今回のぶんを作ると、このリストは履歴に保存されます。</div>`;
+    h+='<div class="obr"><button class="btn small" onclick="startThisWeek()">今回のリストを作る</button>';
     h+='<button class="btn small sub" onclick="openHistory()">履歴を見る</button></div>';
     h+='</div>';
   } else if(lw){
-    const same=lw===curKey();
-    h+=`<div class="listweek ${same?"":"other"}">📅 ${weekRangeLabel(lw)} の週のリスト`;
-    if(!same) h+=`<span class="lwnote">（今ホームで見ている週とは別です）</span>`;
+    const same=lw===periodKey();
+    h+=`<div class="listweek ${same?"":"other"}">📅 ${listRangeLabel()} のリスト`;
+    if(!same) h+=`<span class="lwnote">（今の買い物期間とは別です）</span>`;
     h+='</div>';
   }
   h+=`<div class="pmeta">購入済み <b>${doneN} / ${buy.length}</b></div>`;
@@ -2295,7 +2395,7 @@ function addManual(){
   save(); render();
 }
 function finishTrip(){
-  const wl=S.list&&S.list.week?weekRangeLabel(S.list.week)+"の週の":"";
+  const wl=S.list&&S.list.week?listRangeLabel()+"の":"";
   const rest=S.list?S.list.items.filter(x=>!x.stock&&!x.done):[];
   if(rest.length){
     const names=rest.slice(0,5).map(x=>"・"+x.n).join("\n")+(rest.length>5?"\n…ほか"+(rest.length-5)+"品":"");
@@ -2310,13 +2410,14 @@ function finishTrip(){
 /* ===== 買い物の履歴を見る ===== */
 let histOpen=-1;
 function startThisWeek(){
-  const old=S.list&&S.list.week?weekRangeLabel(S.list.week):"";
-  if(!confirm("今週（"+weekRangeLabel(realKey())+"）のリストを新しく作ります。\n\n"
+  const old=S.list&&S.list.week?listRangeLabel():"";
+  const now=periodLabel(periodKey(),periodDef().days);
+  if(!confirm("今回（"+now+"）のリストを新しく作ります。\n\n"
     +(old?"「"+old+"」のリストは履歴に保存されます。\n\n":"")+"よろしいですか？")) return;
   archiveList("切替");
   weekOffset=0;                       /* 実際の今週に合わせる */
   S.list=newList(); shopFilter="all"; S.shopFilter="all";
-  save(); render(); flash(weekRangeLabel(realKey())+" のリストを作りました");
+  save(); render(); flash(now+" のリストを作りました");
 }
 function openHistory(){ histOpen=-1; showModal(); renderHistory(); }
 function renderHistory(){
@@ -2330,7 +2431,7 @@ function renderHistory(){
       const d=new Date(r.at);
       const all=r.done>=r.total&&r.total>0;
       h+=`<div class="hrow" onclick="histOpen=${histOpen===i?-1:i};renderHistory()">`;
-      h+=`<div style="min-width:0"><div class="hw">${esc(weekRangeLabel(r.week)||"（週なし）")} の週</div>`;
+      h+=`<div style="min-width:0"><div class="hw">${esc(weekRangeLabel(r.week,r.days)||"（期間なし）")}</div>`;
       h+=`<div class="hs">${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")} に${esc(r.how||"完了")}</div></div>`;
       h+=`<span class="hbadge ${all?"":"part"}">${r.done}/${r.total}品</span></div>`;
       if(histOpen===i){
