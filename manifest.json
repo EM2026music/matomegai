@@ -1,7 +1,7 @@
 {
   "name": "まとめ買いリスト",
   "short_name": "まとめ買い",
-  "description": "1週間の献立から買い物リストを自動で作るアプリ",
+  "description": "献立から買い物リストを自動で作るアプリ",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

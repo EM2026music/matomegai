@@ -25,7 +25,7 @@ h2{font-size:15px; margin:14px 2px 8px; color:var(--or-d);}
 /* ページ見出し */
 .pagehead{display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:10px;}
 .ptitle{font-size:22px; font-weight:800;}
-.pill{border:1.5px solid #e8ddcb; background:#fff; border-radius:12px; padding:8px 12px; font-size:13px; font-weight:bold; color:var(--ink); cursor:pointer;}
+.pill{border:1.5px solid #e8ddcb; background:#fff; border-radius:12px; padding:11px 14px; min-height:42px; font-size:13px; font-weight:bold; color:var(--ink); cursor:pointer;}
 .summary{font-size:14px; margin:0 2px 12px;}
 .summary b{font-size:16px;}
 /* 献立表 */
@@ -123,10 +123,10 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .mealcol .more{font-size:10.5px; color:var(--sub); margin-top:2px;}
 .summaryrow{display:flex; align-items:center; justify-content:space-between; gap:8px; margin:0 2px 12px; flex-wrap:wrap;}
 .summaryrow .summary{flex:1 1 auto; min-width:0;}
-.viewtog{border:1.5px solid #e8ddcb; background:#fff; border-radius:10px; padding:6px 10px; font-size:12px; font-weight:bold; color:var(--or-d); cursor:pointer; flex-shrink:0;}
+.viewtog{border:1.5px solid #e8ddcb; background:#fff; border-radius:10px; padding:10px 12px; min-height:40px; font-size:12px; font-weight:bold; color:var(--or-d); cursor:pointer; flex-shrink:0;}
 .mealtoggle{display:flex; align-items:center; gap:6px; margin:0 2px 12px; flex-wrap:wrap;}
 .mtlabel{font-size:11px; color:var(--sub); flex-shrink:0;}
-.mtchip{border:1.5px solid #e2d6c2; background:#fff; color:#b3a696; border-radius:14px; padding:6px 11px; font-size:12.5px; font-weight:bold; cursor:pointer;}
+.mtchip{border:1.5px solid #e2d6c2; background:#fff; color:#b3a696; border-radius:14px; padding:10px 13px; min-height:40px; font-size:12.5px; font-weight:bold; cursor:pointer;}
 .mtchip.b.on{background:#e8873c; border-color:#e8873c; color:#fff;}
 .mtchip.l.on{background:#e0b23c; border-color:#e0b23c; color:#fff;}
 .mtchip.d.on{background:#4a7ab5; border-color:#4a7ab5; color:#fff;}
@@ -331,13 +331,14 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .pcdot{color:#cfc3ae;}
 .pclast{display:inline-flex; gap:4px; margin:0 2px;}
 .pclm{border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:9px;
-      padding:5px 8px; font-size:12px; cursor:pointer; font-family:inherit;}
+      padding:9px 10px; min-height:40px; font-size:12px; cursor:pointer; font-family:inherit;}
 .pclm.on{background:var(--or); border-color:var(--or); color:#fff; font-weight:bold;}
 .pclm:disabled{opacity:.55; cursor:default;}
 .pchint{margin-top:9px; text-align:center; font-size:11.5px; color:#a2957f; line-height:1.5;}
 .pcback{border:1px solid var(--line); background:#fff; color:var(--or-d); border-radius:10px;
         padding:8px 14px; font-size:13px; cursor:pointer; font-family:inherit;}
 /* ホーム下部：押せると分かる行ボタン（文字だけのリンクは押せるか分かりにくかった） */
+.ctanote{text-align:center; font-size:12px; color:#a2957f; margin:6px 0 2px; line-height:1.5;}
 .menulist{margin:14px 0 4px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff;}
 .mrow{display:flex; align-items:center; gap:12px; padding:15px 14px; border-bottom:1px solid var(--line);
       cursor:pointer; font-size:15px; color:var(--ink); text-decoration:none; -webkit-tap-highlight-color:transparent;}
@@ -720,7 +721,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-57";
+const APP_VERSION="0801-58";
 let S=null;
 function newState(){
   return {
@@ -764,6 +765,28 @@ function load(){
     try{ localStorage.setItem(KEY+"_broken", raw.slice(0,300000)); }catch(e){}
   }
   if(!S||!S.dishes) S=newState();
+  /* 足りない項目を既定値で埋める。1つでも欠けると画面が真っ白になり
+     「データが消えた」ように見えるので、個別に足すのではなく機械的に全部そろえる */
+  (function(){
+    const def=newState();
+    Object.keys(def).forEach(function(k){
+      const d=def[k];
+      if(S[k]===undefined){ S[k]=d; return; }
+      /* 種類が違う（オブジェクトのはずが文字列など）なら壊れているとみなして戻す */
+      if(d&&typeof d==="object"){
+        if(S[k]===null||typeof S[k]!=="object"||Array.isArray(d)!==Array.isArray(S[k])) S[k]=d;
+      }
+    });
+  })();
+  /* 自作料理の連番は、既にある u◯◯ より必ず後ろから続ける（同じIDが二重にできるのを防ぐ） */
+  (function(){
+    let mx=0;
+    (S.dishes||[]).forEach(function(d){
+      const m=/^u(\d+)$/.exec(d.id||"");
+      if(m) mx=Math.max(mx,+m[1]);
+    });
+    if(!(S.nextId>mx)) S.nextId=mx+1;
+  })();
   if(!S.family) S.family=3;
   if(!S.recent) S.recent=[];
   if(!S.share) S.share={active:false, roomId:"", key:""};
@@ -1417,14 +1440,32 @@ function rWeek(){
   });
   h+='</div>';
   h+='<p class="note" style="margin-top:-2px">各行の左にある<b>☰つまみ</b>を押したまま動かすと、料理を別の日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
-  h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
+  /* 押したら何が起きるかを、押す前に文字で出す */
+  const df=listDiff();
+  if(!df){
+    h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを作る　${nItems}品 ›</button>`;
+    h+='<div class="ctanote">この期間の献立から、材料をまとめて作ります</div>';
+  } else if(df.other){
+    h+='<button class="cta" onclick="makeListGo()">🛒 今回の買い物リストを作る ›</button>';
+    h+='<div class="ctanote">前の期間のリストが残っています。作ると履歴に保存されます</div>';
+  } else if(df.same){
+    h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを開く　${nItems}品 ›</button>`;
+    h+='<div class="ctanote">今の献立どおりのリストです。中身は変わりません</div>';
+  } else {
+    const parts=[];
+    if(df.added) parts.push("＋"+df.added+"品");
+    if(df.removed) parts.push("−"+df.removed+"品");
+    if(df.updated) parts.push("数量"+df.updated+"品");
+    h+='<button class="cta" onclick="makeListGo()">🛒 献立の変更をリストに反映する ›</button>';
+    h+=`<div class="ctanote">献立が変わりました（${parts.join("・")}）。買った印はそのまま残ります</div>`;
+  }
   if(listIsOld()){
     const nb=(S.list.items||[]).filter(x=>!x.stock&&!x.done).length;
     h+=`<div class="ctalink oldhint" onclick="go('shop')">📅 「${listRangeLabel()}」のリストが残っています${nb?`（未購入 ${nb}品）`:""} ›</div>`;
   }
   /* 押せると分かるように、まとまった行ボタンにする */
   h+='<div class="menulist">';
-  if(!listIsOld()) h+='<div class="mrow" onclick="go(\'shop\')"><span class="mic">🧾</span><span class="mtx">作り直さずに今のリストを見る</span><span class="mar">›</span></div>';
+  if(df&&!df.other&&!df.same) h+='<div class="mrow" onclick="go(\'shop\')"><span class="mic">🧾</span><span class="mtx">反映しないで、今のリストを開く</span><span class="mar">›</span></div>';
   h+='<div class="mrow" onclick="copyPrevWeek()"><span class="mic">📋</span><span class="mtx">1つ前の期間の献立をコピー</span><span class="mar">›</span></div>';
   h+='<div class="mrow" onclick="openFamily()"><span class="mic">⚙</span><span class="mtx">設定（人数・買い物の期間）</span><span class="mar">›</span></div>';
   h+='<a class="mrow" href="start.html" target="_blank" rel="noopener"><span class="mic">📖</span><span class="mtx">使い方ガイド</span><span class="mar">›</span></a>';
@@ -1593,6 +1634,30 @@ function makeListGo(){
   shopFilter="all"; go('shop');
 }
 /* 献立変更をリストに差分反映（購入済み・店・在庫の状態は保持） */
+/* 「買い物リストを見る」を押したら何が起きるかを先に計算する（中身は変えない）。
+   押す前に分かるようにしておかないと、押していいのか判断できないため */
+function listDiff(){
+  if(!S.list||!S.list.items.length) return null;                 /* まだリストが無い */
+  if(S.list.week&&S.list.week!==periodKey()) return {other:true}; /* 前の期間のリスト */
+  const ag=aggregate();
+  const key=x=>x.n+"|"+(x.u||"");
+  const agMap=new Map(ag.filter(x=>!x.daily).map(x=>[key(x),x]));
+  let added=0, removed=0, updated=0;
+  S.list.items.forEach(it=>{
+    if(it.daily||it.manual||it.pantry) return;
+    const nw=agMap.get(key(it));
+    if(nw){ if(typeof nw.q==="number"&&it.q!==nw.q) updated++; agMap.delete(key(it)); return; }
+    if(it.done) return;
+    removed++;
+  });
+  agMap.forEach(nw=>{ if(!S.list.items.some(it=>it.daily&&it.n===nw.n)) added++; });
+  S.goods.forEach(g=>{
+    if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
+    if(S.list.items.some(it=>it.n===g)) return;
+    added++;
+  });
+  return {added:added, removed:removed, updated:updated, same:(added+removed+updated)===0};
+}
 function syncList(ag){
   const key=x=>x.n+"|"+(x.u||"");
   const agMap=new Map(ag.filter(x=>!x.daily).map(x=>[key(x),x]));
