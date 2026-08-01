@@ -666,7 +666,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-49";
+const APP_VERSION="0801-50";
 let S=null;
 function newState(){
   return {
@@ -2700,7 +2700,7 @@ let pendingShareJoin=null;
 (function(){
   const sp=new URLSearchParams(location.search);
   const shareParam=sp.get("share");
-  const hashM=location.hash.match(/(?:^|&)k=([^&]+)/);
+  const hashM=location.hash.slice(1).match(/(?:^|&)k=([^&]+)/);
   if(shareParam&&hashM) pendingShareJoin={roomId:shareParam, key:decodeURIComponent(hashM[1])};
 })();
 /* 土台の履歴を1つ余分に確保しておく。
