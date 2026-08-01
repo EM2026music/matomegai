@@ -302,6 +302,41 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .ingrow input.q{width:64px;}
 .ingrow input.u{width:64px;}
 .ingrow .rm{border:none; background:none; color:var(--danger); font-size:18px; cursor:pointer; padding:0 4px;}
+/* ===== 買い物する期間カード（献立ページのいちばん上・いちばん大事な設定） ===== */
+.pcard{background:linear-gradient(160deg,#fffaf3,#fff); border:2px solid var(--or); border-radius:18px;
+       padding:12px 12px 14px; margin:0 0 14px; box-shadow:0 4px 14px rgba(200,130,60,.13);}
+.pcard.browsing{border-color:#dccdb8; background:#fbf7f1; box-shadow:none;}
+.pctop{display:flex; align-items:center; gap:6px; margin-bottom:10px;}
+.pchead{flex:1; text-align:center; font-size:14px; font-weight:bold; color:var(--or-d); letter-spacing:.02em;}
+.pcard.browsing .pchead{color:#8a7a63;}
+.pcbadge{display:inline-block; margin-left:6px; background:#e8ddcb; color:#6d6152; border-radius:8px; padding:2px 8px; font-size:11px; vertical-align:1px;}
+.pcnav{width:40px; height:40px; flex-shrink:0; border:1px solid var(--line); background:#fff; color:var(--or-d);
+       border-radius:12px; font-size:14px; cursor:pointer;}
+.pcnav:active{background:var(--or-bg);}
+.pcdates{display:flex; align-items:stretch; gap:8px;}
+.pdbox{position:relative; flex:1; min-width:0; background:#fff; border:2px solid var(--or-bg);
+       border-radius:14px; padding:8px 6px 10px; text-align:center; cursor:pointer;}
+.pdbox:active{border-color:var(--or);}
+.pdbox.flat{cursor:default; border-color:var(--line); background:#fff;}
+.pdlab{font-size:11px; color:#a2957f; margin-bottom:2px;}
+.pdval{font-size:clamp(22px,6.4vw,28px); font-weight:900; color:var(--ink); line-height:1.15; white-space:nowrap;}
+.pdval span{display:block; font-size:12px; font-weight:bold; color:var(--or-d); margin-top:1px;}
+/* 本物の日付入力は透明にして重ねる＝見た目は自由、タップでOSのカレンダーが出る */
+.pdinput{position:absolute; inset:0; width:100%; height:100%; opacity:0; border:none; padding:0; margin:0;
+         background:transparent; -webkit-appearance:none; appearance:none; cursor:pointer; font-size:16px;}
+.pdarrow{display:flex; align-items:center; font-size:17px; color:var(--sub); flex-shrink:0;}
+.pcfoot{margin-top:10px; text-align:center; font-size:13px; color:var(--sub); display:flex;
+        align-items:center; justify-content:center; flex-wrap:wrap; gap:4px;}
+.pcfoot b{color:var(--ink); font-size:15px;}
+.pcdot{color:#cfc3ae;}
+.pclast{display:inline-flex; gap:4px; margin:0 2px;}
+.pclm{border:1px solid var(--line); background:#fff; color:var(--sub); border-radius:9px;
+      padding:5px 8px; font-size:12px; cursor:pointer; font-family:inherit;}
+.pclm.on{background:var(--or); border-color:var(--or); color:#fff; font-weight:bold;}
+.pclm:disabled{opacity:.55; cursor:default;}
+.pchint{margin-top:9px; text-align:center; font-size:11.5px; color:#a2957f; line-height:1.5;}
+.pcback{border:1px solid var(--line); background:#fff; color:var(--or-d); border-radius:10px;
+        padding:8px 14px; font-size:13px; cursor:pointer; font-family:inherit;}
 /* ホーム下部：押せると分かる行ボタン（文字だけのリンクは押せるか分かりにくかった） */
 .menulist{margin:14px 0 4px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff;}
 .mrow{display:flex; align-items:center; gap:12px; padding:15px 14px; border-bottom:1px solid var(--line);
@@ -319,12 +354,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .perchip b{color:var(--ink); font-size:14px;}
 .perchip:active{background:var(--or-bg);}
 .perchip .pcedit{background:var(--or-bg); color:var(--or-d); border-radius:8px; padding:3px 9px; font-size:12px; font-weight:bold;}
-/* 買い物期間の日付指定 */
-.daterow{display:flex; align-items:flex-end; gap:8px; margin:6px 0 2px;}
-.daterow label{flex:1; min-width:0; display:block; font-size:12px; color:#8a7a63;}
-.daterow input[type=date]{display:block; width:100%; margin-top:3px; font-size:16px; padding:9px 8px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); font-family:inherit;}
-.daterow .dwd{display:block; font-size:12px; color:var(--or-d); margin-top:2px; text-align:center;}
-.daterow .dtil{font-size:16px; color:var(--sub); padding-bottom:26px;}
 .iabwarn{background:#fff4e5; border:1px solid #f0c48a; border-radius:12px; padding:12px; margin-bottom:12px; font-size:13px; line-height:1.6; color:#7a5a2a;}
 .iabwarn b{color:#b5651d;}
 .iabwarn div{margin:6px 0 10px;}
@@ -691,7 +720,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-56";
+const APP_VERSION="0801-57";
 let S=null;
 function newState(){
   return {
@@ -924,7 +953,8 @@ function periodKey(){ return periodDef().from; }
 let perOffset=0;
 function viewPeriod(){
   const pd=periodDef(), n=pd.days*perOffset;
-  return {fromDate:addDays(pd.fromDate,n), toDate:addDays(pd.toDate,n), days:pd.days, lastMeal:pd.lastMeal};
+  const f=addDays(pd.fromDate,n), t=addDays(pd.toDate,n);
+  return {fromDate:f, toDate:t, fromKey:keyOf(f), toKey:keyOf(t), days:pd.days, lastMeal:pd.lastMeal};
 }
 function viewDates(){
   const v=viewPeriod(), out=[];
@@ -1269,6 +1299,46 @@ function inAppWarn(){
     +`いつものアイコンから開き直してください（右上「…」→「ブラウザで開く」でも移れます）。</div>`
     +`<button class="btn small sub" onclick="S.iabOk=true;save();render()">わかった（閉じる）</button></div>`;
 }
+/* 献立ページのいちばん上：買い物する期間。ここが献立表の範囲そのもの */
+function periodCard(vp){
+  const cur=(perOffset===0);
+  const f=vp.fromDate, t=vp.toDate;
+  const md=d=>`${d.getMonth()+1}/${d.getDate()}`;
+  const wd=d=>DAYS[(d.getDay()+6)%7];
+  let h='<div class="pcard'+(cur?"":" browsing")+'">';
+  h+='<div class="pctop">';
+  h+='<button class="pcnav" onclick="shiftWeek(-1)" aria-label="前の期間">◀</button>';
+  h+=`<div class="pchead">🛒 買い物する期間${cur?"":`<span class="pcbadge">${perOffset>0?"先の予定":"前のぶん"}</span>`}</div>`;
+  h+='<button class="pcnav" onclick="shiftWeek(1)" aria-label="次の期間">▶</button>';
+  h+='</div>';
+  h+='<div class="pcdates">';
+  if(cur){
+    h+=`<div class="pdbox"><div class="pdlab">いつから</div><div class="pdval">${md(f)}<span>（${wd(f)}）</span></div>`
+      +`<input type="date" class="pdinput" value="${vp.fromKey||keyOf(f)}" onclick="try{this.showPicker()}catch(e){}" onchange="setPeriod('from',this.value)"></div>`;
+    h+='<div class="pdarrow">〜</div>';
+    h+=`<div class="pdbox"><div class="pdlab">いつまで</div><div class="pdval">${md(t)}<span>（${wd(t)}）</span></div>`
+      +`<input type="date" class="pdinput" value="${vp.toKey||keyOf(t)}" min="${keyOf(f)}" onclick="try{this.showPicker()}catch(e){}" onchange="setPeriod('to',this.value)"></div>`;
+  } else {
+    h+=`<div class="pdbox flat"><div class="pdval">${md(f)}<span>（${wd(f)}）</span></div></div>`;
+    h+='<div class="pdarrow">〜</div>';
+    h+=`<div class="pdbox flat"><div class="pdval">${md(t)}<span>（${wd(t)}）</span></div></div>`;
+  }
+  h+='</div>';
+  h+=`<div class="pcfoot"><b>${vp.days}日分</b>`;
+  const ms=onMeals();
+  if(ms.length>1){
+    const lm=MEALS.find(m=>m.k===vp.lastMeal)||MEALS[2];
+    h+=`<span class="pcdot">・</span>最終日は`;
+    h+='<span class="pclast">';
+    ms.forEach(m=>{ h+=`<button class="pclm ${vp.lastMeal===m.k?"on":""}"${cur?` onclick="setPeriod('lastMeal','${m.k}')"`:" disabled"}>${m.icon}${m.label}</button>`; });
+    h+='</span>まで';
+  }
+  h+='</div>';
+  if(cur) h+='<div class="pchint">日付を押すとカレンダーが出ます。この期間に食べる料理が下に並びます。</div>';
+  else h+='<div class="pchint"><button class="pcback" onclick="gotoThisWeek()">↩ 買い物する期間にもどる</button></div>';
+  h+='</div>';
+  return h;
+}
 function rWeek(){
   const vp=viewPeriod();
   const dates=viewDates(); const todayStr=new Date().toDateString();
@@ -1279,12 +1349,7 @@ function rWeek(){
   let h='<div class="pagehead"><div class="ptitle">献立表</div>';
   h+='<button class="pill" onclick="openFamily()">⚙ 設定</button></div>';
   h+=inAppWarn();
-  h+='<div class="weeknav">';
-  h+='<button class="wnav" onclick="shiftWeek(-1)">◀</button>';
-  h+=`<div class="wlabel"><b>${label}</b><span>${periodRangeText(vp)}</span></div>`;
-  h+='<button class="wnav" onclick="shiftWeek(1)">▶</button>';
-  h+='</div>';
-  if(perOffset!==0) h+='<div class="ctalink small" style="margin-top:-4px;margin-bottom:8px" onclick="gotoThisWeek()">↩ 買い物のぶんにもどる</div>';
+  h+=periodCard(vp);
   h+='<div class="summaryrow">';
   h+=`<div class="summary" style="margin:0"><b>${S.family}人分</b>・<b>${decided}日</b>決定・買うもの<b>${nItems}品</b></div>`;
   h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"副菜まで全部見る":"メインだけ表示"}</button>`;
@@ -1353,8 +1418,6 @@ function rWeek(){
   h+='</div>';
   h+='<p class="note" style="margin-top:-2px">各行の左にある<b>☰つまみ</b>を押したまま動かすと、料理を別の日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
   h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを見る　${nItems}品 ›</button>`;
-  {const _pd=periodDef(), _f=_pd.fromDate, _t=_pd.toDate;
-   h+=`<div class="perchip" onclick="openFamily()">📅 買い物のぶん <b>${_f.getMonth()+1}/${_f.getDate()}${wdOf(_f)} 〜 ${_t.getMonth()+1}/${_t.getDate()}${wdOf(_t)}</b> <span class="pcedit">変更</span></div>`;}
   if(listIsOld()){
     const nb=(S.list.items||[]).filter(x=>!x.stock&&!x.done).length;
     h+=`<div class="ctalink oldhint" onclick="go('shop')">📅 「${listRangeLabel()}」のリストが残っています${nb?`（未購入 ${nb}品）`:""} ›</div>`;
@@ -1393,26 +1456,10 @@ function renderFamily(){
   h+='<p class="note" style="text-align:center;margin-top:0">料理ごとの分量を、この人数に自動換算します</p>';
   /* 買い物の期間（週をまたいでもOK） */
   const pd=periodDef();
-  h+='<div class="kindhead">買い物リストの期間</div>';
-  h+='<p class="note" style="margin-top:0">この期間に食べる料理の材料が、買い物リストに出ます。日付を押すとカレンダーが出ます。</p>';
-  h+='<div class="daterow">';
-  h+=`<label>いつから<input type="date" id="pFrom" value="${pd.from}" onchange="setPeriod('from',this.value)"><span class="dwd">${wdOf(pd.fromDate)}</span></label>`;
-  h+='<span class="dtil">〜</span>';
-  h+=`<label>いつまで<input type="date" id="pTo" value="${pd.to}" min="${pd.from}" onchange="setPeriod('to',this.value)"><span class="dwd">${wdOf(pd.toDate)}</span></label>`;
-  h+='</div>';
-  h+=`<p class="note" style="margin-top:2px">＝ <b>${pd.days}日分</b>です。期間が過ぎたら、同じ長さのまま自動で次へ進みます。</p>`;
-  h+='<div class="goodsgrid" style="margin-bottom:4px">';
-  h+='<button class="gbtn" onclick="shiftPeriod(-1)">← 前の期間</button>';
-  h+='<button class="gbtn" onclick="shiftPeriod(1)">次の期間 →</button>';
-  h+='</div>';
-  if(onMeals().length>1){
-    h+='<div style="font-size:13px;color:#8a7a63;margin:8px 0 4px">最終日はどこまで食べる？</div>';
-    h+='<div class="goodsgrid">';
-    onMeals().forEach(function(m){
-      h+=`<button class="gbtn ${pd.lastMeal===m.k?"sel":""}" onclick="setPeriod('lastMeal','${m.k}')">${m.icon} ${m.label}まで${pd.lastMeal===m.k?'<span class="gchk">✓</span>':''}</button>`;
-    });
-    h+='</div>';
-  }
+  /* 期間そのものは献立ページの上のカードで設定する（いちばん大事なので埋もれさせない） */
+  h+='<div class="kindhead">買い物する期間</div>';
+  h+=`<p class="note" style="margin-top:0">今は <b>${periodRangeText(periodDef())}</b>（${pd.days}日分）です。`
+    +'変更は<b>献立表のいちばん上</b>にある「🛒 買い物する期間」から、日付をタップしてどうぞ。</p>';
   h+='<div class="kindhead">献立表に出す食事</div>';
   h+='<p class="note" style="margin-top:0">朝・昼・夜の表示切替は<b>ホーム画面の「表示する食事」</b>から直接できます。</p>';
   h+='<div class="goodsgrid">';
