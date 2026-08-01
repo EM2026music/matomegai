@@ -319,12 +319,7 @@ nav button.on .ic{background:#f7e7d4;}
 </head>
 <body>
 <main id="view"></main>
-<nav>
-  <button id="nav-week" onclick="go('week')"><span class="ic">🏠</span>ホーム</button>
-  <button id="nav-dish" onclick="go('dish')"><span class="ic">🍲</span>料理</button>
-  <button id="nav-goods" onclick="go('goods')"><span class="ic">🛍️</span>定番</button>
-  <button id="nav-shop" onclick="go('shop')"><span class="ic">🛒</span>買い物</button>
-</nav>
+<nav></nav>
 <div id="overlay" onclick="if(event.target===this)closeModal()"><div id="modal"></div></div>
 <div id="flash" class="flash"></div>
 
@@ -666,7 +661,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-50";
+const APP_VERSION="0801-51";
 let S=null;
 function newState(){
   return {
@@ -754,6 +749,29 @@ function load(){
   });
 }
 function save(){ localStorage.setItem(KEY,JSON.stringify(S)); if(S.share&&S.share.active) scheduleSharePush(); }
+/* ===== 自動バックアップ（1日1回・3世代） =====
+   何かの拍子に献立が消えても、設定画面から前の日の状態に戻せるようにする */
+const BAK_KEY=KEY+"_bak";
+function readBaks(){ try{ return JSON.parse(localStorage.getItem(BAK_KEY)||"[]"); }catch(e){ return []; } }
+function makeDailyBackup(){
+  try{
+    const raw=localStorage.getItem(KEY); if(!raw) return;
+    const today=keyOf(new Date());
+    let baks=readBaks();
+    if(baks.length&&baks[0].d===today) return;   /* 今日の分はもう取ってある */
+    baks.unshift({d:today, at:Date.now(), s:raw});
+    localStorage.setItem(BAK_KEY,JSON.stringify(baks.slice(0,3)));
+  }catch(e){}
+}
+function restoreBak(i){
+  const baks=readBaks(); const b=baks[i]; if(!b) return;
+  let st=null; try{ st=JSON.parse(b.s); }catch(e){}
+  if(!st||!st.dishes){ alert("このバックアップは読み込めませんでした。"); return; }
+  const dt=new Date(b.at);
+  if(!confirm(dt.getMonth()+1+"/"+dt.getDate()+" 時点の状態に戻します。\n今の献立・買い物リストはその時点の内容に置き換わります。\nよろしいですか？")) return;
+  localStorage.setItem(KEY,b.s);
+  location.reload();
+}
 function esc(s){ return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function fmtQ(q){
   if(q===""||q==null||isNaN(q)) return "";
@@ -918,9 +936,27 @@ function setHTML(el,html){
     }
   }
 }
+/* 下タブ（並び順は設定画面で変えられる） */
+const NAV=[{k:"week",ic:"🏠",label:"ホーム"},{k:"dish",ic:"🍲",label:"料理"},{k:"goods",ic:"🛍️",label:"定番"},{k:"shop",ic:"🛒",label:"買い物"}];
+function navOrder(){
+  const base=NAV.map(n=>n.k);
+  const cur=(S.navOrder||[]).filter(k=>base.indexOf(k)>=0);
+  base.forEach(k=>{ if(cur.indexOf(k)<0) cur.push(k); });
+  return cur;
+}
+function renderNav(){
+  let h="";
+  navOrder().forEach(k=>{
+    const n=NAV.find(x=>x.k===k);
+    h+=`<button id="nav-${k}" onclick="go('${k}')"><span class="ic">${n.ic}</span>${n.label}</button>`;
+  });
+  document.querySelector("nav").innerHTML=h;
+}
+function commitNavOrder(ids){ S.navOrder=ids.slice(); save(); renderNav(); render(); renderFamily(); }
 function render(){
   document.body.classList.remove("dragging-active"); /* 万一ドラッグ状態が残っても解除 */
-  ["week","dish","goods","shop"].forEach(t=>document.getElementById("nav-"+t).classList.toggle("on",t===TAB));
+  renderNav();
+  navOrder().forEach(t=>document.getElementById("nav-"+t).classList.toggle("on",t===TAB));
   const v=document.getElementById("view");
   if(TAB==="week"){ setHTML(v,rWeek()); enableSort(v.querySelector(".daylist"), commitDayOrder, false); }
   else if(TAB==="dish"){ setHTML(v,rDish()); enableSort(v.querySelector(".listcard"), commitDishOrder, false); }
@@ -1023,7 +1059,10 @@ function commitGoodsOrder(ids){
 function commitDayOrder(ids){
   const oldW=curWeek(true);
   const order=ids.map(x=>+x);
-  const newW=order.map(i=>oldW[i]||[]);
+  /* 曜日が7つ揃っていない/番号がおかしい時は、並べ替えを捨てて現状維持。
+     ここで取りこぼすと、その日の献立がまるごと消えてしまうため */
+  if(order.length!==oldW.length||order.some(i=>!(i>=0&&i<oldW.length))){ render(); return; }
+  const newW=order.map(i=>oldW[i]||emptyDay());
   S.plans[curKey()]=newW;
   save(); render();
 }
@@ -1146,10 +1185,30 @@ function renderFamily(){
   });
   h+='</div>';
   h+='<p class="note">OFFにしても、その食事に入れた料理は消えません（またONにすれば戻ります）。</p>';
+  h+='<div class="kindhead">下のボタンの並び順</div>';
+  h+='<div class="card listcard" id="navSort">';
+  navOrder().forEach(function(k){
+    const n=NAV.find(x=>x.k===k);
+    h+=`<div class="dishrow" data-id="${k}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="dbody"><div class="nm">${n.ic} ${n.label}</div></div></div>`;
+  });
+  h+='</div>';
+  h+='<p class="note" style="margin-top:-2px">左の<b>⣿つまみ</b>を押したまま動かすと、画面下のボタンの並び順を変えられます。</p>';
   h+='<div class="kindhead">データの管理</div>';
   h+='<div class="row2"><button class="btn sub small" onclick="exportData()">バックアップ保存</button><button class="btn sub small" onclick="document.getElementById(\'imp\').click()">読み込み</button></div>';
   h+='<input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">';
   h+='<p class="note">機種変更や、ご家族に渡すときに使えます。</p>';
+  /* 自動バックアップ（1日1回）から戻す */
+  const baks=readBaks();
+  if(baks.length){
+    h+='<div style="font-size:13px;font-weight:bold;color:#8a7a63;margin:10px 0 4px">自動バックアップから戻す</div>';
+    h+='<div class="goodsgrid">';
+    baks.forEach(function(b,i){
+      const dt=new Date(b.at);
+      h+=`<button class="gbtn" onclick="restoreBak(${i})">${dt.getMonth()+1}/${dt.getDate()} ${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}</button>`;
+    });
+    h+='</div>';
+    h+='<p class="note">1日1回、その日はじめて開いた時の状態を自動で控えています（最大3日分）。献立が消えてしまった時などに使えます。</p>';
+  }
   h+='<div class="kindhead">アプリの更新</div>';
   h+=`<p class="note" style="margin-top:0">今のバージョン：<b>v${APP_VERSION}</b></p>`;
   h+='<button class="btn sub wide" onclick="forceUpdate()">🔄 アプリを最新に更新する</button>';
@@ -1157,6 +1216,7 @@ function renderFamily(){
   h+='<div class="kindhead">危険な操作</div>';
   h+='<button class="btn danger small" onclick="resetAll()">すべて初期化</button>';
   setHTML(document.getElementById("modal"),h);
+  enableSort(document.getElementById("navSort"), commitNavOrder, false);
 }
 function togMeal(k){
   if(!S.meals) S.meals={b:false,l:false,d:true};
@@ -1510,7 +1570,7 @@ function rDish(){
   });
   h+='</div>';
   h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい料理を作る</button>';
-  h+='<p class="note">タップで材料・分量を編集できます。「コピーを作る」で食べ盛り版（増量版）も作れます。分量は基準3人分の目安で、買い物リストでは設定した家族の人数に合わせて自動換算します。</p>';
+  h+='<p class="note">タップで材料・分量を編集できます。「コピーを作る」で食べ盛り版（増量版）も作れます。分量は設定した家族の人数（⚙設定）に合わせて表示・換算されます。</p>';
   return h;
 }
 
@@ -1524,7 +1584,13 @@ function pickNewDish(){
   renderEditor();
 }
 function openEditor(id){
-  if(id){ const d=dish(id); editTarget={id:id, name:d.name, cat:d.cat, sv:d.sv||3, url:d.url||"", memo:d.memo||"", ing:d.ing.map(x=>({...x}))}; }
+  if(id){
+    /* 「下の分量は◯人分」は必ず設定（歯車）の人数で表示する。
+       数字がズレて見えないよう、材料の分量もその人数ぶんに換算してから開く */
+    const d=dish(id), fam=S.family||3, f=fam/(d.sv||3);
+    editTarget={id:id, name:d.name, cat:d.cat, sv:fam, url:d.url||"", memo:d.memo||"",
+      ing:d.ing.map(x=>({n:x.n, q:(typeof x.q==="number"&&isFinite(x.q))?Math.round(x.q*f*100)/100:x.q, u:x.u}))};
+  }
   else editTarget={id:null, name:"", cat:dishCat||"主食", sv:S.family||3, url:"", memo:"", ing:[{n:"",q:"",u:""}]};
   edWeekOff=weekOffset; edMeal=defaultMeal();
   showModal(); renderEditor();
@@ -1586,17 +1652,28 @@ function edCalendar(){
   h+='</div><p class="note" style="margin:6px 0 0">曜日をタップすると、その日に追加されます。</p></div>';
   return h;
 }
+/* 材料欄の一番下には、いつも空の行を1つ用意しておく（＋ボタンを押さずに書き足せる） */
+function edEnsureBlankRow(){
+  const ing=editTarget.ing;
+  if(!ing.length||(ing[ing.length-1].n||"").trim()!=="") ing.push({n:"",q:"",u:""});
+}
+/* 一番下の空欄に書き込んだら、その下にまた空欄を足す */
+function edIngTyped(){
+  const ing=editTarget.ing;
+  if(ing.length&&(ing[ing.length-1].n||"").trim()!==""){ ing.push({n:"",q:"",u:""}); renderEditor(); }
+}
 function renderEditor(){
   const t=editTarget;
+  edEnsureBlankRow();
   let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${t.id?"料理を編集":"新しい料理"}</b></div>`;
-  h+=`<div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" style="flex:1;min-width:0" placeholder="料理名" value="${esc(t.name)}" oninput="editTarget.name=this.value">`;
+  h+=`<div style="display:flex;gap:8px;margin-bottom:10px;"><input type="text" id="edName" style="flex:1;min-width:0" placeholder="料理名" value="${esc(t.name)}" oninput="editTarget.name=this.value">`;
   h+='<select onchange="editTarget.cat=this.value">';
   S.cats.forEach(c=>{ h+=`<option ${c===t.cat?"selected":""}>${esc(c)}</option>`; });
   h+='</select></div>';
   h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:14px;">下の分量は<input type="number" min="1" style="width:60px" value="${t.sv}" oninput="editTarget.sv=this.value">人分</div>`;
   h+='<div style="font-size:12px;color:#9a8d7c;margin-bottom:4px;">材料　／　数量　／　単位（個・g・本など）</div>';
   t.ing.forEach((g,i)=>{
-    h+=`<div class="ingrow"><input class="n" type="text" placeholder="材料名" value="${esc(g.n)}" oninput="editTarget.ing[${i}].n=this.value">`;
+    h+=`<div class="ingrow"><input class="n" type="text" placeholder="材料名" value="${esc(g.n)}" oninput="editTarget.ing[${i}].n=this.value" onchange="edIngTyped()">`;
     h+=`<input class="q" type="number" step="any" placeholder="数" value="${g.q}" oninput="editTarget.ing[${i}].q=this.value">`;
     h+=`<input class="u" type="text" placeholder="単位" value="${esc(g.u)}" oninput="editTarget.ing[${i}].u=this.value">`;
     h+=`<button class="rm" onclick="editTarget.ing.splice(${i},1);renderEditor()">✕</button></div>`;
@@ -1605,7 +1682,7 @@ function renderEditor(){
       h+=`<div style="margin:-2px 0 8px 2px"><button class="btn sub small" onclick="regIngToCatalog(${i})">📖「${esc(g.n.trim())}」をカタログに登録</button></div>`;
     }
   });
-  h+='<div class="row2" style="margin-top:4px"><button class="btn sub small" onclick="openCatalogForIng()">📖 カタログから選ぶ</button><button class="btn sub small" onclick="editTarget.ing.push({n:\'\',q:\'\',u:\'\'});renderEditor()">＋ 手入力で追加</button></div>';
+  h+='<div style="margin-top:4px"><button class="btn sub small wide" onclick="openCatalogForIng()">📖 カタログから選ぶ</button></div>';
   h+=`<div style="margin-top:14px"><input type="text" style="width:100%" placeholder="参考レシピのURL（任意）" value="${esc(t.url)}" oninput="editTarget.url=this.value"></div>`;
   if(t.url&&/^https?:\/\//.test(t.url.trim())) h+=`<div style="margin-top:6px"><a href="${esc(t.url.trim())}" target="_blank" rel="noopener" class="linkbtn">🔗 レシピを開く</a></div>`;
   h+=`<div style="margin-top:8px"><input type="text" style="width:100%" placeholder="ひとことメモ（任意：味付けのコツなど）" value="${esc(t.memo)}" oninput="editTarget.memo=this.value"></div>`;
@@ -1616,6 +1693,18 @@ function renderEditor(){
   setHTML(document.getElementById("modal"),h);
 }
 function cleanIng(){ return editTarget.ing.filter(g=>g.n.trim()).map(g=>({n:g.n.trim(), q:g.q===""?"":Number(g.q), u:g.u.trim()})); }
+/* 編集画面を開いたまま「戻る」を押した時は、黙って保存してから閉じる。
+   ←ボタンをわざわざ押さなくてよくするため（確認ダイアログは出さない） */
+function autoSaveEditorIfOpen(){
+  if(!document.getElementById("edName")) return;        /* 編集画面が出ていない */
+  const t=editTarget;
+  if(!t||!t.name||!t.name.trim()) return;               /* 名前が空なら保存しない */
+  if(t.id&&!dish(t.id)) return;                         /* 削除された直後は何もしない */
+  const sv=Math.max(1,Number(t.sv)||3), ing=cleanIng();
+  if(t.id){ const d=dish(t.id); d.name=t.name.trim(); d.cat=t.cat; d.sv=sv; d.url=t.url.trim(); d.memo=t.memo.trim(); d.ing=ing; }
+  else { t.id="u"+(S.nextId++); S.dishes.push({id:t.id, name:t.name.trim(), cat:t.cat, sv:sv, url:t.url.trim(), memo:t.memo.trim(), ing:ing}); }
+  save(); flash("保存しました");
+}
 function saveDish(){
   const t=editTarget;
   if(!t.name.trim()){ alert("料理名を入れてください"); return; }
@@ -2663,6 +2752,7 @@ function closeModal(){
 let exitArmed=false;
 window.addEventListener("popstate",function(e){
   closeDishDetail();
+  autoSaveEditorIfOpen();
   const ov=document.getElementById("overlay");
   /* まずモーダルが開いていれば閉じる（表示だけ残っている食い違いも拾う） */
   if(modalOpen||ov.classList.contains("show")){
@@ -2693,6 +2783,7 @@ window.addEventListener("popstate",function(e){
 });
 
 load();
+makeDailyBackup();   /* その日はじめての起動なら、読み込んだ時点の状態を控えておく */
 /* 保存していた店の絞り込みを復元（消した店なら「すべて」に戻す） */
 if(S.shopFilter&&(S.shopFilter==="all"||S.shopFilter==="未定"||S.stores.indexOf(S.shopFilter)>=0)) shopFilter=S.shopFilter; else shopFilter="all";
 /* 招待リンク（?share=部屋ID#k=鍵）で開かれた場合は、参加するか確認してURLをきれいにする */
@@ -2718,15 +2809,21 @@ if(pendingShareJoin){
 
 /* アプリとしてインストール＆オフライン対応（http/https のときだけ） */
 let swReloaded=false;
+/* 今回の読み込みが「既存のService Workerに制御されていたか」を先に控えておく。
+   初回インストール時（＝まだ誰にも制御されていない）はここがfalseになる */
+const hadServiceWorkerController=!!(navigator.serviceWorker&&navigator.serviceWorker.controller);
 if("serviceWorker" in navigator && location.protocol.indexOf("http")===0){
   window.addEventListener("load",function(){
     navigator.serviceWorker.register("sw.js").then(function(reg){
       reg.update();                       /* 起動のたびに新版がないか確認 */
       setInterval(function(){ reg.update(); }, 60*60*1000);
     }).catch(function(){});
-    /* 新しいService Workerに入れ替わったら1度だけ読み込み直す＝常に最新画面 */
+    /* 新しいService Workerに入れ替わったら1度だけ読み込み直す＝常に最新画面。
+       ただし「初回インストール」（＝これまで誰にも制御されていなかった）の時は
+       reloadしない：招待リンク(?share=...#k=...)などURLの情報がreloadで
+       消えてしまい、共有に参加できなくなる不具合の原因だったため */
     navigator.serviceWorker.addEventListener("controllerchange",function(){
-      if(swReloaded) return; swReloaded=true; location.reload();
+      if(swReloaded||!hadServiceWorkerController) return; swReloaded=true; location.reload();
     });
   });
 }
