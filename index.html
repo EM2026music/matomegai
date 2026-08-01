@@ -654,7 +654,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0726-46";
+const APP_VERSION="0727-47";
 let S=null;
 function newState(){
   return {
@@ -1379,7 +1379,10 @@ function renderPicker(){
     const cur=MEALS.find(m=>m.k===pickMeal);
     h+=`<div class="addingto ${pickMeal}">↓ 下から選ぶと「${cur.icon} ${cur.label}」に入ります</div>`;
   }
+  h+='<div class="searchrow">';
   h+=`<input type="text" class="search" id="sPick" placeholder="🔍 料理名を検索" value="${esc(pickSearch)}" oninput="pickSearch=this.value;deferRender(renderPicker)">`;
+  h+='<button class="newbtn" onclick="pickNewDish()">＋新規</button>';
+  h+='</div>';
   h+='<div class="catbar">';
   if(favCount()) h+=`<button class="fchip ${pickCat==="__fav"?"on":""}" onclick="pickCat='__fav';renderPicker()">⭐ よく作る(${favCount()})</button>`;
   h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
@@ -1487,7 +1490,14 @@ function rDish(){
 }
 
 /* 献立エディタ */
-let editTarget=null, edWeekOff=0, edMeal="d";
+let editTarget=null, edWeekOff=0, edMeal="d", editFromPicker=false;
+/* 料理を選ぶ画面から「＋新規」で作った時は、保存したらその場でその日に追加する */
+function pickNewDish(){
+  editFromPicker=true;
+  openEditor(null);
+  if(pickCat && pickCat!=="__fav") editTarget.cat=pickCat;
+  renderEditor();
+}
 function openEditor(id){
   if(id){ const d=dish(id); editTarget={id:id, name:d.name, cat:d.cat, sv:d.sv||3, url:d.url||"", memo:d.memo||"", ing:d.ing.map(x=>({...x}))}; }
   else editTarget={id:null, name:"", cat:dishCat||"主食", sv:S.family||3, url:"", memo:"", ing:[{n:"",q:"",u:""}]};
@@ -1598,9 +1608,14 @@ function saveDish(){
       flash(unknown.length+"品をカタログにも登録しました");
     }
   }
+  let newId=null;
   if(t.id){ const d=dish(t.id); d.name=t.name.trim(); d.cat=t.cat; d.sv=sv; d.url=t.url.trim(); d.memo=t.memo.trim(); d.ing=ing; }
-  else { S.dishes.push({id:"u"+(S.nextId++), name:t.name.trim(), cat:t.cat, sv:sv, url:t.url.trim(), memo:t.memo.trim(), ing:ing}); }
-  save(); closeModal(); if(!unknown.length) flash("保存しました");
+  else { newId="u"+(S.nextId++); S.dishes.push({id:newId, name:t.name.trim(), cat:t.cat, sv:sv, url:t.url.trim(), memo:t.memo.trim(), ing:ing}); }
+  save();
+  /* 料理を選ぶ画面の「＋新規」から来た時は、閉じずにその場でその日に追加する */
+  if(newId&&editFromPicker){ editFromPicker=false; pickAdd(newId); return; }
+  editFromPicker=false;
+  closeModal(); if(!unknown.length) flash("保存しました");
 }
 function copyDish(){
   const t=editTarget;
@@ -2615,6 +2630,7 @@ function showModal(){
   history.pushState({modal:1,tab:TAB},"");
 }
 function closeModal(){
+  editFromPicker=false;
   /* modalClosing で二重呼び出しを防ぐ（二重に history.back() するとアプリごと閉じてしまう） */
   if(modalOpen&&!modalClosing){ modalClosing=true; history.back(); return; }
   if(!modalOpen){ document.getElementById("overlay").classList.remove("show"); render(); }
