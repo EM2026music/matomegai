@@ -273,7 +273,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .picklist .draghandle{padding:6px 10px 6px 0;}
 .selbig{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #cfe6d3; border-radius:12px; padding:12px 12px;}
 .selbig .draghandle{color:#9cc7a3; padding:6px 4px 6px 0;}
-.sbmain{flex:1; min-width:0; cursor:pointer;}
+.sbmain{flex:1; min-width:0; cursor:pointer; touch-action:manipulation;}
 .sbname{font-size:17px; font-weight:bold; color:#2f7d3a; line-height:1.25;}
 .sbig{font-size:12px; color:var(--sub); margin-top:3px;}
 .sbx{color:#c2ddc6; font-size:22px; font-weight:bold; cursor:pointer; padding:2px 4px; flex-shrink:0;}
@@ -654,7 +654,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0727-47";
+const APP_VERSION="0727-48";
 let S=null;
 function newState(){
   return {
@@ -1328,6 +1328,9 @@ function renderPicker(){
   const dt=weekDates()[pickDay];
   const wkNow=curWeek();
   const dayHas=onMeals().reduce((n,m)=>n+((wkNow[pickDay][m.k]||[]).length),0);
+  /* 中身を作り替えるとスクロール位置が飛ぶので、再描画の前後で保持する（材料を開いた時など） */
+  const modalEl0=document.getElementById("modal");
+  const savedScroll=modalEl0?modalEl0.scrollTop:0;
   let h=`<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>${dt.getMonth()+1}月${dt.getDate()}日 ${DAYS[pickDay]}曜日</b>`;
   if(dayHas) h+=`<span class="linkbtn daywipe" onclick="clearDay(${pickDay})">🗑 この日を空に</span>`;
   h+='</div>';
@@ -1429,6 +1432,10 @@ function renderPicker(){
   enableSort(sr, commitWeekOrder, false);
   enableSort(document.querySelector("#modal .picklist"), commitDishOrder, false);
   watchStuck();
+  if(modalEl0){
+    modalEl0.scrollTop=savedScroll;
+    requestAnimationFrame(function(){ modalEl0.scrollTop=savedScroll; });
+  }
 }
 function rmPick(j){ curWeek(true)[pickDay][pickMeal].splice(j,1); if(!curWeek()[pickDay][pickMeal].length) pickDetail=""; save(); renderPicker(); }
 /* カタログの品物を「そのまま食べる」1品の献立にして、その日に入れる */
