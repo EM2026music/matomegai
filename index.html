@@ -78,18 +78,16 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .nm{font-size:15px; font-weight:bold;}
 .ings{font-size:12px; color:var(--sub); margin-top:2px;}
 .arrow{color:#d5c8b2; font-size:18px;}
-.draghandle{color:#c99a52; padding:8px 12px 8px 3px; touch-action:none; -webkit-user-select:none; user-select:none; flex-shrink:0; cursor:grab; font-size:0; display:inline-flex; align-items:center; border-radius:9px; transition:background .12s,color .12s;}
+.draghandle{color:#c99a52; padding:8px 4px 8px 12px; touch-action:none; -webkit-user-select:none; user-select:none; flex-shrink:0; cursor:grab; font-size:0; display:inline-flex; align-items:center; border-radius:9px; transition:background .12s,color .12s;}
 /* 「動かせます」の目印は横三本線（いちばん一般的な形） */
 .draghandle::before{content:""; width:17px; height:12px; opacity:.95; border-radius:1px;
   background-image:repeating-linear-gradient(to bottom, currentColor 0, currentColor 2px, transparent 2px, transparent 5px);}
-/* 料理が入っていない日も日付の位置が揃うよう、つまみと同じ幅を空けておく */
-.dgspace{width:17px; padding:8px 12px 8px 3px; box-sizing:content-box; flex-shrink:0;}
 .draghandle:hover,.draghandle:active{background:var(--or-bg); color:var(--or-d);}
 .dishrow,.ingrow,.pickrow,.assignrow,.selchips .chip{-webkit-user-select:none; user-select:none;}
 .dragging-active,.dragging-active *{-webkit-user-select:none !important; user-select:none !important; cursor:grabbing !important;}
 /* 入力欄だけは必ず文字入力・選択できるようにする（上のuser-select:noneを打ち消す） */
 input,textarea,select,[contenteditable]{-webkit-user-select:text !important; user-select:text !important; -webkit-touch-callout:default !important; cursor:auto !important;}
-.chip .draghandle{color:rgba(255,255,255,.9); padding:0 5px 0 0;}
+.chip .draghandle{color:rgba(255,255,255,.9); padding:0 0 0 5px;}
 .dbody{flex:1; min-width:0;}
 .dishrow.dragging,.chip.dragging{opacity:.5;}
 /* つまんで動かしていることが分かる見た目 */
@@ -229,7 +227,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .storebtn{border:1.5px solid var(--or); background:#fff; color:var(--or-d); border-radius:10px; padding:6px 9px; font-size:12px; font-weight:bold; flex-shrink:0; cursor:pointer; white-space:nowrap;}
 .storebtn.unset{border-color:#d8ccb8; color:#a2967f;}
 .kindgroup .kindhead{display:flex; align-items:center; gap:2px;}
-.kindgroup .draghandle{padding:5px 8px 5px 0; color:#c99a52;}
+.kindgroup .draghandle{padding:5px 0 5px 8px; color:#c99a52; margin-left:auto;}
 .kindgroup.dragging{opacity:.6;}
 .sharechip{display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:bold; color:var(--green); background:#eef7ef; border-radius:99px; padding:4px 10px; margin-left:8px;}
 .sharelinkbox{background:#f7f2e8; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12px; word-break:break-all; color:var(--sub); margin-bottom:8px;}
@@ -277,9 +275,9 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 /* 3品以上は材料行を隠して1行化＝多くても画面を埋め尽くさない */
 .selrows.compact .selbig{padding:9px 12px;}
 .selrows.compact .sbig{display:none;}
-.picklist .draghandle{padding:6px 10px 6px 0;}
+.picklist .draghandle{padding:6px 0 6px 10px;}
 .selbig{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #cfe6d3; border-radius:12px; padding:12px 12px;}
-.selbig .draghandle{color:#9cc7a3; padding:6px 4px 6px 0;}
+.selbig .draghandle{color:#9cc7a3; padding:6px 0 6px 8px;}
 .sbmain{flex:1; min-width:0; cursor:pointer; touch-action:manipulation;}
 .sbname{font-size:17px; font-weight:bold; color:#2f7d3a; line-height:1.25;}
 .sbig{font-size:12px; color:var(--sub); margin-top:3px;}
@@ -721,7 +719,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0801-61";
+const APP_VERSION="0802-62";
 let S=null;
 function newState(){
   return {
@@ -991,6 +989,8 @@ function dayObj(dk,create){
   const wk=weekAt(keyOf(mondayOf(d)),create);
   return wk[(d.getDay()+6)%7]||emptyDay();
 }
+/* 並べ替えのつまみ。右手で持った時に誤って動かさないよう、どの画面でも行の右端に置く */
+const DRAG='<span class="draghandle" data-sort onclick="event.stopPropagation()"></span>';
 function dkLabel(dk){
   const d=dFromKey(dk); if(!d) return "";
   return (d.getMonth()+1)+"/"+d.getDate()+"("+DAYS[(d.getDay()+6)%7]+")";
@@ -1396,9 +1396,6 @@ function rWeek(){
     const lim=MEAL_ORDER.indexOf(vp.lastMeal);
     const ms2=isLast?ms.filter(m=>MEAL_ORDER.indexOf(m.k)<=lim):ms;
     h+=`<div class="dayrow ${cls}" data-id="${dk}" onclick="openDay('${dk}')">`;
-    /* つまみは曜日の左＝いちばん左に置く（動かせる物の目印は左端が分かりやすい） */
-    if(total) h+='<span class="draghandle" data-sort onclick="event.stopPropagation()"></span>';
-    else h+='<span class="dgspace"></span>';
     h+=`<div class="dcol"${total?` onpointerdown="event.stopPropagation();lpStart(function(){clearDay('${dk}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()"`:""}><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
     if(total){
       if(ms.length>1){
@@ -1426,20 +1423,20 @@ function rWeek(){
         }
         h+='</div>';
       }
-      h+='<span class="chev">›</span>';
+      h+='<span class="chev">›</span>'+DRAG;
     } else if(ms2.length>1){
       h+='<div class="dmain mealcols">';
       ms2.forEach(m=>{
         h+=`<div class="mealcol ${m.k}" onclick="event.stopPropagation();openDayMeal('${dk}','${m.k}')"><div class="mlabel">${m.label}</div><div class="mnames" style="color:#c2b6a2">＋</div></div>`;
       });
-      h+='</div><span class="chev">›</span>';
+      h+='</div><span class="chev">›</span>'+DRAG;
     } else {
-      h+=`<div class="dmain dempty">料理を追加</div><span class="dplus">＋</span>`;
+      h+=`<div class="dmain dempty">料理を追加</div><span class="dplus">＋</span>`+DRAG;
     }
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">各行の左にある<b>☰つまみ</b>を押したまま動かすと、料理を別の日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
+  h+='<p class="note" style="margin-top:-2px">各行の<b>右にある☰つまみ</b>を押したまま動かすと、料理を別の日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
   /* 押したら何が起きるかを、押す前に文字で出す */
   const df=listDiff();
   if(!df){
@@ -1514,10 +1511,10 @@ function renderFamily(){
   h+='<div class="card listcard" id="navSort">';
   navOrder().forEach(function(k){
     const n=NAV.find(x=>x.k===k);
-    h+=`<div class="dishrow" data-id="${k}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="dbody"><div class="nm">${n.ic} ${n.label}</div></div></div>`;
+    h+=`<div class="dishrow" data-id="${k}"><div class="dbody"><div class="nm">${n.ic} ${n.label}</div></div><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">左の<b>☰つまみ</b>を押したまま動かすと、画面下のボタンの並び順を変えられます。</p>';
+  h+='<p class="note" style="margin-top:-2px">右の<b>☰つまみ</b>を押したまま動かすと、画面下のボタンの並び順を変えられます。</p>';
   h+='<div class="kindhead">データの管理</div>';
   h+='<div class="row2"><button class="btn sub small" onclick="exportData()">バックアップ保存</button><button class="btn sub small" onclick="document.getElementById(\'imp\').click()">読み込み</button></div>';
   h+='<input type="file" id="imp" accept=".json" style="display:none" onchange="importData(this)">';
@@ -1817,7 +1814,7 @@ function renderPicker(){
     slot.forEach((id,j)=>{
       const ds=dish(id); if(!ds) return;
       const ig=ds.ing.slice(0,4).map(x=>x.n).join("・");
-      h+=`<div class="selbig" data-id="${id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="sbmain" onclick="event.stopPropagation();showDishDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span></div>`;
+      h+=`<div class="selbig" data-id="${id}"><div class="sbmain" onclick="event.stopPropagation();showDishDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
     });
     h+='</div></div>';
   }
@@ -1856,10 +1853,10 @@ function renderPicker(){
     const cnt=slot.filter(x=>x===d.id).length;
     const sel=cnt>0;
     const fav=S.favs&&S.favs[d.id];
-    h+=`<div class="pickrow ${sel?"sel":""}" data-id="${d.id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="dbody" onclick="pickAdd('${d.id}')"><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div>`;
+    h+=`<div class="pickrow ${sel?"sel":""}" data-id="${d.id}"><div class="dbody" onclick="pickAdd('${d.id}')"><div class="pnm">${esc(d.name)}</div><div class="pig">${esc(ig)}${d.ing.length>3?" など":""}</div></div>`;
     h+=`<span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}','pick')">${fav?"★":"☆"}</span>`;
     if(sel) h+=`<span class="minusbtn" onclick="event.stopPropagation();pickRemoveOne('${d.id}')">−</span><span class="cntbadge">${cnt}</span>`;
-    h+=`<span class="paddbtn" onclick="event.stopPropagation();pickAdd('${d.id}')">＋</span></div>`;
+    h+=`<span class="paddbtn" onclick="event.stopPropagation();pickAdd('${d.id}')">＋</span>`+DRAG+'</div>';
   });
   h+='</div>';
   /* 献立に無くても、カタログの品物なら「そのまま」1品として追加できる */
@@ -1940,7 +1937,7 @@ function rDish(){
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(d=>{
     const fav=S.favs&&S.favs[d.id];
-    h+=`<div class="dishrow" data-id="${d.id}"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}')">${fav?"★":"☆"}</span><span class="arrow">›</span></div>`;
+    h+=`<div class="dishrow" data-id="${d.id}"><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}')">${fav?"★":"☆"}</span><span class="arrow">›</span><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
   });
   h+='</div>';
   h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい料理を作る</button>';
@@ -2133,15 +2130,15 @@ let catEdit=[];
 function openCatEdit(){ catEdit=S.cats.map(c=>({old:c, name:c})); showModal(); renderCatEdit(); }
 function renderCatEdit(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>カテゴリの編集</b></div>';
-  h+='<p class="note" style="margin-top:0">名前を書き換え。左の<b>☰つまみ</b>を押したまま動かすと並べ替えできます。料理の一覧と、料理を選ぶ画面に反映されます。</p>';
+  h+='<p class="note" style="margin-top:0">名前を書き換え。右の<b>☰つまみ</b>を押したまま動かすと並べ替えできます。料理の一覧と、料理を選ぶ画面に反映されます。</p>';
   h+='<div class="card listcard">';
   catEdit.forEach((c,i)=>{
     const cnt=c.old?S.dishes.filter(d=>d.cat===c.old).length:0;
     h+=`<div class="ingrow" data-id="${i}" style="align-items:center">`;
-    h+=`<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>`;
     h+=`<input class="n" type="text" value="${esc(c.name)}" oninput="catEdit[${i}].name=this.value">`;
     h+=`<span class="arq" style="width:44px;text-align:right;margin:0">${cnt}品</span>`;
     h+=`<button class="rm" onclick="delCat(${i})">✕</button>`;
+    h+=DRAG;
     h+='</div>';
   });
   h+='</div>';
@@ -2187,7 +2184,6 @@ function rGoods(){
     const sel=S.goodsSel[g], star=S.goodsStar[g];
     const active=(sel||star)&&!goodsEdit;
     h+=`<div class="dishrow ${active?"selrow":""}" data-id="${esc(g)}">`;
-    h+=`<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>`;
     h+=`<div class="dbody" onclick="${goodsEdit?`togStar('${esc(g)}')`:`togGoods('${esc(g)}')`}"><div class="nm">${star?"⭐ ":""}${esc(g)}</div><div class="ings">${esc(goodsCat(g))}${star?"・毎回追加":sel?"・選択中":""}</div></div>`;
     if(goodsEdit) h+=`<span class="arrow" onclick="event.stopPropagation();delGoods(${i})" style="color:var(--danger);font-size:16px">✕</span>`;
     else if(active){
@@ -2197,6 +2193,7 @@ function rGoods(){
       h+=`<span class="paddbtn" onclick="event.stopPropagation();goodsQtyAdd('${esc(g)}',1)">＋</span>`;
     }
     else h+=`<span class="paddbtn" onclick="event.stopPropagation();togGoods('${esc(g)}')">＋</span>`;
+    h+=DRAG;
     h+='</div>';
   });
   h+='</div>';
@@ -2611,12 +2608,12 @@ function rShop(){
     h+='<div class="kindwrap">';
     kindOrder().forEach(k=>{
       if(!groups[k]) return;
-      h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>${k}</div><div class="card listcard">`;
+      h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead">${k}<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div><div class="card listcard">`;
       groups[k].forEach(i=>{ h+=itemRow(i,true); });
       h+='</div></div>';
     });
     h+='</div>';
-    h+='<p class="note" style="margin:-2px 0 10px">左の<b>☰つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
+    h+='<p class="note" style="margin:-2px 0 10px">右の<b>☰つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
     const pn=S.list.pantry||[], ex=S.list.excluded||[];
     h+='<div class="kindhead" style="display:flex;justify-content:space-between;align-items:center">調味料・常備品（切れてる物をタップ）<span class="linkbtn" style="font-size:12px" onclick="openPantryEdit()">✏️ 編集</span></div><div class="card">';
     if(pn.length){
@@ -2659,12 +2656,12 @@ function rShop(){
       h+='<div class="kindwrap">';
       kindOrder().forEach(k=>{
         if(!groups[k]) return;
-        h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead"><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>${k}</div><div class="card listcard">`;
+        h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead">${k}<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div><div class="card listcard">`;
         groups[k].forEach(i=>{ h+=itemRow(i,false); });
         h+='</div></div>';
       });
       h+='</div>';
-      h+='<p class="note" style="margin:-2px 0 10px">左の<b>☰つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
+      h+='<p class="note" style="margin:-2px 0 10px">右の<b>☰つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
       h+='<p class="note">ほかの店で買った場合も、そのままチェックでOK。</p>';
     }
   }
