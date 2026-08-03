@@ -47,7 +47,7 @@ h2{font-size:15px; margin:14px 2px 8px; color:var(--or-d);}
 /* 大ボタン */
 .cta{display:flex; align-items:center; justify-content:center; gap:10px; width:100%; border:none; background:var(--or); color:#fff; border-radius:16px; padding:16px; font-size:16px; font-weight:800; margin-top:14px; cursor:pointer; box-shadow:0 3px 10px rgba(232,135,60,.3);}
 .ctalink{text-align:center; padding:12px; font-size:14px; cursor:pointer;}
-.ctalink.small{font-size:12px; color:var(--sub); padding:5px;}
+.ctalink.small{min-height:40px; font-size:12px; color:var(--sub); padding:11px 5px;}
 /* 共通 */
 .card{background:var(--card); border-radius:16px; padding:12px; margin-bottom:10px; box-shadow:0 1px 5px rgba(120,90,50,.06);}
 .listcard{padding:2px 12px;}
@@ -55,7 +55,7 @@ h2{font-size:15px; margin:14px 2px 8px; color:var(--or-d);}
 .btn.sub{background:#fff; color:var(--or-d); border:1.5px solid var(--or);}
 .btn.gray{background:#f0e9dd; color:#8a7d69; font-weight:normal;}
 .btn.danger{background:#fff; color:var(--danger); border:1.5px solid var(--danger);}
-.btn.small{padding:6px 10px; font-size:12px; border-radius:9px;}
+.btn.small{padding:10px 12px; min-height:40px; font-size:12px; border-radius:9px;}
 .btn.wide{display:block; width:100%; text-align:center; margin-top:10px;}
 input[type=text],input[type=number],select{font-size:15px; padding:8px; border:1.5px solid #e0d5c2; border-radius:10px; background:#fff; color:var(--ink);}
 input:focus,select:focus{outline:2px solid var(--or);}
@@ -66,7 +66,7 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .searchrow{display:flex; gap:8px; align-items:center; margin-bottom:10px;}
 .searchrow .search{flex:1; min-width:0;}
 .newbtn{flex-shrink:0; border:none; background:var(--or); color:#fff; font-weight:bold; font-size:13px; padding:11px 12px; border-radius:12px; cursor:pointer;}
-.fchip{flex-shrink:0; border:1.5px solid #e8ddcb; background:#fff; color:#6f6354; border-radius:20px; padding:6px 11px; font-size:12.5px; line-height:1.35; cursor:pointer;}
+.fchip{min-height:40px; flex-shrink:0; border:1.5px solid #e8ddcb; background:#fff; color:#6f6354; border-radius:20px; padding:6px 11px; font-size:12.5px; line-height:1.35; cursor:pointer;}
 .fchip.on{background:var(--or); border-color:var(--or); color:#fff; font-weight:bold;}
 .kindhead{font-size:13px; font-weight:800; color:#7d6f5c; margin:14px 2px 7px;}
 .note{font-size:12px; color:var(--sub); margin:6px 2px;}
@@ -78,7 +78,7 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .nm{font-size:15px; font-weight:bold;}
 .ings{font-size:12px; color:var(--sub); margin-top:2px;}
 .arrow{color:#d5c8b2; font-size:18px;}
-.draghandle{color:#c99a52; padding:8px 4px 8px 12px; touch-action:none; -webkit-user-select:none; user-select:none; flex-shrink:0; cursor:grab; font-size:0; display:inline-flex; align-items:center; border-radius:9px; transition:background .12s,color .12s;}
+.draghandle{color:#c99a52; padding:14px 6px 14px 14px; touch-action:none; -webkit-user-select:none; user-select:none; flex-shrink:0; cursor:grab; font-size:0; display:inline-flex; align-items:center; border-radius:9px; transition:background .12s,color .12s;}
 /* 「動かせます」の目印は横三本線（いちばん一般的な形） */
 .draghandle::before{content:""; width:17px; height:12px; opacity:.95; border-radius:1px;
   background-image:repeating-linear-gradient(to bottom, currentColor 0, currentColor 2px, transparent 2px, transparent 5px);}
@@ -181,9 +181,9 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .edminus{color:var(--danger); font-weight:bold; font-size:15px; padding:1px 5px; border-radius:6px; background:#fdecec; cursor:pointer;}
 .edplusS{color:var(--or); font-weight:bold; font-size:14px; padding:1px 5px; border-radius:6px; background:var(--or-bg); cursor:pointer;}
 /* 一覧行の「−」と個数バッジ */
-.minusbtn{width:30px; height:30px; border-radius:50%; background:#fdecec; color:var(--danger); font-size:18px; font-weight:bold; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;}
+.minusbtn{width:34px; height:34px; border-radius:50%; background:#fdecec; color:var(--danger); font-size:18px; font-weight:bold; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;}
 .cntbadge{min-width:22px; text-align:center; font-size:13px; font-weight:bold; color:var(--green);}
-.favbtn{font-size:20px; line-height:1; color:#d9cdb8; padding:4px 6px; cursor:pointer; flex-shrink:0;}
+.favbtn{min-height:40px; min-width:40px; display:inline-flex; align-items:center; justify-content:center; font-size:20px; line-height:1; color:#d9cdb8; padding:4px 6px; cursor:pointer; flex-shrink:0;}
 .favbtn.on{color:#f0b429;}
 .qtylabel{min-width:46px; text-align:center; font-size:14px; font-weight:bold; color:var(--green);}
 .catrow.sel,.pickrow.sel{background:#eef7ef; border-radius:10px;}
@@ -192,7 +192,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .item2{padding:11px 2px; border-bottom:1px solid var(--line);}
 .item2:last-child{border-bottom:none;}
 .i2top{display:flex; align-items:center; gap:10px;}
-.i2name{flex:1; min-width:0; font-size:16px; font-weight:600; cursor:pointer;}
+.i2name{flex:1; min-width:0; font-size:16px; font-weight:600; cursor:pointer; min-height:42px; display:flex; align-items:center;}
 .i2top .iq{font-size:14px; color:var(--ink); flex-shrink:0;}
 .i2bot{display:flex; align-items:center; gap:8px; margin:7px 0 0 34px; flex-wrap:wrap;}
 .needq{font-size:11.5px; color:var(--sub);}
@@ -214,20 +214,21 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .pfill{height:100%; background:var(--or); border-radius:4px;}
 .item{display:flex; align-items:center; gap:9px; padding:10px 2px; border-bottom:1px solid var(--line);}
 .item:last-child{border-bottom:none;}
-.ckb{width:26px; height:26px; border:2px solid #ddd0bb; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:14px; cursor:pointer;}
+.ckb{width:30px; height:30px; border:2px solid #ddd0bb; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; cursor:pointer;
+     box-sizing:content-box; padding:6px; margin:-6px;}   /* 見た目は30px・押せる範囲は42px */
 .item.done .ckb{background:var(--green); border-color:var(--green);}
 .info{flex:1; min-width:0;}
 .inm{font-size:15px; font-weight:600;}
-.iq{font-size:13px; color:var(--sub); flex-shrink:0;}
+.iq{font-size:13px; color:var(--sub); flex-shrink:0; min-height:40px; display:inline-flex; align-items:center; padding:0 2px;}
 .item.stocked .inm,.item.stocked .iq,.item.done .inm,.item.done .iq{color:#c9bda9; text-decoration:line-through;}
 .storechip{border:none; border-radius:9px; padding:6px 8px; font-size:11px; font-weight:bold; color:#fff; flex-shrink:0; min-width:46px; cursor:pointer;}
-.stockbtn{border:1.5px solid #eadfce; background:#fff; border-radius:10px; padding:6px 8px; font-size:11px; color:#b3a692; cursor:pointer; flex-shrink:0;}
+.stockbtn{border:1.5px solid #eadfce; background:#fff; border-radius:10px; padding:10px 10px; min-height:40px; font-size:11px; color:#b3a692; cursor:pointer; flex-shrink:0; display:inline-flex; align-items:center;}
 .stockbtn.on{background:var(--or-bg); border-color:var(--or); color:var(--or-d); font-weight:bold;}
-.linkbtn{font-size:13px; font-weight:bold; color:var(--or-d); cursor:pointer;}
-.storebtn{border:1.5px solid var(--or); background:#fff; color:var(--or-d); border-radius:10px; padding:6px 9px; font-size:12px; font-weight:bold; flex-shrink:0; cursor:pointer; white-space:nowrap;}
+.linkbtn{font-size:13px; font-weight:bold; color:var(--or-d); cursor:pointer; min-height:40px; display:inline-flex; align-items:center; padding:0 4px;}
+.storebtn{border:1.5px solid var(--or); background:#fff; color:var(--or-d); border-radius:10px; padding:10px 10px; min-height:40px; font-size:12px; font-weight:bold; flex-shrink:0; cursor:pointer; white-space:nowrap;}
 .storebtn.unset{border-color:#d8ccb8; color:#a2967f;}
 .kindgroup .kindhead{display:flex; align-items:center; gap:2px;}
-.kindgroup .draghandle{padding:5px 0 5px 8px; color:#c99a52; margin-left:auto;}
+.kindgroup .draghandle{padding:12px 0 12px 14px; color:#c99a52; margin-left:auto;}
 .kindgroup.dragging{opacity:.6;}
 .sharechip{display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:bold; color:var(--green); background:#eef7ef; border-radius:99px; padding:4px 10px; margin-left:8px;}
 .sharelinkbox{background:#f7f2e8; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12px; word-break:break-all; color:var(--sub); margin-bottom:8px;}
@@ -293,7 +294,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .pnm{font-size:15px; font-weight:600;}
 .pickrow.sel .pnm{color:var(--green);}
 .pig{font-size:12px; color:var(--sub); margin-top:2px;}
-.paddbtn{width:30px; height:30px; border-radius:50%; background:var(--or); color:#fff; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
+.paddbtn{width:34px; height:34px; border-radius:50%; background:var(--or); color:#fff; font-size:18px; display:flex; align-items:center; justify-content:center; flex-shrink:0;}
 .paddbtn.on{background:var(--green); font-size:13px; font-weight:bold;}
 .ingrow{display:flex; gap:6px; margin-bottom:6px;}
 .ingrow input.n{flex:1; min-width:0;}
@@ -719,7 +720,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-62";
+const APP_VERSION="0802-65";
 let S=null;
 function newState(){
   return {
@@ -1323,7 +1324,7 @@ function inAppWarn(){
     +`<button class="btn small sub" onclick="S.iabOk=true;save();render()">わかった（閉じる）</button></div>`;
 }
 /* 献立ページのいちばん上：買い物する期間。ここが献立表の範囲そのもの */
-function periodCard(vp){
+function periodCard(vp,decidedAny){
   const cur=(perOffset===0);
   const f=vp.fromDate, t=vp.toDate;
   const md=d=>`${d.getMonth()+1}/${d.getDate()}`;
@@ -1357,8 +1358,10 @@ function periodCard(vp){
     h+='</span>まで';
   }
   h+='</div>';
-  if(cur) h+='<div class="pchint">日付を押すとカレンダーが出ます。この期間に食べる料理が下に並びます。</div>';
-  else h+='<div class="pchint"><button class="pcback" onclick="gotoThisWeek()">↩ 買い物する期間にもどる</button></div>';
+  /* 前後の期間を見ている時は戻る手段を出す。今の期間なら、説明は使い始めだけ
+     （毎回出すと画面の上半分を占領してしまうため、1日でも決めたら消す） */
+  if(!cur) h+='<div class="pchint"><button class="pcback" onclick="gotoThisWeek()">↩ 買い物する期間にもどる</button></div>';
+  else if(!decidedAny) h+='<div class="pchint">日付を押すとカレンダーが出ます。この期間に食べる料理が下に並びます。</div>';
   h+='</div>';
   return h;
 }
@@ -1372,9 +1375,9 @@ function rWeek(){
   let h='<div class="pagehead"><div class="ptitle">献立表</div>';
   h+='<button class="pill" onclick="openFamily()">⚙ 設定</button></div>';
   h+=inAppWarn();
-  h+=periodCard(vp);
+  h+=periodCard(vp, decided>0);
   h+='<div class="summaryrow">';
-  h+=`<div class="summary" style="margin:0"><b>${S.family}人分</b>・<b>${decided}日</b>決定・買うもの<b>${nItems}品</b></div>`;
+  h+=`<div class="summary" style="margin:0"><b>${S.family}人分</b>・決まった日 <b>${decided}/${dates.length}</b>・買うもの<b>${nItems}品</b></div>`;
   h+=`<button class="viewtog" onclick="togWeekView()">${S.weekView==="main"?"副菜まで全部見る":"メインだけ表示"}</button>`;
   h+='</div>';
   /* 朝・昼・夜の表示切替をホームから直接 */
@@ -1436,7 +1439,7 @@ function rWeek(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">各行の<b>右にある☰つまみ</b>を押したまま動かすと、料理を別の日へ移せます。料理を<b>長押し</b>でその食事を、<b>日付を長押し</b>でその日ぜんぶを消せます。</p>';
+  h+='<p class="note" style="margin-top:-2px">右の<b>☰</b>を押したまま動かすと日を入れ替え。<b>長押し</b>で消せます。</p>';
   /* 押したら何が起きるかを、押す前に文字で出す */
   const df=listDiff();
   if(!df){
@@ -1734,7 +1737,7 @@ function pantryRows(key,label,hint){
 function renderPantryEdit(){
   let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>常備品・除外品の設定</b></div>';
   h+=pantryRows("pantryList","調味料・常備品","買い物リストには出さず、下の確認コーナーに出ます。名前／買うときの数／単位。");
-  h+=pantryRows("excludeList","除外品（米など）","買い物リストにも確認コーナーにも出しません。「今週は買う」を押した時だけ入ります。");
+  h+=pantryRows("excludeList","除外品（米など）","買い物リストにも確認コーナーにも出しません。「この期間は買う」を押した時だけ入ります。");
   h+='<button class="cta" style="margin-top:14px" onclick="savePantryEdit()">保存</button>';
   setHTML(document.getElementById("modal"),h);
 }
@@ -1836,6 +1839,8 @@ function renderPicker(){
   h+='<button class="newbtn" onclick="pickNewDish()">＋新規</button>';
   h+='</div>';
   h+='<div class="catbar">';
+  const recentList=(S.recent||[]).map(id=>dish(id)).filter(Boolean);
+  if(recentList.length) h+=`<button class="fchip ${pickCat==="__recent"?"on":""}" onclick="pickCat='__recent';renderPicker()">🕘 最近(${recentList.length})</button>`;
   if(favCount()) h+=`<button class="fchip ${pickCat==="__fav"?"on":""}" onclick="pickCat='__fav';renderPicker()">⭐ よく作る(${favCount()})</button>`;
   h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${esc(c)}';renderPicker()">${esc(c)}</button>`; });
@@ -1843,6 +1848,7 @@ function renderPicker(){
   const q=pickSearch.trim();
   let list;
   if(q) list=S.dishes.filter(d=>d.name.includes(q)||d.ing.some(i=>i.n.includes(q)));
+  else if(pickCat==="__recent") list=recentList;
   else if(pickCat==="__fav") list=S.dishes.filter(d=>S.favs&&S.favs[d.id]);
   else if(pickCat==="") list=S.dishes;
   else list=S.dishes.filter(d=>d.cat===pickCat);
@@ -1937,7 +1943,7 @@ function rDish(){
   if(!list.length) h+='<p class="note">見つかりません</p>';
   list.forEach(d=>{
     const fav=S.favs&&S.favs[d.id];
-    h+=`<div class="dishrow" data-id="${d.id}"><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">使う食材 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}')">${fav?"★":"☆"}</span><span class="arrow">›</span><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
+    h+=`<div class="dishrow" data-id="${d.id}"><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">材料 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}')">${fav?"★":"☆"}</span><span class="arrow">›</span><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
   });
   h+='</div>';
   h+='<button class="btn wide" onclick="openEditor(null)">＋ 新しい料理を作る</button>';
@@ -2623,16 +2629,16 @@ function rShop(){
       });
       h+='</div>';
     } else {
-      h+='<p class="note" style="margin-top:0">今週の献立で使う調味料はありません。</p>';
+      h+='<p class="note" style="margin-top:0">この期間の献立で使う調味料はありません。</p>';
     }
     if(ex.length){
       h+=`<div style="display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:${pn.length?"12px":"4px"};font-size:13px;color:var(--sub)">除外中：`;
       ex.forEach((e,idx)=>{
-        h+=`<b style="color:var(--ink)">${esc(e.n)}</b><button class="btn small ${e.buy?"":"sub"}" onclick="togExclude(${idx})">${e.buy?"今週は買う ✓":"今週は買う"}</button>`;
+        h+=`<b style="color:var(--ink)">${esc(e.n)}</b><button class="btn small ${e.buy?"":"sub"}" onclick="togExclude(${idx})">${e.buy?"この期間は買う ✓":"この期間は買う"}</button>`;
       });
       h+='</div>';
     }
-    h+='<p class="note" style="margin-bottom:0">今週の献立で使うものだけ出ます。切れている物をタップすると、買い物リストに入ります。「✏️ 編集」で品目や数量を変えられます。</p></div>';
+    h+='<p class="note" style="margin-bottom:0">この期間の献立で使うものだけ出ます。切れている物をタップすると、買い物リストに入ります。「✏️ 編集」で品目や数量を変えられます。</p></div>';
     h+='<p class="note">チェックすると購入済みになります。「家にある」を押すと買うものから外れます。</p>';
     h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから追加</button>';
     h+='<div class="ctalink small" onclick="addManual()">キーボードで直接入力して追加</div>';
