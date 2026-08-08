@@ -83,13 +83,11 @@ input:focus,select:focus{outline:2px solid var(--or);}
 .draghandle::before{content:""; width:17px; height:12px; opacity:.95; border-radius:1px;
   background-image:repeating-linear-gradient(to bottom, currentColor 0, currentColor 2px, transparent 2px, transparent 5px);}
 .draghandle:hover,.draghandle:active{background:var(--or-bg); color:var(--or-d);}
-.dishrow,.ingrow,.pickrow,.assignrow,.selchips .chip{-webkit-user-select:none; user-select:none;}
+.dishrow,.ingrow,.pickrow,.assignrow{-webkit-user-select:none; user-select:none;}
 .dragging-active,.dragging-active *{-webkit-user-select:none !important; user-select:none !important; cursor:grabbing !important;}
 /* 入力欄だけは必ず文字入力・選択できるようにする（上のuser-select:noneを打ち消す） */
 input,textarea,select,[contenteditable]{-webkit-user-select:text !important; user-select:text !important; -webkit-touch-callout:default !important; cursor:auto !important;}
-.chip .draghandle{color:rgba(255,255,255,.9); padding:0 0 0 5px;}
 .dbody{flex:1; min-width:0;}
-.dishrow.dragging,.chip.dragging{opacity:.5;}
 /* つまんで動かしていることが分かる見た目 */
 .drag-ghost{position:fixed; z-index:9999; margin:0 !important; pointer-events:none; background:#fff;
   border-radius:14px; box-shadow:0 18px 42px rgba(60,38,15,.32); opacity:.97; transform:scale(1.04);
@@ -97,7 +95,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 @keyframes ghostpop{from{transform:scale(1);}to{transform:scale(1.04);}}
 .drag-src{opacity:1 !important; position:relative; outline:2px dashed var(--or); outline-offset:-2px; border-radius:12px; background:var(--or-bg);}
 .drag-src>*{opacity:.25;}
-.dishrow.dragging{background:var(--or-bg); border-radius:10px;}
 .catrow{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
 .catrow:last-child{border-bottom:none;}
 .catacts{display:flex; flex-wrap:wrap; gap:6px; padding:2px 2px 12px;}
@@ -106,10 +103,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .dishrow.selrow{background:#eef7ef; border-radius:10px;}
 .dishrow.selrow .nm{color:var(--green);}
 .weeknav{display:flex; align-items:center; gap:10px; margin:2px 0 8px;}
-.wnav{border:1px solid var(--line); background:#fff; width:44px; height:44px; border-radius:12px; font-size:16px; color:var(--or-d); cursor:pointer; flex-shrink:0;}
-.wlabel{flex:1; text-align:center;}
-.wlabel b{font-size:16px;}
-.wlabel span{display:block; font-size:12px; color:var(--sub); margin-top:1px;}
 /* 朝・昼・夜は縦に3段（スマホで読みやすい） */
 .mealcols{display:flex; flex-direction:column; gap:7px;}
 .mealcol{display:flex; align-items:flex-start; gap:9px; min-width:0; padding-left:8px; border-left:3px solid;}
@@ -208,9 +201,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .gchk{display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px; margin-left:6px; border-radius:50%; background:var(--or); color:#fff; font-size:11px;}
 .gbtn .del{margin-left:6px; color:var(--danger); font-weight:bold;}
 /* 買い物リスト */
-.seg{display:flex; background:#fff; border:1.5px solid #e8ddcb; border-radius:12px; padding:4px; margin-bottom:12px;}
-.seg button{flex:1; border:none; background:none; border-radius:9px; padding:9px 0; font-size:13px; font-weight:bold; color:#8d8172; cursor:pointer;}
-.seg button.on{background:var(--or); color:#fff;}
 .pmeta{font-size:13px; color:var(--sub); margin:2px 2px 6px;}
 .syncbar{display:flex; align-items:center; gap:10px; background:#fff6ea; border:1.5px solid var(--or);
          border-radius:12px; padding:10px 12px; margin:0 0 10px;}
@@ -233,7 +223,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .inm{font-size:15px; font-weight:600;}
 .iq{font-size:13px; color:var(--sub); flex-shrink:0; min-height:40px; display:inline-flex; align-items:center; padding:0 2px;}
 .item.stocked .inm,.item.stocked .iq,.item.done .inm,.item.done .iq{color:#c9bda9; text-decoration:line-through;}
-.storechip{border:none; border-radius:9px; padding:6px 8px; font-size:11px; font-weight:bold; color:#fff; flex-shrink:0; min-width:46px; cursor:pointer;}
 .stockbtn{border:1.5px solid #eadfce; background:#fff; border-radius:10px; padding:10px 10px; min-height:40px; font-size:11px; color:#b3a692; cursor:pointer; flex-shrink:0; display:inline-flex; align-items:center;}
 .stockbtn.on{background:var(--or-bg); border-color:var(--or); color:var(--or-d); font-weight:bold;}
 .linkbtn{font-size:13px; font-weight:bold; color:var(--or-d); cursor:pointer; min-height:40px; display:inline-flex; align-items:center; padding:0 4px;}
@@ -241,7 +230,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .storebtn.unset{border-color:#d8ccb8; color:#a2967f;}
 .kindgroup .kindhead{display:flex; align-items:center; gap:2px;}
 .kindgroup .draghandle{padding:12px 0 12px 14px; color:#c99a52; margin-left:auto;}
-.kindgroup.dragging{opacity:.6;}
 .sharechip{display:inline-flex; align-items:center; gap:4px; font-size:11px; font-weight:bold; color:var(--green); background:#eef7ef; border-radius:99px; padding:4px 10px; margin-left:8px;}
 .sharelinkbox{background:#f7f2e8; border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:12px; word-break:break-all; color:var(--sub); margin-bottom:8px;}
 .shareqr{display:flex; justify-content:center; margin:14px 0;}
@@ -298,9 +286,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .sdrow{display:flex; justify-content:space-between; padding:6px 2px; border-bottom:1px solid var(--line); font-size:14px;}
 .sdrow:last-child{border-bottom:none;}
 .sdq{color:var(--sub); font-size:13px;}
-.selchips{display:flex; flex-wrap:wrap; gap:7px;}
-.chip{background:var(--green); border:none; color:#fff; border-radius:16px; padding:7px 11px; font-size:14px; font-weight:600; display:inline-flex; align-items:center; gap:7px;}
-.chip .x{color:#fff; opacity:.85; font-weight:bold; cursor:pointer; padding:0 2px 0 3px; border-left:1px solid rgba(255,255,255,.4);}
 .pickrow{display:flex; justify-content:space-between; align-items:center; gap:8px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer;}
 .pickrow.sel{background:#eef7ef; border-radius:10px; padding:11px 8px; border-bottom:1px solid transparent;}
 .pnm{font-size:15px; font-weight:600;}
@@ -359,13 +344,6 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .mrow .mtx{flex:1; min-width:0;}
 .mrow .mar{color:#c9bda9; font-size:20px; flex-shrink:0;}
 .mrow.danger .mtx{color:#c0553f;}
-/* 買い物期間のチップ */
-.perchip{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:6px;
-         margin:8px 0 0; padding:10px 12px; background:#fff; border:1px solid var(--line);
-         border-radius:12px; font-size:13px; color:var(--sub); cursor:pointer; text-align:center;}
-.perchip b{color:var(--ink); font-size:14px;}
-.perchip:active{background:var(--or-bg);}
-.perchip .pcedit{background:var(--or-bg); color:var(--or-d); border-radius:8px; padding:3px 9px; font-size:12px; font-weight:bold;}
 .iabwarn{background:#fff4e5; border:1px solid #f0c48a; border-radius:12px; padding:12px; margin-bottom:12px; font-size:13px; line-height:1.6; color:#7a5a2a;}
 .iabwarn b{color:#b5651d;}
 .iabwarn div{margin:6px 0 10px;}
@@ -732,7 +710,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-66";
+const APP_VERSION="0802-67";
 let S=null;
 function newState(){
   return {
@@ -763,6 +741,28 @@ function newState(){
   };
 }
 let recoveredFrom=null;   /* バックアップから復旧した時刻（起動後に知らせる） */
+/* 足りない項目を既定値で埋める。1つでも欠けると画面が真っ白になり
+   「データが消えた」ように見えるので、個別に足すのではなく機械的に全部そろえる。
+   保存データからの読み込みだけでなく、バックアップファイルの読み込みでも必ず通すこと
+   （古いファイルには今の項目が入っていないため） */
+function fillDefaults(){
+  const def=newState();
+  Object.keys(def).forEach(function(k){
+    const d=def[k];
+    if(S[k]===undefined){ S[k]=d; return; }
+    /* 種類が違う（オブジェクトのはずが文字列など）なら壊れているとみなして戻す */
+    if(d&&typeof d==="object"){
+      if(S[k]===null||typeof S[k]!=="object"||Array.isArray(d)!==Array.isArray(S[k])) S[k]=d;
+    }
+  });
+  /* 自作料理の連番は、既にある u◯◯ より必ず後ろから続ける（同じIDが二重にできるのを防ぐ） */
+  let mx=0;
+  (S.dishes||[]).forEach(function(d){
+    const m=/^u(\d+)$/.exec(d.id||"");
+    if(m) mx=Math.max(mx,+m[1]);
+  });
+  if(!(S.nextId>mx)) S.nextId=mx+1;
+}
 function load(){
   let raw=null;
   try{ raw=localStorage.getItem(KEY); }catch(e){}
@@ -776,28 +776,7 @@ function load(){
     try{ localStorage.setItem(KEY+"_broken", raw.slice(0,300000)); }catch(e){}
   }
   if(!S||!S.dishes) S=newState();
-  /* 足りない項目を既定値で埋める。1つでも欠けると画面が真っ白になり
-     「データが消えた」ように見えるので、個別に足すのではなく機械的に全部そろえる */
-  (function(){
-    const def=newState();
-    Object.keys(def).forEach(function(k){
-      const d=def[k];
-      if(S[k]===undefined){ S[k]=d; return; }
-      /* 種類が違う（オブジェクトのはずが文字列など）なら壊れているとみなして戻す */
-      if(d&&typeof d==="object"){
-        if(S[k]===null||typeof S[k]!=="object"||Array.isArray(d)!==Array.isArray(S[k])) S[k]=d;
-      }
-    });
-  })();
-  /* 自作料理の連番は、既にある u◯◯ より必ず後ろから続ける（同じIDが二重にできるのを防ぐ） */
-  (function(){
-    let mx=0;
-    (S.dishes||[]).forEach(function(d){
-      const m=/^u(\d+)$/.exec(d.id||"");
-      if(m) mx=Math.max(mx,+m[1]);
-    });
-    if(!(S.nextId>mx)) S.nextId=mx+1;
-  })();
+  fillDefaults();
   if(!S.family) S.family=3;
   if(!S.recent) S.recent=[];
   if(!S.share) S.share={active:false, roomId:"", key:""};
@@ -2958,14 +2937,37 @@ function delStore(i){
 
 /* ===== バックアップ・初期化 ===== */
 function exportData(){
-  const a=document.createElement("a");
-  a.href="data:application/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(S));
-  a.download="matomegai-backup.json"; a.click();
+  try{
+    const blob=new Blob([JSON.stringify(S)],{type:"application/json"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");
+    a.href=url; a.download="matomegai-backup.json";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); },1000);
+    flash("バックアップを保存しました");
+  }catch(e){
+    console.warn("export failed",e);
+    alert("バックアップを保存できませんでした。");
+  }
 }
 function importData(inp){
   const f=inp.files[0]; if(!f) return;
   const r=new FileReader();
-  r.onload=()=>{ try{ const d=JSON.parse(r.result); if(d&&d.dishes){ S=d; load2(); save(); render(); flash("読み込みました"); } else alert("ファイルが違うみたい"); }catch(e){ alert("読み込めませんでした"); } };
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d||!Array.isArray(d.dishes)||!d.dishes.length){ alert("ファイルが違うみたい"); return; }
+      const bak=S;
+      S=d;
+      fillDefaults();          /* 古いファイルでも今の項目をそろえる（これが無いと画面が真っ白になる） */
+      load2();
+      try{ rollPeriodIfPast(); }catch(e){}
+      save(); render(); flash("読み込みました");
+    }catch(e){
+      console.warn("import failed",e);
+      alert("読み込めませんでした。ファイルが壊れているかもしれません。");
+    }
+  };
   r.readAsText(f);
 }
 function load2(){ if(!S.family)S.family=3; if(!S.recent)S.recent=[]; S.dishes.forEach(d=>{ if(!d.sv)d.sv=3; }); }
