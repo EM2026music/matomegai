@@ -196,6 +196,9 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .i2top .iq{font-size:14px; color:var(--ink); flex-shrink:0;}
 .i2bot{display:flex; align-items:center; gap:8px; margin:7px 0 0 34px; flex-wrap:wrap;}
 .needq{font-size:11.5px; color:var(--sub);}
+.itemdel{margin-left:auto; border:1px solid var(--line); background:#fff; color:#c0553f; border-radius:10px;
+         min-height:40px; padding:0 11px; font-size:14px; cursor:pointer; flex-shrink:0;}
+.itemdel:active{background:#fdecec;}
 .item2.done .i2name,.item2.done .iq{text-decoration:line-through; color:#b7ab9a;}
 .item2.stocked .i2name,.item2.stocked .iq{text-decoration:line-through; color:#c4b8a6;}
 .dishrow.selrow /* 日用品 */
@@ -209,6 +212,11 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .seg button{flex:1; border:none; background:none; border-radius:9px; padding:9px 0; font-size:13px; font-weight:bold; color:#8d8172; cursor:pointer;}
 .seg button.on{background:var(--or); color:#fff;}
 .pmeta{font-size:13px; color:var(--sub); margin:2px 2px 6px;}
+.syncbar{display:flex; align-items:center; gap:10px; background:#fff6ea; border:1.5px solid var(--or);
+         border-radius:12px; padding:10px 12px; margin:0 0 10px;}
+.sbtx{flex:1; min-width:0; font-size:12px; color:#7a5a2a; line-height:1.5;}
+.sbtx b{display:block; font-size:13.5px; color:var(--or-d);}
+.syncbar .btn{flex-shrink:0; white-space:nowrap;}
 .pmeta b{color:var(--ink); font-size:15px;}
 .pbar{height:7px; border-radius:4px; background:#f0e4d3; margin:2px 0 8px; overflow:hidden;}
 .pfill{height:100%; background:var(--or); border-radius:4px;}
@@ -216,7 +224,11 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .item:last-child{border-bottom:none;}
 .ckb{width:30px; height:30px; border:2px solid #ddd0bb; border-radius:50%; flex-shrink:0; display:flex; align-items:center; justify-content:center; color:#fff; font-size:16px; cursor:pointer;
      box-sizing:content-box; padding:6px; margin:-6px;}   /* 見た目は30px・押せる範囲は42px */
-.item.done .ckb{background:var(--green); border-color:var(--green);}
+.item.done .ckb,.item2.done .ckb{background:var(--green); border-color:var(--green);}
+/* 買った物は一目で分かるように、行ごと薄くする（並び順は変えない） */
+.item2.done{background:#f3f7f3; border-radius:10px;}
+.item2.done .storebtn,.item2.done .stockbtn,.item2.done .needq,.item2.done .itemdel{opacity:.45;}
+.item2.stocked .ckb{background:#cdbfa9; border-color:#cdbfa9;}
 .info{flex:1; min-width:0;}
 .inm{font-size:15px; font-weight:600;}
 .iq{font-size:13px; color:var(--sub); flex-shrink:0; min-height:40px; display:inline-flex; align-items:center; padding:0 2px;}
@@ -720,7 +732,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-65";
+const APP_VERSION="0802-66";
 let S=null;
 function newState(){
   return {
@@ -1650,14 +1662,29 @@ function listDiff(){
     if(it.done) return;
     removed++;
   });
-  agMap.forEach(nw=>{ if(!S.list.items.some(it=>it.daily&&it.n===nw.n)) added++; });
+  agMap.forEach(nw=>{ if(!S.list.items.some(it=>it.daily&&it.n===nw.n)&&!isRemoved(nw)) added++; });
   S.goods.forEach(g=>{
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
     if(S.list.items.some(it=>it.n===g)) return;
+    if(isRemoved({n:g,u:goodsUnitOf(g)})) return;
     added++;
   });
   return {added:added, removed:removed, updated:updated, same:(added+removed+updated)===0};
 }
+/* 今回のリストから消した物。献立を反映しても戻ってこないようにする
+   （新しいリストを作れば消える＝「今回だけいらない」を覚えておく仕組み） */
+function itemKeyOf(x){ return x.n+"|"+(x.u||""); }
+function delItem(i){
+  if(!S.list) return;
+  const it=S.list.items[i]; if(!it) return;
+  if(!S.list.removed) S.list.removed=[];
+  const k=itemKeyOf(it);
+  if(S.list.removed.indexOf(k)<0) S.list.removed.push(k);
+  S.list.items.splice(i,1);
+  save(); render();
+  flash(it.n+" を今回のリストから消しました");
+}
+function isRemoved(x){ return !!(S.list&&S.list.removed&&S.list.removed.indexOf(itemKeyOf(x))>=0); }
 function syncList(ag){
   const key=x=>x.n+"|"+(x.u||"");
   const agMap=new Map(ag.filter(x=>!x.daily).map(x=>[key(x),x]));
@@ -1675,11 +1702,13 @@ function syncList(ag){
   });
   agMap.forEach(nw=>{                                  /* 新しく必要 → 自動追加（定番と同名なら統合済みなのでスキップ） */
     if(S.list.items.some(it=>it.daily&&it.n===nw.n)) return;
+    if(isRemoved(nw)) return;                          /* 今回いらないと消した物は戻さない */
     S.list.items.push(nw); added++;
   });
   S.goods.forEach(g=>{                                 /* 定番（選択中＋⭐毎回）が消えていたら補充 */
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
     if(S.list.items.some(it=>it.n===g)) return;
+    if(isRemoved({n:g,u:goodsUnitOf(g)})) return;      /* 今回いらないと消した定番も戻さない */
     S.list.items.push({n:g, q:goodsQtyOf(g), u:goodsUnitOf(g), stock:false, done:false, store:S.storeMap[g]||"", daily:true}); added++;
   });
   /* 常備品・除外品コーナーも今週の献立に合わせて更新（「買う」の選択は保持） */
@@ -2565,6 +2594,7 @@ function itemRow(i,withStock){
   r+=`<button class="storebtn ${it.store?"":"unset"}" ${sc?`style="border-color:${sc};color:${sc}"`:""} onclick="openStoreModal(${i})">${esc(it.store||"店を選ぶ")} ▾</button>`;
   if(withStock) r+=`<button class="stockbtn ${it.stock?"on":""}" onclick="togStock(${i})">${it.stock?"✓ 家にある":"家にある"}</button>`;
   if(it.need!=null) r+=`<span class="needq">必要 ${fmtQ(it.need)}${esc(it.u)}</span>`;
+  r+=`<button class="itemdel" title="今回のリストから消す" onclick="delItem(${i})">🗑</button>`;
   r+='</div></div>';
   return r;
 }
@@ -2595,6 +2625,17 @@ function rShop(){
     if(!same) h+=`<span class="lwnote">（今の買い物期間とは別です）</span>`;
     h+='</div>';
   }
+  /* 献立を変えた後に下のタブから直接来ると、変更が入っていないリストを見ることになる。
+     ホームまで戻らなくても、ここで反映できるようにする */
+  {const df=listDiff();
+   if(df&&!df.other&&!df.same){
+     const ps=[];
+     if(df.added) ps.push("＋"+df.added+"品");
+     if(df.removed) ps.push("−"+df.removed+"品");
+     if(df.updated) ps.push("数量"+df.updated+"品");
+     h+='<div class="syncbar"><div class="sbtx"><b>献立が変わっています</b><span>'+ps.join("・")+'（買った印はそのまま残ります）</span></div>'
+       +'<button class="btn small" onclick="makeListGo()">リストに反映</button></div>';
+   }}
   h+=`<div class="pmeta">購入済み <b>${doneN} / ${buy.length}</b></div>`;
   h+=`<div class="pbar"><div class="pfill" style="width:${buy.length?Math.round(doneN/buy.length*100):0}%"></div></div>`;
   h+='<div class="catbar">';
