@@ -185,7 +185,10 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .item2{padding:11px 2px; border-bottom:1px solid var(--line);}
 .item2:last-child{border-bottom:none;}
 .i2top{display:flex; align-items:center; gap:10px;}
-.i2name{flex:1; min-width:0; font-size:16px; font-weight:600; cursor:pointer; min-height:42px; display:flex; align-items:center;}
+.i2name{flex:1; min-width:0; font-size:16px; font-weight:600; cursor:pointer; min-height:42px;
+        display:flex; flex-direction:column; justify-content:center; gap:1px;}
+.i2from{font-size:11px; font-weight:normal; color:#a2957f; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:100%;}
+.item2.done .i2from{text-decoration:none; color:#c4b8a6;}
 .i2top .iq{font-size:14px; color:var(--ink); flex-shrink:0;}
 .i2bot{display:flex; align-items:center; gap:8px; margin:7px 0 0 34px; flex-wrap:wrap;}
 .needq{font-size:11.5px; color:var(--sub);}
@@ -362,6 +365,15 @@ nav button{flex:1; border:none; background:none; font-size:11px; color:#a2967f; 
 nav button .ic{display:block; font-size:20px; margin:0 auto 3px; padding:3px 0; border-radius:12px; width:54px;}
 nav button.on{color:var(--or-d); font-weight:bold;}
 nav button.on .ic{background:#f7e7d4;}
+.undobar{position:fixed; left:50%; transform:translateX(-50%); bottom:calc(78px + env(safe-area-inset-bottom));
+         z-index:31; display:none; align-items:center; gap:12px; background:#3a3228; color:#fff;
+         padding:10px 12px 10px 16px; border-radius:14px; font-size:13px; box-shadow:0 6px 20px rgba(0,0,0,.28);
+         max-width:calc(100% - 24px);}
+.undobar.show{display:flex;}
+.ubtx{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.ubbtn{flex-shrink:0; border:none; background:#ffb26b; color:#3a3228; font-weight:bold; font-family:inherit;
+       border-radius:10px; padding:9px 14px; min-height:40px; font-size:13px; cursor:pointer;}
+.ubbtn:active{background:#ff9b45;}
 .flash{position:fixed; bottom:86px; left:50%; transform:translateX(-50%); background:#3a3228; color:#fff; padding:8px 18px; border-radius:20px; font-size:13px; z-index:30; opacity:0; transition:opacity .3s; pointer-events:none; max-width:90%; text-align:center;}
 .flash.show{opacity:.93;}
 </style>
@@ -371,6 +383,7 @@ nav button.on .ic{background:#f7e7d4;}
 <nav></nav>
 <div id="overlay" onclick="if(event.target===this)closeModal()"><div id="modal"></div></div>
 <div id="flash" class="flash"></div>
+<div id="undobar" class="undobar"><span class="ubtx"></span><button class="ubbtn" onclick="doUndo()">元に戻す</button></div>
 
 <!-- 買い物リストの共有機能でのみ使用。defer＝アプリ本体の起動を絶対に待たせない（電波が悪くても本体は即起動） -->
 <script defer src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -710,7 +723,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-67";
+const APP_VERSION="0802-69";
 let S=null;
 function newState(){
   return {
@@ -894,6 +907,35 @@ function fmtQ(q){
   if(q===0.25) return "1/4"; if(q===0.5) return "1/2"; if(q===0.75) return "3/4";
   return String(Math.round(q*100)/100);
 }
+/* ===== 元に戻す =====
+   消す操作は確認を出すだけでは押し間違いを防げないので、
+   直前の状態を控えておいて数秒だけ取り消せるようにする */
+let undoSnap=null, undoTimer=null;
+function pushUndo(label){
+  try{ undoSnap=JSON.stringify(S); }catch(e){ undoSnap=null; return; }
+  const bar=document.getElementById("undobar");
+  if(!bar) return;
+  bar.querySelector(".ubtx").textContent=label;
+  bar.classList.add("show");
+  clearTimeout(undoTimer);
+  undoTimer=setTimeout(hideUndo, 9000);
+}
+function hideUndo(){
+  const bar=document.getElementById("undobar");
+  if(bar) bar.classList.remove("show");
+  undoSnap=null;
+}
+function doUndo(){
+  if(!undoSnap){ hideUndo(); return; }
+  let st=null;
+  try{ st=JSON.parse(undoSnap); }catch(e){}
+  if(!st||!st.dishes){ hideUndo(); flash("元に戻せませんでした"); return; }
+  S=st; fillDefaults();
+  undoSnap=null; hideUndo();
+  save();
+  if(document.getElementById("overlay").classList.contains("show")) closeModal(); else render();
+  flash("元に戻しました");
+}
 function flash(msg){
   const f=document.getElementById("flash"); f.textContent=msg; f.classList.add("show");
   clearTimeout(f._t); f._t=setTimeout(()=>f.classList.remove("show"),1400);
@@ -1052,6 +1094,7 @@ function clearDay(dk){
   if(!parts.length){ flash("この日はまだ空です"); return; }
   const label=dkLabel(dk);
   if(!confirm(label+" に入れた料理をすべて消しますか？\n\n"+parts.join("\n"))) return;
+  pushUndo(label+" を空にしました");
   ms.forEach(m=>{ day[m.k]=[]; });
   pickDetail=""; save();
   if(document.getElementById("overlay").classList.contains("show")) renderPicker();
@@ -1064,7 +1107,8 @@ function clearSlot(dk,k){
   const ml=MEALS.find(m=>m.k===k);
   const label=dkLabel(dk)+(onMeals().length>1?"の"+ml.label:"");
   if(!confirm(label+" の料理を消しますか？\n\n"+names.join("・"))) return;
-  day[k]=[]; save(); render(); flash(label+" を空にしました");
+  pushUndo(label+" を空にしました");
+  day[k]=[]; save(); render();
 }
 /* 1つ前の期間の献立を、今見ている期間に日ごとコピーする */
 function copyPrevWeek(){
@@ -1547,8 +1591,9 @@ function clearWeek(){
   const dates=viewDates();
   if(!dates.some(d=>dayIds(dayObj(keyOf(d))).length)){ flash("この期間はまだ空です"); return; }
   if(!confirm(periodRangeText(viewPeriod())+" の献立をすべて消しますか？")) return;
+  pushUndo("この期間の献立を消しました");
   dates.forEach(function(d){ const o=dayObj(keyOf(d),true); o.b=[]; o.l=[]; o.d=[]; });
-  save(); render(); flash("この期間の献立を消しました");
+  save(); render();
 }
 /* 買い物リストの期間を変える（日付で指定する） */
 function wdOf(d){ return d?"("+DAYS[(d.getDay()+6)%7]+")":""; }
@@ -1658,10 +1703,10 @@ function delItem(i){
   const it=S.list.items[i]; if(!it) return;
   if(!S.list.removed) S.list.removed=[];
   const k=itemKeyOf(it);
+  pushUndo(it.n+" を消しました");
   if(S.list.removed.indexOf(k)<0) S.list.removed.push(k);
   S.list.items.splice(i,1);
   save(); render();
-  flash(it.n+" を今回のリストから消しました");
 }
 function isRemoved(x){ return !!(S.list&&S.list.removed&&S.list.removed.indexOf(itemKeyOf(x))>=0); }
 function syncList(ag){
@@ -1769,8 +1814,9 @@ function savePantryEdit(){
 /* ゼロから作り直し（チェックも消える） */
 function rebuildList(){
   if(!confirm("リストをゼロから作り直しますか？（購入済みチェックや「家にある」の印も消えます）")) return;
+  pushUndo("リストを作り直しました");
   S.list=newList();
-  shopFilter="all"; save(); render(); flash("作り直しました");
+  shopFilter="all"; save(); render();
 }
 
 /* ===== 献立ピッカー（日ごと） ===== */
@@ -2131,6 +2177,7 @@ function copyDish(){
 }
 function delDish(){
   if(!confirm("この料理を削除しますか？")) return;
+  pushUndo((dish(editTarget.id)||{name:"料理"}).name+" を削除しました");
   editorLive=false;   /* 消したものを「戻る」で復活させない */
   const id=editTarget.id;
   S.dishes=S.dishes.filter(d=>d.id!==id);
@@ -2558,13 +2605,72 @@ function saveQty(){
   it.u=document.getElementById("ui").value.trim();
   save(); closeModal(); flash(it.n+" の量を更新しました");
 }
+/* この材料を使う料理を、今の期間の献立から探す。
+   買い物中の「これ何に使うんだっけ」に、タップせず答えられるようにする */
+function usedBy(name){
+  const out=[];
+  periodIds().forEach(function(id){
+    const d=dish(id); if(!d) return;
+    if(out.indexOf(d.name)>=0) return;
+    if(d.ing.some(function(g){ return g.n===name; })) out.push(d.name);
+  });
+  return out;
+}
+/* 買い物リストを文字にする。共有機能を使わない相手（アプリを入れていない人）に
+   そのまま送れるようにするため */
+function listAsText(){
+  if(!S.list||!S.list.items.length) return "";
+  const lines=[];
+  lines.push("🛒 まとめ買いリスト "+listRangeLabel());
+  const items=S.list.items.filter(function(x){ return !x.stock; });
+  const groups={};
+  items.forEach(function(it){
+    const k=it.daily?"定番":kindOf(it.n);   /* 買い物画面と同じ売り場の分け方にそろえる */
+    (groups[k]=groups[k]||[]).push(it);
+  });
+  kindOrder().concat(Object.keys(groups)).filter(function(k,i,a){ return groups[k]&&a.indexOf(k)===i; }).forEach(function(k){
+    lines.push("");
+    lines.push("【"+k+"】");
+    groups[k].forEach(function(it){
+      const q=(it.q===""||it.q==null)?"":" "+fmtQ(it.q)+(it.u||"");
+      lines.push((it.done?"☑":"□")+" "+it.n+q+(it.store?"（"+it.store+"）":""));
+    });
+  });
+  const rest=items.filter(function(x){ return !x.done; }).length;
+  lines.push("");
+  lines.push("未購入 "+rest+"品 / 全"+items.length+"品");
+  return lines.join("\n");
+}
+function copyListText(){
+  const t=listAsText();
+  if(!t){ flash("リストがありません"); return; }
+  const done=function(){ flash("コピーしました。LINEなどに貼り付けてください"); };
+  const fallback=function(){
+    /* clipboardが使えない時は、選択してコピーできる形で出す */
+    const ta=document.createElement("textarea");
+    ta.value=t; ta.style.position="fixed"; ta.style.top="-1000px";
+    document.body.appendChild(ta); ta.select();
+    let okc=false;
+    try{ okc=document.execCommand("copy"); }catch(e){}
+    ta.remove();
+    if(okc) done(); else alert("コピーできませんでした。下の文字を長押しでコピーしてください。\n\n"+t);
+  };
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done).catch(fallback);
+  } else fallback();
+}
 function itemRow(i,withStock){
   const it=S.list.items[i];
   let r=`<div class="item2 ${it.done?"done":(it.stock&&withStock?"stocked":"")}">`;
   /* 上段：チェック・品名・買う量 */
   r+='<div class="i2top">';
   r+=`<span class="ckb" onclick="togDone(${i})">${it.done?"✓":""}</span>`;
-  r+=`<div class="i2name" onclick="togDone(${i})">${esc(it.n)}</div>`;
+  const from=(it.daily||it.manual)?[]:usedBy(it.n);
+  r+=`<div class="i2name" onclick="togDone(${i})"><span>${esc(it.n)}</span>`;
+  if(from.length) r+=`<small class="i2from">${esc(from.slice(0,2).join("・"))}${from.length>2?" ほか"+(from.length-2)+"品":""}</small>`;
+  else if(it.daily) r+='<small class="i2from">定番</small>';
+  else if(it.manual) r+='<small class="i2from">手で追加</small>';
+  r+='</div>';
   r+=`<span class="iq editable" onclick="openQtyEdit(${i})">${(it.q===""||it.q==null)?"数量":fmtQ(it.q)+esc(it.u)} ✎</span>`;
   r+='</div>';
   /* 下段：お店・家にある */
@@ -2661,6 +2767,7 @@ function rShop(){
     h+='<p class="note" style="margin-bottom:0">この期間の献立で使うものだけ出ます。切れている物をタップすると、買い物リストに入ります。「✏️ 編集」で品目や数量を変えられます。</p></div>';
     h+='<p class="note">チェックすると購入済みになります。「家にある」を押すと買うものから外れます。</p>';
     h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから追加</button>';
+    h+='<button class="btn sub wide" style="margin-top:4px" onclick="copyListText()">📋 リストを文字でコピー（LINEなどに貼れます）</button>';
     h+='<div class="ctalink small" onclick="addManual()">キーボードで直接入力して追加</div>';
     h+='<div class="ctalink small" onclick="rebuildList()">リストをゼロから作り直す</div>';
     if((S.history||[]).length) h+=`<div class="ctalink small" onclick="openHistory()">🕘 買い物の履歴（${S.history.length}件）</div>`;
@@ -2710,6 +2817,7 @@ function finishTrip(){
     if(!confirm("⚠ まだ買っていない物が "+rest.length+"品 あります。\n\n"+names+"\n\nこのまま買い物を完了しますか？")) return;
   }
   if(!confirm("買い物おつかれさま！\n"+wl+"リストを空にします。よろしいですか？\n（履歴に残るので後から見返せます。献立は消えません）")) return;
+  pushUndo("買い物を完了しました");
   archiveList("完了");
   S.list=null; S.goodsSel={}; shopFilter="all"; S.shopFilter="all";
   save(); render(); flash("完了！おつかれさまでした🎉");
