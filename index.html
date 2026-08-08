@@ -723,7 +723,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-70";
+const APP_VERSION="0802-73";
 let S=null;
 function newState(){
   return {
@@ -1162,7 +1162,26 @@ function gotoThisWeek(){ perOffset=0; render(); }
 /* ===== タブ切り替え ===== */
 let TAB="week";
 let dishSearch="", dishCat="";
+/* 買い物リストを開いた時に、献立や定番の変更を自動で取り込む。
+   チェックした印・家にある印・手で足した物は syncList が残すので、
+   わざわざ「反映」を押させる必要はない。
+   ただし「前の期間のリスト」だけは作り直すかどうかの判断が要るので自動では触らない */
+function autoSyncList(){
+  if(!S.list||!S.list.items||!S.list.items.length) return;
+  if(S.list.week&&S.list.week!==periodKey()) return;
+  const df=listDiff();
+  if(!df||df.same||df.other) return;
+  const r=syncList(aggregate());
+  S.list.week=periodKey(); S.list.days=periodDef().days;
+  save();
+  const parts=[];
+  if(r.added) parts.push("＋"+r.added+"品");
+  if(r.removed) parts.push("−"+r.removed+"品");
+  if(r.updated) parts.push("数量"+r.updated+"品");
+  if(parts.length) flash("献立の変更を反映しました（"+parts.join("・")+"）");
+}
 function go(t){
+  if(t==="shop") autoSyncList();
   if(t===TAB){ render(); return; }
   if(t!=="week"){
     if(TAB==="week") history.pushState({tab:t},"");
@@ -1485,14 +1504,14 @@ function rWeek(){
     h+='<div class="ctanote">前の期間のリストが残っています。作ると履歴に保存されます</div>';
   } else if(df.same){
     h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを開く　${nItems}品 ›</button>`;
-    h+='<div class="ctanote">今の献立どおりのリストです。中身は変わりません</div>';
+    h+='<div class="ctanote">今の献立どおりのリストです</div>';
   } else {
     const parts=[];
     if(df.added) parts.push("＋"+df.added+"品");
     if(df.removed) parts.push("−"+df.removed+"品");
     if(df.updated) parts.push("数量"+df.updated+"品");
-    h+='<button class="cta" onclick="makeListGo()">🛒 献立の変更をリストに反映する ›</button>';
-    h+=`<div class="ctanote">献立が変わりました（${parts.join("・")}）。買った印はそのまま残ります</div>`;
+    h+=`<button class="cta" onclick="makeListGo()">🛒 買い物リストを開く　${nItems}品 ›</button>`;
+    h+=`<div class="ctanote">献立の変更（${parts.join("・")}）は、開いた時に自動で入ります</div>`;
   }
   if(listIsOld()){
     const nb=(S.list.items||[]).filter(x=>!x.stock&&!x.done).length;
@@ -1500,7 +1519,6 @@ function rWeek(){
   }
   /* 押せると分かるように、まとまった行ボタンにする */
   h+='<div class="menulist">';
-  if(df&&!df.other&&!df.same) h+='<div class="mrow" onclick="go(\'shop\')"><span class="mic">🧾</span><span class="mtx">反映しないで、今のリストを開く</span><span class="mar">›</span></div>';
   h+='<div class="mrow" onclick="copyPrevWeek()"><span class="mic">📋</span><span class="mtx">1つ前の期間の献立をコピー</span><span class="mar">›</span></div>';
   h+='<div class="mrow" onclick="openFamily()"><span class="mic">⚙</span><span class="mtx">設定（人数・買い物の期間）</span><span class="mar">›</span></div>';
   h+='<a class="mrow" href="start.html" target="_blank" rel="noopener"><span class="mic">📖</span><span class="mtx">使い方ガイド</span><span class="mar">›</span></a>';
@@ -1689,7 +1707,11 @@ function listDiff(){
   agMap.forEach(nw=>{ if(!S.list.items.some(it=>it.daily&&it.n===nw.n)&&!isRemoved(nw)) added++; });
   S.goods.forEach(g=>{
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
-    if(S.list.items.some(it=>it.n===g)) return;
+    const ex=S.list.items.find(it=>it.n===g);
+    if(ex){
+      if(ex.daily&&(ex.q!==goodsQtyOf(g)||ex.u!==goodsUnitOf(g))) updated++;
+      return;
+    }
     if(isRemoved({n:g,u:goodsUnitOf(g)})) return;
     added++;
   });
@@ -1729,9 +1751,18 @@ function syncList(ag){
     if(isRemoved(nw)) return;                          /* 今回いらないと消した物は戻さない */
     S.list.items.push(nw); added++;
   });
-  S.goods.forEach(g=>{                                 /* 定番（選択中＋⭐毎回）が消えていたら補充 */
+  S.goods.forEach(g=>{                                 /* 定番（選択中＋⭐毎回） */
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
-    if(S.list.items.some(it=>it.n===g)) return;
+    const ex=S.list.items.find(it=>it.n===g);
+    if(ex){
+      /* すでに入っている定番も、数量・単位を変えたらここで反映する。
+         これが無いと「定番の数量を変えても買い物リストが変わらない」ことになる */
+      if(ex.daily){
+        const q=goodsQtyOf(g), u=goodsUnitOf(g);
+        if(ex.q!==q||ex.u!==u){ ex.q=q; ex.u=u; updated++; }
+      }
+      return;
+    }
     if(isRemoved({n:g,u:goodsUnitOf(g)})) return;      /* 今回いらないと消した定番も戻さない */
     S.list.items.push({n:g, q:goodsQtyOf(g), u:goodsUnitOf(g), stock:false, done:false, store:S.storeMap[g]||"", daily:true}); added++;
   });
@@ -2712,15 +2743,8 @@ function rShop(){
   }
   /* 献立を変えた後に下のタブから直接来ると、変更が入っていないリストを見ることになる。
      ホームまで戻らなくても、ここで反映できるようにする */
-  {const df=listDiff();
-   if(df&&!df.other&&!df.same){
-     const ps=[];
-     if(df.added) ps.push("＋"+df.added+"品");
-     if(df.removed) ps.push("−"+df.removed+"品");
-     if(df.updated) ps.push("数量"+df.updated+"品");
-     h+='<div class="syncbar"><div class="sbtx"><b>献立が変わっています</b><span>'+ps.join("・")+'（買った印はそのまま残ります）</span></div>'
-       +'<button class="btn small" onclick="makeListGo()">リストに反映</button></div>';
-   }}
+  /* 献立の変更はこの画面を開いた時に自動で入るので、案内は出さない。
+     期間そのものが変わった時だけは、作り直すか続けるかの判断が要るので下の oldbox で聞く */
   h+=`<div class="pmeta">購入済み <b>${doneN} / ${buy.length}</b></div>`;
   h+=`<div class="pbar"><div class="pfill" style="width:${buy.length?Math.round(doneN/buy.length*100):0}%"></div></div>`;
   h+='<div class="catbar">';
