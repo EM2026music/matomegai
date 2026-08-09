@@ -241,6 +241,12 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
       border-radius:9px; font-size:11px; line-height:1; cursor:pointer; font-family:inherit;}
 .kbtn:active{background:var(--or-bg);}
 .kbtn:disabled{opacity:.3; cursor:default;}
+.addgrid{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 10px;}
+.addchip{border:1.5px dashed #d8c8ae; background:#fff; color:#6f6354; border-radius:14px;
+         padding:10px 12px; min-height:42px; font-size:13px; cursor:pointer; font-family:inherit;
+         display:inline-flex; align-items:center; gap:6px;}
+.addchip:active{background:var(--or-bg); border-color:var(--or); color:var(--or-d);}
+.addchip small{font-size:10.5px; color:#a2957f;}
 .triprow{display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer; min-height:48px;}
 .triprow:last-child{border-bottom:none;}
 .triprow.on{background:#eef7ef; border-radius:10px;}
@@ -388,6 +394,7 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .pcback{border:1px solid var(--line); background:#fff; color:var(--or-d); border-radius:10px;
         padding:8px 14px; font-size:13px; cursor:pointer; font-family:inherit;}
 /* ホーム下部：押せると分かる行ボタン（文字だけのリンクは押せるか分かりにくかった） */
+.cta.trip{background:linear-gradient(135deg,#5ba463,#3f8a4a); box-shadow:0 6px 16px rgba(63,138,74,.28);}
 .ctanote{text-align:center; font-size:12px; color:#a2957f; margin:6px 0 2px; line-height:1.5;}
 .menulist{margin:14px 0 4px; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff;}
 .mrow{display:flex; align-items:center; gap:12px; padding:15px 14px; border-bottom:1px solid var(--line);
@@ -775,7 +782,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-82";
+const APP_VERSION="0802-83";
 let S=null;
 function newState(){
   return {
@@ -1667,6 +1674,12 @@ function rWeek(){
     const nb=(S.list.items||[]).filter(x=>!x.stock&&!x.done).length;
     h+=`<div class="ctalink oldhint" onclick="go('shop')">📅 「${listRangeLabel()}」のリストが残っています${nb?`（未購入 ${nb}品）`:""} ›</div>`;
   }
+  /* 今から買いに行く：ホームからすぐ始められるように大きく置く */
+  if(S.list&&(S.list.items||[]).some(function(x){ return !x.stock; })){
+    const tc=tripCount();
+    h+=`<button class="cta trip" onclick="${tc?"go('shop')":"go('shop');setTimeout(openTripPick,350)"}">🏃 今から買いに行く${tc?`（選んだ ${tc}品）`:""} ›</button>`;
+    h+='<div class="ctanote">'+(tc?'選んだ分だけを見ながら買えます':'これから行く店で買う分だけを選べます')+'</div>';
+  }
   /* 押せると分かるように、まとまった行ボタンにする */
   h+='<div class="menulist">';
   h+='<div class="mrow" onclick="copyPrevWeek()"><span class="mic">📋</span><span class="mtx">1つ前の期間の献立をコピー</span><span class="mar">›</span></div>';
@@ -2432,6 +2445,28 @@ function saveCats(){
 
 /* ===== 定番（いつも買う物） ===== */
 let goodsEdit=false, goodsFilter="", goodsSearch="";
+/* カタログにある品物のうち、まだ定番に入っていない物。
+   定番タブが自分のリストしか出さないと、198品のカタログから選べないため */
+function goodsNotYet(cat,q){
+  const have={}; (S.goods||[]).forEach(function(g){ have[g]=1; });
+  const out=[];
+  GOODS_ORDER.forEach(function(c){
+    if(cat&&c!==cat) return;
+    (GOODS_CATS[c]||[]).forEach(function(g){
+      if(have[g]) return;
+      if(q&&g.indexOf(q)<0) return;
+      if(out.some(function(x){ return x.n===g; })) return;
+      out.push({n:g,c:c});
+    });
+  });
+  return out;
+}
+function addGoodsFromCat(g){
+  if(!S.goods.includes(g)) S.goods.push(g);
+  S.goodsSel[g]=true;
+  save(); render();
+  flash(g+" を定番に入れて選びました");
+}
 function rGoods(){
   let h='<div class="pagehead"><div class="ptitle">定番（いつも買う物）</div>';
   h+=`<button class="pill" onclick="goodsEdit=!goodsEdit;render()">${goodsEdit?"編集おわり":"✏️ 編集"}</button></div>`;
@@ -2466,6 +2501,19 @@ function rGoods(){
     h+='</div>';
   });
   h+='</div>';
+  /* まだ定番に入っていない物を、同じ分類・検索で出す。ここから足せる */
+  if(!goodsEdit){
+    const rest=goodsNotYet(goodsFilter,q);
+    if(rest.length){
+      h+=`<div class="kindhead">${goodsFilter?goodsFilter+"で":""}まだ入れていない物（タップで追加）</div>`;
+      h+='<div class="addgrid">';
+      rest.slice(0,120).forEach(function(x){
+        h+=`<button class="addchip" onclick="addGoodsFromCat('${esc(x.n)}')">＋ ${esc(x.n)}${goodsFilter?"":`<small>${esc(x.c)}</small>`}</button>`;
+      });
+      h+='</div>';
+      if(rest.length>120) h+='<p class="note">絞り込むともっと出ます</p>';
+    }
+  }
   const n=Object.keys(S.goodsSel).filter(k=>S.goodsSel[k]).length;
   h+='<div style="height:70px"></div>';
   h+='<div class="floatbar">';
