@@ -205,6 +205,35 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .gbtn .del{margin-left:6px; color:var(--danger); font-weight:bold;}
 /* 買い物リスト */
 .pmeta{font-size:13px; color:var(--sub); margin:2px 2px 6px;}
+/* ===== カレンダー ===== */
+.pccal{margin-top:9px; text-align:center;}
+.calnow{text-align:center; font-size:13px; color:var(--sub); margin:0 0 10px;}
+.calnow b{color:var(--ink); font-size:14px;}
+.calnav{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+.calttl{flex:1; text-align:center; font-size:15px; font-weight:bold;}
+.calgrid{display:grid; grid-template-columns:repeat(7,1fr); gap:3px;}
+.calwd{text-align:center; font-size:11px; color:#a2957f; padding:2px 0 4px;}
+.calwd.sat{color:#4a7ab5;} .calwd.sun{color:#c0553f;}
+.calcell{position:relative; aspect-ratio:1/1; display:flex; flex-direction:column;
+         align-items:center; justify-content:center; gap:2px; border-radius:9px;
+         background:#fff; border:1px solid var(--line); cursor:pointer; min-height:40px;}
+.calcell.out{background:transparent; border-color:transparent; cursor:default;}
+.calcell .cald{font-size:14px; font-weight:600; color:var(--ink); line-height:1;}
+.calcell.sat .cald{color:#4a7ab5;} .calcell.sun .cald{color:#c0553f;}
+.calcell.inp{background:var(--or-bg); border-color:#f0c48a;}
+.calcell.from{border-left:3px solid var(--or);}
+.calcell.to{border-right:3px solid var(--or);}
+.calcell.today .cald{text-decoration:underline; text-underline-offset:2px;}
+.calcell.pick{outline:2px solid var(--or); outline-offset:-2px; background:#fff;}
+.caldot{width:5px; height:5px; border-radius:50%; background:var(--green);}
+.calleg{display:flex; gap:14px; justify-content:center; margin:10px 0 0; font-size:11.5px; color:var(--sub);}
+.calleg span{display:inline-flex; align-items:center; gap:5px;}
+.calleg i{width:12px; height:12px; border-radius:4px; display:inline-block;}
+.calleg .lg-inp{background:var(--or-bg); border:1px solid #f0c48a;}
+.calleg .lg-dot{width:7px; height:7px; border-radius:50%; background:var(--green);}
+.calact{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px;
+        background:#fff6ea; border:1.5px solid var(--or); border-radius:12px; padding:10px 12px;}
+.cadt{flex:1; min-width:0; font-size:13.5px; font-weight:bold; color:var(--or-d);}
 .kmove{margin-left:auto; display:inline-flex; gap:4px; flex-shrink:0;}
 .kbtn{width:40px; height:36px; border:1px solid var(--line); background:#fff; color:var(--or-d);
       border-radius:9px; font-size:11px; line-height:1; cursor:pointer; font-family:inherit;}
@@ -733,7 +762,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-76";
+const APP_VERSION="0802-77";
 let S=null;
 function newState(){
   return {
@@ -1388,6 +1417,63 @@ function inAppWarn(){
     +`<button class="btn small sub" onclick="S.iabOk=true;save();render()">わかった（閉じる）</button></div>`;
 }
 /* 献立ページのいちばん上：買い物する期間。ここが献立表の範囲そのもの */
+/* ===== カレンダー =====
+   「いつから／いつまで」の数字だけだと期間が絵として掴めないので、
+   ひと月を並べて帯で見せる。献立が入っている日には印を付けて、
+   どこが空いているかも同時に分かるようにする */
+let calMonth=null, calPick="";
+function openCal(){
+  const pd=periodDef();
+  calMonth=new Date(pd.fromDate.getFullYear(), pd.fromDate.getMonth(), 1);
+  calPick="";
+  showModal(); renderCal();
+}
+function calShift(d){ calMonth=new Date(calMonth.getFullYear(), calMonth.getMonth()+d, 1); renderCal(); }
+function calTap(dk){ calPick=(calPick===dk?"":dk); renderCal(); }
+function calSet(which){
+  if(!calPick) return;
+  setPeriod(which, calPick);
+  calPick="";
+  renderCal();
+}
+function renderCal(){
+  const pd=periodDef();
+  const y=calMonth.getFullYear(), m=calMonth.getMonth();
+  const first=new Date(y,m,1), last=new Date(y,m+1,0);
+  const lead=(first.getDay()+6)%7;
+  const todayK=keyOf(new Date());
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>📅 買い物する期間</b></div>';
+  h+=`<div class="calnow">今の期間：<b>${periodRangeText(pd)}</b>（${pd.days}日分）</div>`;
+  h+='<div class="calnav">';
+  h+=`<button class="pcnav" onclick="calShift(-1)">◀</button><div class="calttl">${y}年 ${m+1}月</div><button class="pcnav" onclick="calShift(1)">▶</button>`;
+  h+='</div>';
+  h+='<div class="calgrid">';
+  DAYS.forEach(function(w,i){ h+=`<div class="calwd ${i===5?"sat":i===6?"sun":""}">${w}</div>`; });
+  for(let i=0;i<lead;i++) h+='<div class="calcell out"></div>';
+  for(let d=1;d<=last.getDate();d++){
+    const dt=new Date(y,m,d), dk=keyOf(dt);
+    const wd=(dt.getDay()+6)%7;
+    const inP=(dt>=pd.fromDate&&dt<=pd.toDate);
+    const isFrom=(dk===pd.from), isTo=(dk===pd.to);
+    const has=dayIds(dayObj(dk)).length;
+    const cls=[ "calcell",
+      wd===5?"sat":wd===6?"sun":"",
+      inP?"inp":"", isFrom?"from":"", isTo?"to":"",
+      dk===todayK?"today":"", calPick===dk?"pick":"" ].filter(Boolean).join(" ");
+    h+=`<div class="${cls}" onclick="calTap('${dk}')"><span class="cald">${d}</span>${has?'<span class="caldot"></span>':''}</div>`;
+  }
+  h+='</div>';
+  h+='<div class="calleg"><span><i class="lg-inp"></i>買い物する期間</span><span><i class="lg-dot"></i>献立あり</span></div>';
+  if(calPick){
+    const pdt=dFromKey(calPick);
+    h+=`<div class="calact"><div class="cadt">${pdt.getMonth()+1}/${pdt.getDate()}（${DAYS[(pdt.getDay()+6)%7]}）を</div>`;
+    h+=`<button class="btn sub small" onclick="calSet(&quot;from&quot;)">開始にする</button>`;
+    h+=`<button class="btn sub small" onclick="calSet(&quot;to&quot;)">終了にする</button></div>`;
+  } else {
+    h+='<p class="note" style="margin-top:10px">日付をタップすると、そこを<b>開始</b>か<b>終了</b>にできます。<br>色の付いた範囲が、今の買い物リストの対象です。</p>';
+  }
+  setHTML(document.getElementById("modal"),h);
+}
 function periodCard(vp,decidedAny){
   const cur=(perOffset===0);
   const f=vp.fromDate, t=vp.toDate;
@@ -1424,6 +1510,7 @@ function periodCard(vp,decidedAny){
   h+='</div>';
   /* 前後の期間を見ている時は戻る手段を出す。今の期間なら、説明は使い始めだけ
      （毎回出すと画面の上半分を占領してしまうため、1日でも決めたら消す） */
+  h+='<div class="pccal"><button class="pcback" onclick="openCal()">📅 カレンダーで見る・変える</button></div>';
   if(!cur) h+='<div class="pchint"><button class="pcback" onclick="gotoThisWeek()">↩ 買い物する期間にもどる</button></div>';
   else if(!decidedAny) h+='<div class="pchint">日付を押すとカレンダーが出ます。この期間に食べる料理が下に並びます。</div>';
   h+='</div>';
