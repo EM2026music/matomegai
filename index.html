@@ -241,6 +241,16 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
       border-radius:9px; font-size:11px; line-height:1; cursor:pointer; font-family:inherit;}
 .kbtn:active{background:var(--or-bg);}
 .kbtn:disabled{opacity:.3; cursor:default;}
+.triprow{display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer; min-height:48px;}
+.triprow:last-child{border-bottom:none;}
+.triprow.on{background:#eef7ef; border-radius:10px;}
+.triprow.on .ckb{background:var(--green); border-color:var(--green);}
+.tripnm{flex:1; min-width:0; font-size:15px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.tripq{font-size:13px; color:var(--sub); flex-shrink:0;}
+.tripst{font-size:11px; color:#a2957f; flex-shrink:0;}
+.tripbar{display:flex; align-items:center; gap:8px; background:#eef7ef; border:1px solid #cfe6d3;
+         border-radius:10px; padding:8px 12px; margin:0 0 8px; font-size:12.5px; color:#3f7a49;}
+.tripbar .linkbtn{margin-left:auto; color:var(--green);}
 .delbox{background:#faf6f0; border:1px dashed #ddcfb8; border-radius:12px; padding:10px 12px; margin:0 0 12px;}
 .delttl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:bold; color:#8a7a63; margin-bottom:4px;}
 .delttl .linkbtn{margin-left:auto;}
@@ -765,7 +775,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-81";
+const APP_VERSION="0802-82";
 let S=null;
 function newState(){
   return {
@@ -2876,6 +2886,71 @@ function moveKind(k,dir){
   S.kindOrder=ord; save(); render();
   flash(k+" を"+(dir<0?"上":"下")+"へ移動");
 }
+/* ===== 今から買いに行く =====
+   まとめ買いのリスト全部ではなく、これから行く店で買う分だけを選び、
+   店ではその分だけを見ながら買えるようにする */
+function tripCount(){ return ((S.list&&S.list.items)||[]).filter(function(x){ return x.trip&&!x.stock; }).length; }
+function openTripPick(){ showModal(); renderTripPick(); }
+function tripToggle(i){
+  const it=S.list.items[i]; if(!it) return;
+  it.trip=!it.trip; save(); renderTripPick();
+}
+function tripAll(v){
+  (S.list.items||[]).forEach(function(it){ if(!it.stock&&!it.done) it.trip=!!v; });
+  save(); renderTripPick();
+}
+function tripByStore(st){
+  (S.list.items||[]).forEach(function(it){
+    if(it.stock||it.done) return;
+    if((it.store||"未定")===st) it.trip=true;
+  });
+  save(); renderTripPick();
+}
+function tripStart(){
+  if(!tripCount()){ flash("買う物を選んでください"); return; }
+  setShopFilter("trip"); closeModal();
+}
+function tripEnd(){
+  (S.list.items||[]).forEach(function(it){ delete it.trip; });
+  setShopFilter("all");
+}
+function renderTripPick(){
+  const items=(S.list&&S.list.items)||[];
+  const target=items.map(function(it,i){ return {it:it,i:i}; }).filter(function(x){ return !x.it.stock&&!x.it.done; });
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>🏃 今から買いに行く</b></div>';
+  h+='<p class="note" style="margin-top:0">これから買う物を選んでください。店では選んだ分だけが出ます。</p>';
+  h+='<div class="goodsgrid" style="margin-bottom:8px">';
+  h+='<button class="gbtn" onclick="tripAll(true)">ぜんぶ選ぶ</button>';
+  h+='<button class="gbtn" onclick="tripAll(false)">ぜんぶ外す</button>';
+  h+='</div>';
+  const sts=[];
+  S.stores.forEach(function(st){ if(target.some(function(x){ return (x.it.store||"未定")===st; })) sts.push(st); });
+  if(target.some(function(x){ return !x.it.store; })) sts.push("未定");
+  if(sts.length>1){
+    h+='<div style="font-size:12px;color:#8a7a63;margin:2px 0 4px">お店ごとにまとめて選ぶ</div><div class="goodsgrid" style="margin-bottom:10px">';
+    sts.forEach(function(st){
+      const c=st==="未定"?"#b9ad99":storeColor(st);
+      h+=`<button class="gbtn" style="border-color:${c};color:${c}" onclick="tripByStore('${esc(st)}')">${esc(st)}</button>`;
+    });
+    h+='</div>';
+  }
+  if(!target.length){
+    h+='<div class="card"><p class="note" style="margin:0">買う物がありません。</p></div>';
+  } else {
+    h+='<div class="card listcard">';
+    target.forEach(function(x){
+      const it=x.it, q=(it.q===""||it.q==null)?"":fmtQ(it.q)+esc(it.u||"");
+      h+=`<div class="triprow ${it.trip?"on":""}" onclick="tripToggle(${x.i})">`
+        +`<span class="ckb">${it.trip?"✓":""}</span>`
+        +`<span class="tripnm">${esc(it.n)}</span>`
+        +`<span class="tripq">${q}</span>`
+        +`<span class="tripst">${it.store?esc(it.store):""}</span></div>`;
+    });
+    h+='</div>';
+  }
+  h+=`<button class="cta" onclick="tripStart()">🛒 この ${tripCount()}品 で買い物する ›</button>`;
+  setHTML(document.getElementById("modal"),h);
+}
 function removedBox(){
   const rm=(S.list&&S.list.removedItems)||[];
   if(!rm.length) return "";
@@ -2954,6 +3029,7 @@ function rShop(){
   });
   const undN=items.filter(x=>!x.stock&&!x.store).length;
   h+=`<button class="fchip ${shopFilter==="未定"?"on":""}" onclick="setShopFilter('未定')">未定 ${undN}</button>`;
+  if(tripCount()) h+=`<button class="fchip ${shopFilter==="trip"?"on":""}" style="${shopFilter==="trip"?"background:var(--green);border-color:var(--green);color:#fff":"border-color:var(--green);color:var(--green)"}" onclick="setShopFilter('trip')">🏃 今から買う ${tripCount()}</button>`;
   h+='</div>';
   const undf=items.filter(x=>!x.stock&&!x.store).length;
   h+=`<button class="btn sub wide" onclick="openAssignAll()" style="margin-bottom:6px">🏪 お店をまとめて決める${undf?`（未定 ${undf}品）`:""}</button>`;
@@ -2991,17 +3067,24 @@ function rShop(){
     h+='<p class="note" style="margin-bottom:0">この期間の献立で使うものだけ出ます。切れている物をタップすると、買い物リストに入ります。「✏️ 編集」で品目や数量を変えられます。</p></div>';
     h+='<p class="note">チェックすると購入済みになります。「家にある」を押すと買うものから外れます。</p>';
     h+='<button class="btn sub wide" onclick="openCatalog()">＋ カタログから追加</button>';
+    h+='<button class="btn sub wide" style="margin-top:4px" onclick="openTripPick()">🏃 今から買いに行く（買う物を選ぶ）</button>';
     h+='<button class="btn sub wide" style="margin-top:4px" onclick="copyListText()">📋 リストを文字でコピー（LINEなどに貼れます）</button>';
     h+='<div class="ctalink small" onclick="addManual()">キーボードで直接入力して追加</div>';
     h+='<div class="ctalink small" onclick="rebuildList()">リストをゼロから作り直す</div>';
     if((S.history||[]).length) h+=`<div class="ctalink small" onclick="openHistory()">🕘 買い物の履歴（${S.history.length}件）</div>`;
   } else {
     const sel=shopFilter;
+    const trip=(sel==="trip");
     const idxs=[];
-    items.forEach((it,i)=>{ if(!it.stock&&((it.store||"未定")===sel)) idxs.push(i); });
-    const c=sel==="未定"?"#b9ad99":storeColor(sel);
+    items.forEach((it,i)=>{
+      if(it.stock) return;
+      if(trip){ if(it.trip) idxs.push(i); }
+      else if((it.store||"未定")===sel) idxs.push(i);
+    });
+    const c=trip?"var(--green)":(sel==="未定"?"#b9ad99":storeColor(sel));
     const doneHere=idxs.filter(i=>items[i].done).length;
-    h+=`<div class="storehead" style="background:${c}"><span class="shname"><b>${esc(sel)}</b>で買う</span><span>${doneHere} / ${idxs.length}</span></div>`;
+    h+=`<div class="storehead" style="background:${c}"><span class="shname"><b>${trip?"🏃 今から買う分":esc(sel)+"で買う"}</b></span><span>${doneHere} / ${idxs.length}</span></div>`;
+    if(trip) h+='<div class="tripbar">選んだ分だけ出しています<span class="linkbtn" onclick="tripEnd()">やめる</span></div>';
     if(!idxs.length){
       h+='<div class="card"><p class="note" style="margin:0">この店で買う物はありません。</p>';
       if(undf) h+=`<p class="note" style="margin:6px 0 0">店が決まっていない物が${undf}品あります。<span class="linkbtn" onclick="openAssignAll()">お店を決める</span></p>`;
@@ -3610,7 +3693,8 @@ load();
 makeDailyBackup();   /* その日はじめての起動なら、読み込んだ時点の状態を控えておく */
 rollPeriodIfPast();  /* 買い物期間が過ぎていたら、同じ長さのまま今日を含む所まで進める */
 /* 保存していた店の絞り込みを復元（消した店なら「すべて」に戻す） */
-if(S.shopFilter&&(S.shopFilter==="all"||S.shopFilter==="未定"||S.stores.indexOf(S.shopFilter)>=0)) shopFilter=S.shopFilter; else shopFilter="all";
+if(S.shopFilter==="trip") shopFilter=(S.list&&(S.list.items||[]).some(function(x){return x.trip&&!x.stock;}))?"trip":"all";
+else if(S.shopFilter&&(S.shopFilter==="all"||S.shopFilter==="未定"||S.stores.indexOf(S.shopFilter)>=0)) shopFilter=S.shopFilter; else shopFilter="all";
 /* 招待リンク（?share=部屋ID#k=鍵）で開かれた場合は、参加するか確認してURLをきれいにする */
 let pendingShareJoin=null;
 (function(){
