@@ -207,6 +207,8 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .pmeta{font-size:13px; color:var(--sub); margin:2px 2px 6px;}
 /* ===== カレンダー ===== */
 .pccal{margin-top:9px; text-align:center;}
+.pcadopt{margin-top:10px; display:flex; flex-direction:column; gap:7px; align-items:center;}
+.pcadopt .btn{width:100%;}
 .calnow{text-align:center; font-size:13px; color:var(--sub); margin:0 0 10px;}
 .calnow b{color:var(--ink); font-size:14px;}
 .calnav{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
@@ -762,7 +764,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-77";
+const APP_VERSION="0802-78";
 let S=null;
 function newState(){
   return {
@@ -1474,6 +1476,15 @@ function renderCal(){
   }
   setHTML(document.getElementById("modal"),h);
 }
+/* 先の期間の献立を入れたあと、その期間で買い物したい時に切り替える。
+   （期間を何個も持たせるより、買い物の対象を動かす方が分かりやすい） */
+function adoptViewedPeriod(){
+  const v=viewPeriod();
+  if(!S.period) S.period={};
+  S.period.from=v.fromKey; S.period.to=v.toKey;
+  perOffset=0; save(); render();
+  flash(periodRangeText(periodDef())+" を買い物のぶんにしました");
+}
 function periodCard(vp,decidedAny){
   const cur=(perOffset===0);
   const f=vp.fromDate, t=vp.toDate;
@@ -1511,7 +1522,10 @@ function periodCard(vp,decidedAny){
   /* 前後の期間を見ている時は戻る手段を出す。今の期間なら、説明は使い始めだけ
      （毎回出すと画面の上半分を占領してしまうため、1日でも決めたら消す） */
   h+='<div class="pccal"><button class="pcback" onclick="openCal()">📅 カレンダーで見る・変える</button></div>';
-  if(!cur) h+='<div class="pchint"><button class="pcback" onclick="gotoThisWeek()">↩ 買い物する期間にもどる</button></div>';
+  if(!cur){
+    h+='<div class="pcadopt"><button class="btn small wide" onclick="adoptViewedPeriod()">🛒 この期間を買い物のぶんにする</button>'
+      +'<button class="pcback" onclick="gotoThisWeek()">↩ もどる</button></div>';
+  }
   else if(!decidedAny) h+='<div class="pchint">日付を押すとカレンダーが出ます。この期間に食べる料理が下に並びます。</div>';
   h+='</div>';
   return h;
@@ -1591,6 +1605,19 @@ function rWeek(){
   });
   h+='</div>';
   h+='<p class="note" style="margin-top:-2px">右の<b>☰</b>を押したまま動かすと日を入れ替え。<b>長押し</b>で消せます。</p>';
+  /* 前後の期間を見ている時は、その期間のリストは作れない（買い物の対象は1つ）。
+     まぎらわしいので、切り替えを促す案内に差し替える */
+  if(perOffset!==0){
+    h+='<button class="cta" onclick="adoptViewedPeriod()">🛒 この期間を買い物のぶんにする ›</button>';
+    h+='<div class="ctanote">先に献立だけ入れておくのはこのままでOK。<br>この期間で買い物する時に押してください</div>';
+    h+='<div class="menulist">';
+    h+='<div class="mrow" onclick="gotoThisWeek()"><span class="mic">↩</span><span class="mtx">買い物のぶんにもどる</span><span class="mar">›</span></div>';
+    h+='<div class="mrow" onclick="copyPrevWeek()"><span class="mic">📋</span><span class="mtx">1つ前の期間の献立をコピー</span><span class="mar">›</span></div>';
+    h+='<div class="mrow danger" onclick="clearWeek()"><span class="mic">🗑</span><span class="mtx">この期間の献立をクリア</span><span class="mar">›</span></div>';
+    h+='</div>';
+    h+=`<div style="text-align:center;color:#c9bda9;font-size:10px;margin-top:12px">v${APP_VERSION}</div>`;
+    return h;
+  }
   /* 押したら何が起きるかを、押す前に文字で出す */
   const df=listDiff();
   if(!df){
