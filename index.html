@@ -782,7 +782,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-83";
+const APP_VERSION="0802-84";
 let S=null;
 function newState(){
   return {
@@ -2937,8 +2937,41 @@ function moveKind(k,dir){
 /* ===== 今から買いに行く =====
    まとめ買いのリスト全部ではなく、これから行く店で買う分だけを選び、
    店ではその分だけを見ながら買えるようにする */
+let tripSearch="", tripCat="";
+/* 今から買う物の候補。定番カタログ＋食材カタログの全部から、
+   まだリストに無い物を出す（今日思いついた物もここから足せる） */
+function tripCandidates(){
+  const inList={};
+  ((S.list&&S.list.items)||[]).forEach(function(it){ inList[it.n]=1; });
+  const q=tripSearch.trim();
+  const out=[], seen={};
+  GOODS_ORDER.forEach(function(c){
+    if(tripCat&&tripCat!==c) return;
+    (GOODS_CATS[c]||[]).forEach(function(g){
+      if(inList[g]||seen[g]) return;
+      if(q&&g.indexOf(q)<0) return;
+      seen[g]=1; out.push({n:g, c:c, u:goodsUnitOf(g)});
+    });
+  });
+  if(!tripCat||tripCat==="食材"){
+    allCatalog().forEach(function(x){
+      if(inList[x.name]||seen[x.name]) return;
+      if(q&&x.name.indexOf(q)<0&&String(x.alias||"").indexOf(q)<0) return;
+      seen[x.name]=1; out.push({n:x.name, c:"食材", u:x.unit||""});
+    });
+  }
+  return out;
+}
+function tripAdd(name,unit){
+  if(!S.list){ flash("先に買い物リストを作ってね"); return; }
+  const ex=S.list.items.find(function(x){ return x.n===name; });
+  if(ex){ ex.trip=true; ex.stock=false; }
+  else S.list.items.push({n:name, q:1, u:unit||"", done:false, stock:false,
+                          store:S.storeMap[name]||"", manual:true, trip:true});
+  save(); renderTripPick(); flash(name+" を足しました");
+}
 function tripCount(){ return ((S.list&&S.list.items)||[]).filter(function(x){ return x.trip&&!x.stock; }).length; }
-function openTripPick(){ showModal(); renderTripPick(); }
+function openTripPick(){ tripSearch=''; tripCat=''; showModal(); renderTripPick(); }
 function tripToggle(i){
   const it=S.list.items[i]; if(!it) return;
   it.trip=!it.trip; save(); renderTripPick();
@@ -2996,7 +3029,28 @@ function renderTripPick(){
     });
     h+='</div>';
   }
-  h+=`<button class="cta" onclick="tripStart()">🛒 この ${tripCount()}品 で買い物する ›</button>`;
+  /* カタログ全部から足せる。今日思いついた物もここで拾う */
+  h+='<div class="kindhead" style="margin-top:14px">買う物を足す（カタログから）</div>';
+  h+='<div class="searchrow">';
+  h+=`<input type="text" class="search" style="margin-bottom:0" id="sTrip" placeholder="🔍 品名で探す" value="${esc(tripSearch)}" oninput="tripSearch=this.value;deferRender(renderTripPick)">`;
+  h+='</div>';
+  h+='<div class="catbar">';
+  h+=`<button class="fchip ${tripCat===""?"on":""}" onclick="tripCat='';renderTripPick()">すべて</button>`;
+  h+=`<button class="fchip ${tripCat==="食材"?"on":""}" onclick="tripCat='食材';renderTripPick()">食材</button>`;
+  GOODS_ORDER.forEach(function(c){ h+=`<button class="fchip ${tripCat===c?"on":""}" onclick="tripCat='${esc(c)}';renderTripPick()">${esc(c)}</button>`; });
+  h+='</div>';
+  const cand=tripCandidates();
+  if(!cand.length) h+='<p class="note">見つかりません</p>';
+  else{
+    h+='<div class="addgrid">';
+    cand.slice(0,120).forEach(function(x){
+      h+=`<button class="addchip" onclick="tripAdd('${esc(x.n)}','${esc(x.u||"")}')">＋ ${esc(x.n)}${tripCat?"":`<small>${esc(x.c)}</small>`}</button>`;
+    });
+    h+='</div>';
+    if(cand.length>120) h+=`<p class="note">ほか${cand.length-120}品。探すか分類で絞ってください</p>`;
+  }
+  h+='<div style="height:76px"></div>';
+  h+=`<div class="floatbar"><button class="btn" style="flex:1;margin:0" onclick="tripStart()">🛒 この ${tripCount()}品 で買い物する ›</button></div>`;
   setHTML(document.getElementById("modal"),h);
 }
 function removedBox(){
