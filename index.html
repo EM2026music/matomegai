@@ -205,6 +205,11 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .gbtn .del{margin-left:6px; color:var(--danger); font-weight:bold;}
 /* 買い物リスト */
 .pmeta{font-size:13px; color:var(--sub); margin:2px 2px 6px;}
+.delbox{background:#faf6f0; border:1px dashed #ddcfb8; border-radius:12px; padding:10px 12px; margin:0 0 12px;}
+.delttl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:bold; color:#8a7a63; margin-bottom:4px;}
+.delttl .linkbtn{margin-left:auto;}
+.delrow{display:flex; align-items:center; gap:10px; padding:4px 0;}
+.delnm{flex:1; min-width:0; font-size:13.5px; color:#6f6354; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
 .syncbar{display:flex; align-items:center; gap:10px; background:#fff6ea; border:1.5px solid var(--or);
          border-radius:12px; padding:10px 12px; margin:0 0 10px;}
 .sbtx{flex:1; min-width:0; font-size:12px; color:#7a5a2a; line-height:1.5;}
@@ -723,7 +728,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-73";
+const APP_VERSION="0802-74";
 let S=null;
 function newState(){
   return {
@@ -1727,8 +1732,35 @@ function delItem(i){
   const k=itemKeyOf(it);
   pushUndo(it.n+" を消しました");
   if(S.list.removed.indexOf(k)<0) S.list.removed.push(k);
+  /* 「元に戻す」を押しそびれても後から戻せるよう、消した品物そのものを控えておく */
+  if(!S.list.removedItems) S.list.removedItems=[];
+  if(!S.list.removedItems.some(function(x){ return itemKeyOf(x)===k; })) S.list.removedItems.push(it);
   S.list.items.splice(i,1);
   save(); render();
+}
+/* 消した物を後から戻す（「元に戻す」の9秒を逃した時のため） */
+function restoreRemoved(i){
+  if(!S.list||!S.list.removedItems) return;
+  const it=S.list.removedItems[i]; if(!it) return;
+  const k=itemKeyOf(it);
+  S.list.removedItems.splice(i,1);
+  const j=(S.list.removed||[]).indexOf(k);
+  if(j>=0) S.list.removed.splice(j,1);
+  if(!S.list.items.some(function(x){ return itemKeyOf(x)===k; })) S.list.items.push(it);
+  save(); render(); flash(it.n+" を戻しました");
+}
+function restoreAllRemoved(){
+  if(!S.list||!(S.list.removedItems||[]).length) return;
+  const n=S.list.removedItems.length;
+  pushUndo("消した"+n+"品を戻しました");
+  S.list.removedItems.forEach(function(it){
+    const k=itemKeyOf(it);
+    const j=(S.list.removed||[]).indexOf(k);
+    if(j>=0) S.list.removed.splice(j,1);
+    if(!S.list.items.some(function(x){ return itemKeyOf(x)===k; })) S.list.items.push(it);
+  });
+  S.list.removedItems=[];
+  save(); render(); flash(n+"品を戻しました");
 }
 function isRemoved(x){ return !!(S.list&&S.list.removed&&S.list.removed.indexOf(itemKeyOf(x))>=0); }
 function syncList(ag){
@@ -2690,6 +2722,20 @@ function copyListText(){
     navigator.clipboard.writeText(t).then(done).catch(fallback);
   } else fallback();
 }
+/* 今回消した物の一覧。戻せる場所が無いと、押し間違いを取り返せない */
+function removedBox(){
+  const rm=(S.list&&S.list.removedItems)||[];
+  if(!rm.length) return "";
+  let h='<div class="delbox"><div class="delttl">🗑 今回消した物（'+rm.length+'品）'
+       +'<span class="linkbtn" onclick="restoreAllRemoved()">ぜんぶ戻す</span></div>';
+  rm.forEach(function(it,i){
+    const q=(it.q===""||it.q==null)?"":" "+fmtQ(it.q)+esc(it.u||"");
+    h+='<div class="delrow"><span class="delnm">'+esc(it.n)+q+'</span>'
+      +'<button class="btn sub small" onclick="restoreRemoved('+i+')">戻す</button></div>';
+  });
+  h+='<p class="note" style="margin:8px 0 0">買い物を完了すると、この記録は消えます。</p></div>';
+  return h;
+}
 function itemRow(i,withStock){
   const it=S.list.items[i];
   let r=`<div class="item2 ${it.done?"done":(it.stock&&withStock?"stocked":"")}">`;
@@ -2770,6 +2816,7 @@ function rShop(){
     });
     h+='</div>';
     h+='<p class="note" style="margin:-2px 0 10px">右の<b>☰つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
+    h+=removedBox();
     const pn=S.list.pantry||[], ex=S.list.excluded||[];
     h+='<div class="kindhead" style="display:flex;justify-content:space-between;align-items:center">調味料・常備品（切れてる物をタップ）<span class="linkbtn" style="font-size:12px" onclick="openPantryEdit()">✏️ 編集</span></div><div class="card">';
     if(pn.length){
@@ -2819,6 +2866,7 @@ function rShop(){
       });
       h+='</div>';
       h+='<p class="note" style="margin:-2px 0 10px">右の<b>☰つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
+    h+=removedBox();
       h+='<p class="note">ほかの店で買った場合も、そのままチェックでOK。</p>';
     }
   }
