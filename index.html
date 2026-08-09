@@ -241,6 +241,17 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
       border-radius:9px; font-size:11px; line-height:1; cursor:pointer; font-family:inherit;}
 .kbtn:active{background:var(--or-bg);}
 .kbtn:disabled{opacity:.3; cursor:default;}
+.foldlist{border:1px solid var(--line); border-radius:12px; overflow:hidden; background:#fff; margin:2px 0 10px;}
+.foldrow{display:flex; align-items:center; gap:10px; width:100%; border:none; background:#fff;
+         border-bottom:1px solid var(--line); padding:13px 12px; min-height:48px; cursor:pointer;
+         font-family:inherit; font-size:14px; color:var(--ink); text-align:left;}
+.foldrow:last-of-type{border-bottom:none;}
+.foldrow.open{background:var(--or-bg);}
+.foldrow:active{background:var(--or-bg);}
+.foldar{color:var(--or-d); font-size:12px; width:14px; flex-shrink:0;}
+.foldnm{flex:1; min-width:0; font-weight:600;}
+.foldct{background:#efe6d8; color:#7d6f5c; border-radius:9px; padding:2px 9px; font-size:12px; flex-shrink:0;}
+.foldlist .addgrid{padding:0 12px;}
 .addcat{font-size:12px; font-weight:bold; color:#8a7a63; margin:12px 2px 4px; display:flex; align-items:center; gap:6px;}
 .addcat span{background:#efe6d8; color:#7d6f5c; border-radius:8px; padding:1px 7px; font-size:11px;}
 .addgrid{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 10px;}
@@ -784,7 +795,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-85";
+const APP_VERSION="0802-87";
 let S=null;
 function newState(){
   return {
@@ -1676,14 +1687,16 @@ function rWeek(){
     const nb=(S.list.items||[]).filter(x=>!x.stock&&!x.done).length;
     h+=`<div class="ctalink oldhint" onclick="go('shop')">📅 「${listRangeLabel()}」のリストが残っています${nb?`（未購入 ${nb}品）`:""} ›</div>`;
   }
-  /* 今から買いに行く：ホームからすぐ始められるように大きく置く */
-  if(S.list&&(S.list.items||[]).some(function(x){ return !x.stock; })){
-    const tc=tripCount();
-    h+=`<button class="cta trip" onclick="${tc?"go('shop')":"go('shop');setTimeout(openTripPick,350)"}">🏃 今から買いに行く${tc?`（選んだ ${tc}品）`:""} ›</button>`;
-    h+='<div class="ctanote">'+(tc?'選んだ分だけを見ながら買えます':'これから行く店で買う分だけを選べます')+'</div>';
+  /* 「今から買いに行く」は、選んでいる最中だけ大きく出す。
+     大きいボタンが常に2つ並ぶと、どちらを押すのか迷うため */
+  if(S.list&&tripCount()){
+    h+=`<button class="cta trip" onclick="go('shop')">🏃 買い物のつづき（選んだ ${tripCount()}品） ›</button>`;
+    h+='<div class="ctanote">選んだ分だけを見ながら買えます</div>';
   }
   /* 押せると分かるように、まとまった行ボタンにする */
   h+='<div class="menulist">';
+  if(S.list&&(S.list.items||[]).some(function(x){ return !x.stock; })&&!tripCount())
+    h+=`<div class="mrow" onclick="go(&quot;shop&quot;);setTimeout(openTripPick,350)"><span class="mic">🏃</span><span class="mtx">今から買いに行く（買う物を選ぶ）</span><span class="mar">›</span></div>`;
   h+='<div class="mrow" onclick="copyPrevWeek()"><span class="mic">📋</span><span class="mtx">1つ前の期間の献立をコピー</span><span class="mar">›</span></div>';
   h+='<div class="mrow" onclick="openFamily()"><span class="mic">⚙</span><span class="mtx">設定（人数・買い物の期間）</span><span class="mar">›</span></div>';
   h+='<a class="mrow" href="start.html" target="_blank" rel="noopener"><span class="mic">📖</span><span class="mtx">使い方ガイド</span><span class="mar">›</span></a>';
@@ -2508,20 +2521,7 @@ function rGoods(){
     const rest=goodsNotYet(goodsFilter,q);
     if(rest.length){
       h+=`<div class="kindhead">${goodsFilter?goodsFilter+"で":""}まだ入れていない物（タップで追加）</div>`;
-      if(goodsFilter){
-        h+='<div class="addgrid">';
-        rest.forEach(function(x){ h+=`<button class="addchip" onclick="addGoodsFromCat('${esc(x.n)}')">＋ ${esc(x.n)}</button>`; });
-        h+='</div>';
-      } else {
-        const grp={}, order=[];
-        rest.forEach(function(x){ if(!grp[x.c]){ grp[x.c]=[]; order.push(x.c); } grp[x.c].push(x); });
-        order.forEach(function(c){
-          h+=`<div class="addcat">${esc(c)}<span>${grp[c].length}</span></div>`;
-          h+='<div class="addgrid">';
-          grp[c].forEach(function(x){ h+=`<button class="addchip" onclick="addGoodsFromCat('${esc(x.n)}')">＋ ${esc(x.n)}</button>`; });
-          h+='</div>';
-        });
-      }
+      h+=catFold(rest, "goods", function(x){ return `addGoodsFromCat('${esc(x.n)}')`; }, !!goodsFilter||!!q);
     }
   }
   const n=Object.keys(S.goodsSel).filter(k=>S.goodsSel[k]).length;
@@ -2980,6 +2980,32 @@ function tripAdd(name,unit){
                           store:S.storeMap[name]||"", manual:true, trip:true});
   save(); renderTripPick(); flash(name+" を足しました");
 }
+/* 分類ごとに畳んで出す。カタログを全部並べると画面が11画面ぶんになり、
+   本来の「リストから選ぶ」が埋もれるため。開いた分類だけ中身を出す */
+let openCats={};
+function toggleCat(key){ openCats[key]=!openCats[key]; return false; }
+function catFold(items, keyPrefix, onclickFn, searching){
+  if(!items.length) return '<p class="note">見つかりません</p>';
+  if(searching){
+    let h='<div class="addgrid">';
+    items.forEach(function(x){ h+=`<button class="addchip" onclick="${onclickFn(x)}">＋ ${esc(x.n)}<small>${esc(x.c)}</small></button>`; });
+    return h+'</div>';
+  }
+  const grp={}, order=[];
+  items.forEach(function(x){ if(!grp[x.c]){ grp[x.c]=[]; order.push(x.c); } grp[x.c].push(x); });
+  let h='<div class="foldlist">';
+  order.forEach(function(c){
+    const k=keyPrefix+"|"+c, open=!!openCats[k];
+    h+=`<button class="foldrow ${open?"open":""}" onclick="toggleCat('${esc(k)}');${keyPrefix==="trip"?"renderTripPick()":"render()"}">`
+      +`<span class="foldar">${open?"▾":"▸"}</span><span class="foldnm">${esc(c)}</span><span class="foldct">${grp[c].length}</span></button>`;
+    if(open){
+      h+='<div class="addgrid" style="margin:2px 0 8px">';
+      grp[c].forEach(function(x){ h+=`<button class="addchip" onclick="${onclickFn(x)}">＋ ${esc(x.n)}</button>`; });
+      h+='</div>';
+    }
+  });
+  return h+'</div>';
+}
 function tripCount(){ return ((S.list&&S.list.items)||[]).filter(function(x){ return x.trip&&!x.stock; }).length; }
 function openTripPick(){ tripSearch=''; tripCat=''; showModal(); renderTripPick(); }
 function tripToggle(i){
@@ -3044,37 +3070,10 @@ function renderTripPick(){
   h+='<div class="searchrow">';
   h+=`<input type="text" class="search" style="margin-bottom:0" id="sTrip" placeholder="🔍 品名で探す" value="${esc(tripSearch)}" oninput="tripSearch=this.value;deferRender(renderTripPick)">`;
   h+='</div>';
-  h+='<div class="catbar">';
-  h+=`<button class="fchip ${tripCat===""?"on":""}" onclick="tripCat='';renderTripPick()">すべて</button>`;
-  h+=`<button class="fchip ${tripCat==="食材"?"on":""}" onclick="tripCat='食材';renderTripPick()">食材</button>`;
-  GOODS_ORDER.forEach(function(c){ h+=`<button class="fchip ${tripCat===c?"on":""}" onclick="tripCat='${esc(c)}';renderTripPick()">${esc(c)}</button>`; });
-  h+='</div>';
   const cand=tripCandidates();
-  if(!cand.length) h+='<p class="note">見つかりません</p>';
-  else if(tripCat){
-    h+=`<p class="note" style="margin:0 0 6px">${cand.length}品</p>`;
-    h+='<div class="addgrid">';
-    cand.forEach(function(x){
-      h+=`<button class="addchip" onclick="tripAdd('${esc(x.n)}','${esc(x.u||"")}')">＋ ${esc(x.n)}</button>`;
-    });
-    h+='</div>';
-  } else {
-    /* 「すべて」でも打ち切らない。数が多いので分類ごとの見出しを付けて全部出す */
-    h+=`<p class="note" style="margin:0 0 6px">ぜんぶで${cand.length}品</p>`;
-    const grp={}, order=[];
-    cand.forEach(function(x){
-      if(!grp[x.c]){ grp[x.c]=[]; order.push(x.c); }
-      grp[x.c].push(x);
-    });
-    order.forEach(function(c){
-      h+=`<div class="addcat">${esc(c)}<span>${grp[c].length}</span></div>`;
-      h+='<div class="addgrid">';
-      grp[c].forEach(function(x){
-        h+=`<button class="addchip" onclick="tripAdd('${esc(x.n)}','${esc(x.u||"")}')">＋ ${esc(x.n)}</button>`;
-      });
-      h+='</div>';
-    });
-  }
+  h+=catFold(cand, "trip", function(x){
+       return `tripAdd('${esc(x.n)}','${esc(x.u||"")}')`;
+     }, !!tripSearch.trim()||!!tripCat);
   h+='<div style="height:76px"></div>';
   h+=`<div class="floatbar"><button class="btn" style="flex:1;margin:0" onclick="tripStart()">🛒 この ${tripCount()}品 で買い物する ›</button></div>`;
   setHTML(document.getElementById("modal"),h);
