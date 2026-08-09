@@ -205,6 +205,11 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .gbtn .del{margin-left:6px; color:var(--danger); font-weight:bold;}
 /* 買い物リスト */
 .pmeta{font-size:13px; color:var(--sub); margin:2px 2px 6px;}
+.kmove{margin-left:auto; display:inline-flex; gap:4px; flex-shrink:0;}
+.kbtn{width:40px; height:36px; border:1px solid var(--line); background:#fff; color:var(--or-d);
+      border-radius:9px; font-size:11px; line-height:1; cursor:pointer; font-family:inherit;}
+.kbtn:active{background:var(--or-bg);}
+.kbtn:disabled{opacity:.3; cursor:default;}
 .delbox{background:#faf6f0; border:1px dashed #ddcfb8; border-radius:12px; padding:10px 12px; margin:0 0 12px;}
 .delttl{display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:bold; color:#8a7a63; margin-bottom:4px;}
 .delttl .linkbtn{margin-left:auto;}
@@ -728,7 +733,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-74";
+const APP_VERSION="0802-75";
 let S=null;
 function newState(){
   return {
@@ -2723,6 +2728,24 @@ function copyListText(){
   } else fallback();
 }
 /* 今回消した物の一覧。戻せる場所が無いと、押し間違いを取り返せない */
+/* 売り場を回る順番の入れ替え。グループごとドラッグするのは大きくて扱いにくいので、
+   ▲▼で1つずつ動かせるようにする */
+function kindMoveBtns(k){
+  const ord=kindOrder(), i=ord.indexOf(k);
+  const up=(i>0), dn=(i>=0&&i<ord.length-1);
+  const kk=esc(k);
+  return `<span class="kmove">`
+    +`<button class="kbtn" ${up?`onclick="event.stopPropagation();moveKind('${kk}',-1)"`:"disabled"} aria-label="上へ">▲</button>`
+    +`<button class="kbtn" ${dn?`onclick="event.stopPropagation();moveKind('${kk}',1)"`:"disabled"} aria-label="下へ">▼</button>`
+    +`</span>`;
+}
+function moveKind(k,dir){
+  const ord=kindOrder(), i=ord.indexOf(k), j=i+dir;
+  if(i<0||j<0||j>=ord.length) return;
+  ord.splice(j,0,ord.splice(i,1)[0]);
+  S.kindOrder=ord; save(); render();
+  flash(k+" を"+(dir<0?"上":"下")+"へ移動");
+}
 function removedBox(){
   const rm=(S.list&&S.list.removedItems)||[];
   if(!rm.length) return "";
@@ -2810,12 +2833,12 @@ function rShop(){
     h+='<div class="kindwrap">';
     kindOrder().forEach(k=>{
       if(!groups[k]) return;
-      h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead">${k}<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div><div class="card listcard">`;
+      h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead">${k}${kindMoveBtns(k)}</div><div class="card listcard">`;
       groups[k].forEach(i=>{ h+=itemRow(i,true); });
       h+='</div></div>';
     });
     h+='</div>';
-    h+='<p class="note" style="margin:-2px 0 10px">右の<b>☰つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
+    h+='<p class="note" style="margin:-2px 0 10px"><b>▲▼</b>で、売り場を回る順番に並べ替えられます。</p>';
     h+=removedBox();
     const pn=S.list.pantry||[], ex=S.list.excluded||[];
     h+='<div class="kindhead" style="display:flex;justify-content:space-between;align-items:center">調味料・常備品（切れてる物をタップ）<span class="linkbtn" style="font-size:12px" onclick="openPantryEdit()">✏️ 編集</span></div><div class="card">';
@@ -2860,12 +2883,12 @@ function rShop(){
       h+='<div class="kindwrap">';
       kindOrder().forEach(k=>{
         if(!groups[k]) return;
-        h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead">${k}<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div><div class="card listcard">`;
+        h+=`<div class="kindgroup" data-id="${k}"><div class="kindhead">${k}${kindMoveBtns(k)}</div><div class="card listcard">`;
         groups[k].forEach(i=>{ h+=itemRow(i,false); });
         h+='</div></div>';
       });
       h+='</div>';
-      h+='<p class="note" style="margin:-2px 0 10px">右の<b>☰つまみ</b>を押したまま動かすと、売り場を回る順番に並べ替えられます。</p>';
+      h+='<p class="note" style="margin:-2px 0 10px"><b>▲▼</b>で、売り場を回る順番に並べ替えられます。</p>';
     h+=removedBox();
       h+='<p class="note">ほかの店で買った場合も、そのままチェックでOK。</p>';
     }
