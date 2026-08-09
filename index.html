@@ -733,7 +733,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-75";
+const APP_VERSION="0802-76";
 let S=null;
 function newState(){
   return {
@@ -3425,7 +3425,7 @@ function closeModal(){
   if(modalOpen&&!modalClosing){ modalClosing=true; history.back(); return; }
   if(!modalOpen){ document.getElementById("overlay").classList.remove("show"); render(); }
 }
-let exitArmed=false;
+let exitArmed=false, exitTimer=null;
 window.addEventListener("popstate",function(e){
   closeDishDetail();
   const ov0=document.getElementById("overlay");
@@ -3452,14 +3452,23 @@ window.addEventListener("popstate",function(e){
     if(TAB!=="week"){ /* 念のためホームへ戻して踏みとどまる */
       TAB="week"; history.pushState({tab:"week"},""); render(); return;
     }
+    /* 1回目：履歴は積み直さずに知らせるだけ。
+       ここで pushState すると2回目の「戻る」も自分で受け止めてしまい、
+       ブラウザに「アプリを離れる」処理が渡らず、いつまでも閉じない。
+       積み直さなければ、次の「戻る」はこの画面より前が無いので
+       ブラウザ側がそのままアプリを閉じてくれる（popstateも起きない） */
     if(!exitArmed){
       exitArmed=true;
-      history.pushState({tab:"week"},"");   /* 押し戻して閉じさせない */
       flash("もう一度「戻る」で閉じます");
-      setTimeout(function(){ exitArmed=false; },2000);
+      clearTimeout(exitTimer);
+      exitTimer=setTimeout(function(){
+        if(!exitArmed) return;
+        exitArmed=false;
+        /* 猶予が過ぎたら、うっかり閉じないよう余裕をもう一度作っておく */
+        history.pushState({tab:"week"},"");
+      },2500);
       return;
     }
-    history.back();  /* 2回目＝本当に閉じる */
     return;
   }
   /* サブタブにいる → ホームまで戻す */
