@@ -241,6 +241,8 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
       border-radius:9px; font-size:11px; line-height:1; cursor:pointer; font-family:inherit;}
 .kbtn:active{background:var(--or-bg);}
 .kbtn:disabled{opacity:.3; cursor:default;}
+.addcat{font-size:12px; font-weight:bold; color:#8a7a63; margin:12px 2px 4px; display:flex; align-items:center; gap:6px;}
+.addcat span{background:#efe6d8; color:#7d6f5c; border-radius:8px; padding:1px 7px; font-size:11px;}
 .addgrid{display:flex; flex-wrap:wrap; gap:8px; margin:2px 0 10px;}
 .addchip{border:1.5px dashed #d8c8ae; background:#fff; color:#6f6354; border-radius:14px;
          padding:10px 12px; min-height:42px; font-size:13px; cursor:pointer; font-family:inherit;
@@ -782,7 +784,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-84";
+const APP_VERSION="0802-85";
 let S=null;
 function newState(){
   return {
@@ -2506,12 +2508,20 @@ function rGoods(){
     const rest=goodsNotYet(goodsFilter,q);
     if(rest.length){
       h+=`<div class="kindhead">${goodsFilter?goodsFilter+"で":""}まだ入れていない物（タップで追加）</div>`;
-      h+='<div class="addgrid">';
-      rest.slice(0,120).forEach(function(x){
-        h+=`<button class="addchip" onclick="addGoodsFromCat('${esc(x.n)}')">＋ ${esc(x.n)}${goodsFilter?"":`<small>${esc(x.c)}</small>`}</button>`;
-      });
-      h+='</div>';
-      if(rest.length>120) h+='<p class="note">絞り込むともっと出ます</p>';
+      if(goodsFilter){
+        h+='<div class="addgrid">';
+        rest.forEach(function(x){ h+=`<button class="addchip" onclick="addGoodsFromCat('${esc(x.n)}')">＋ ${esc(x.n)}</button>`; });
+        h+='</div>';
+      } else {
+        const grp={}, order=[];
+        rest.forEach(function(x){ if(!grp[x.c]){ grp[x.c]=[]; order.push(x.c); } grp[x.c].push(x); });
+        order.forEach(function(c){
+          h+=`<div class="addcat">${esc(c)}<span>${grp[c].length}</span></div>`;
+          h+='<div class="addgrid">';
+          grp[c].forEach(function(x){ h+=`<button class="addchip" onclick="addGoodsFromCat('${esc(x.n)}')">＋ ${esc(x.n)}</button>`; });
+          h+='</div>';
+        });
+      }
     }
   }
   const n=Object.keys(S.goodsSel).filter(k=>S.goodsSel[k]).length;
@@ -3041,13 +3051,29 @@ function renderTripPick(){
   h+='</div>';
   const cand=tripCandidates();
   if(!cand.length) h+='<p class="note">見つかりません</p>';
-  else{
+  else if(tripCat){
+    h+=`<p class="note" style="margin:0 0 6px">${cand.length}品</p>`;
     h+='<div class="addgrid">';
-    cand.slice(0,120).forEach(function(x){
-      h+=`<button class="addchip" onclick="tripAdd('${esc(x.n)}','${esc(x.u||"")}')">＋ ${esc(x.n)}${tripCat?"":`<small>${esc(x.c)}</small>`}</button>`;
+    cand.forEach(function(x){
+      h+=`<button class="addchip" onclick="tripAdd('${esc(x.n)}','${esc(x.u||"")}')">＋ ${esc(x.n)}</button>`;
     });
     h+='</div>';
-    if(cand.length>120) h+=`<p class="note">ほか${cand.length-120}品。探すか分類で絞ってください</p>`;
+  } else {
+    /* 「すべて」でも打ち切らない。数が多いので分類ごとの見出しを付けて全部出す */
+    h+=`<p class="note" style="margin:0 0 6px">ぜんぶで${cand.length}品</p>`;
+    const grp={}, order=[];
+    cand.forEach(function(x){
+      if(!grp[x.c]){ grp[x.c]=[]; order.push(x.c); }
+      grp[x.c].push(x);
+    });
+    order.forEach(function(c){
+      h+=`<div class="addcat">${esc(c)}<span>${grp[c].length}</span></div>`;
+      h+='<div class="addgrid">';
+      grp[c].forEach(function(x){
+        h+=`<button class="addchip" onclick="tripAdd('${esc(x.n)}','${esc(x.u||"")}')">＋ ${esc(x.n)}</button>`;
+      });
+      h+='</div>';
+    });
   }
   h+='<div style="height:76px"></div>';
   h+=`<div class="floatbar"><button class="btn" style="flex:1;margin:0" onclick="tripStart()">🛒 この ${tripCount()}品 で買い物する ›</button></div>`;
