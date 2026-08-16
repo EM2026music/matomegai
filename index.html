@@ -352,13 +352,19 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .picklist .draghandle{padding:6px 0 6px 10px;}
 .selbig{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #cfe6d3; border-radius:12px; padding:12px 12px;}
 .selbig .draghandle{color:#9cc7a3; padding:6px 0 6px 8px;}
-.nbmark{font-size:13px; flex-shrink:0; opacity:.75;}
-.sbbuy{flex-shrink:0; border:1.5px solid var(--green); background:#fff; color:var(--green);
-       border-radius:10px; padding:0 9px; min-height:40px; font-size:11.5px; font-weight:bold;
-       cursor:pointer; font-family:inherit; white-space:nowrap;}
+.nbmark{font-size:10.5px; flex-shrink:0; color:#a2957f; background:#f2ece2; border-radius:7px; padding:3px 6px; white-space:nowrap;}
+.selbig{flex-wrap:wrap;}
+.sbbuy{flex:0 0 100%; margin-top:8px; border:1.5px solid var(--green); background:#eef7ef; color:#2f7d3a;
+       border-radius:10px; padding:0 10px; min-height:42px; font-size:13px; font-weight:bold;
+       cursor:pointer; font-family:inherit; display:flex; align-items:center; justify-content:center; gap:8px;}
+.sbbuy .sbck{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px;
+       border-radius:6px; border:2px solid var(--green); background:var(--green); color:#fff; font-size:14px; flex-shrink:0;}
 .sbbuy.off{border-color:#d8c8ae; color:#a2957f; background:#f7f2ea;}
+.sbbuy.off .sbck{background:#fff; border-color:#d8c8ae;}
 .selbig.nobuy{background:#f7f2ea;}
 .selbig.nobuy .sbname{color:#a2957f;}
+.selbig.nobuy .sbig{color:#b5a894; font-style:normal;}
+.selhint{font-size:11.5px; color:#8a7a63; line-height:1.5; margin:0 0 8px;}
 .sbmain{flex:1; min-width:0; cursor:pointer; touch-action:manipulation;}
 .sbname{font-size:17px; font-weight:bold; color:#2f7d3a; line-height:1.25;}
 .sbig{font-size:12px; color:var(--sub); margin-top:3px;}
@@ -802,7 +808,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-89";
+const APP_VERSION="0802-91";
 let S=null;
 function newState(){
   return {
@@ -882,6 +888,7 @@ function load(){
     S.goodsSeedV=2;
     if(add) goodsAdded=add;
   }
+  pruneNoBuy();   /* 使われなくなった印を掃除（溜まり続けるのを防ぐ） */
   if(!S.family) S.family=3;
   if(!S.recent) S.recent=[];
   if(!S.share) S.share={active:false, roomId:"", key:""};
@@ -1172,6 +1179,24 @@ function togNoBuy(dk,meal,id){
   flash((d?d.name:"この料理")+(S.noBuy[k]?" の材料は買いません":" の材料を買います"));
 }
 /* その日の献立のうち「買う」ものだけ（買い物リストの集計はこちらを使う） */
+/* 献立から消えた料理の印が残り続けないよう掃除する。
+   放っておくと使われない印が溜まり続け、同じ料理を入れ直した時に
+   身に覚えのない「家にある」が付いてしまう */
+function pruneNoBuy(){
+  if(!S.noBuy) return;
+  const keep={};
+  Object.keys(S.plans||{}).forEach(function(wk){
+    const week=S.plans[wk]||[];
+    week.forEach(function(day,i){
+      const d=dFromKey(wk); if(!d) return;
+      const dk=keyOf(addDays(d,i));
+      MEAL_ORDER.forEach(function(m){
+        (day[m]||[]).forEach(function(id){ keep[noBuyKey(dk,m,id)]=1; });
+      });
+    });
+  });
+  Object.keys(S.noBuy).forEach(function(k){ if(!keep[k]) delete S.noBuy[k]; });
+}
 function periodBuyIds(){
   let a=[];
   periodSlots().forEach(function(sl){
@@ -1224,6 +1249,7 @@ function clearDay(dk){
   if(!confirm(label+" に入れた料理をすべて消しますか？\n\n"+parts.join("\n"))) return;
   pushUndo(label+" を空にしました");
   ms.forEach(m=>{ day[m.k]=[]; });
+  pruneNoBuy();
   pickDetail=""; save();
   if(document.getElementById("overlay").classList.contains("show")) renderPicker();
   render(); flash(label+" を空にしました");
@@ -1236,7 +1262,7 @@ function clearSlot(dk,k){
   const label=dkLabel(dk)+(onMeals().length>1?"の"+ml.label:"");
   if(!confirm(label+" の料理を消しますか？\n\n"+names.join("・"))) return;
   pushUndo(label+" を空にしました");
-  day[k]=[]; save(); render();
+  day[k]=[]; pruneNoBuy(); save(); render();
 }
 /* 1つ前の期間の献立を、今見ている期間に日ごとコピーする */
 function copyPrevWeek(){
@@ -1478,10 +1504,34 @@ function commitDayOrder(ids){
   /* いったん中身を控えてから、新しい順番で書き戻す */
   const snap={};
   dates.forEach(function(k){ const o=dayObj(k); snap[k]={b:(o.b||[]).slice(), l:(o.l||[]).slice(), d:(o.d||[]).slice()}; });
+  /* 印も中身と一緒に動かす。日付に置き去りにすると、別の料理に
+     「家にある」が付いたように見えてしまう */
+  const nbSnap={};
+  dates.forEach(function(k){
+    MEAL_ORDER.forEach(function(m){
+      (dayObj(k)[m]||[]).forEach(function(id){
+        if(isNoBuy(k,m,id)) nbSnap[k+"|"+m+"|"+id]=1;
+      });
+    });
+  });
   dates.forEach(function(k,i){
     const src=snap[ids[i]], tgt=dayObj(k,true);
     tgt.b=src.b.slice(); tgt.l=src.l.slice(); tgt.d=src.d.slice();
   });
+  if(S.noBuy){
+    dates.forEach(function(k){ MEAL_ORDER.forEach(function(m){
+      (dayObj(k)[m]||[]).forEach(function(id){ delete S.noBuy[noBuyKey(k,m,id)]; });
+    }); });
+    dates.forEach(function(k,i){
+      const from=ids[i];
+      MEAL_ORDER.forEach(function(m){
+        (dayObj(k)[m]||[]).forEach(function(id){
+          if(nbSnap[from+"|"+m+"|"+id]) S.noBuy[noBuyKey(k,m,id)]=1;
+        });
+      });
+    });
+  }
+  pruneNoBuy();
   save(); render();
 }
 function commitWeekOrder(ids){ dayObj(pickKey,true)[pickMeal]=ids.slice(); save(); }
@@ -1679,7 +1729,7 @@ function rWeek(){
         }
         h+='</div>';
       }
-      h+=(nbDay?'<span class="nbmark" title="材料は家にある料理があります">🏠</span>':'')+'<span class="chev">›</span>'+DRAG;
+      h+=(nbDay?'<span class="nbmark">買わない</span>':'')+'<span class="chev">›</span>'+DRAG;
     } else if(ms2.length>1){
       h+='<div class="dmain mealcols">';
       ms2.forEach(m=>{
@@ -1692,7 +1742,7 @@ function rWeek(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">右の<b>☰</b>を押したまま動かすと日を入れ替え。<b>長押し</b>で消せます。<br>日付を開くと、料理ごとに「<b>🏠 ある</b>」（材料は買わない）を切り替えられます。</p>';
+  h+='<p class="note" style="margin-top:-2px">右の<b>☰</b>を押したまま動かすと日を入れ替え。<b>長押し</b>で消せます。<br>日付を開くと、料理ごとに「<b>材料を買う</b>」のチェックを外せます（家にある物の分は買い物リストに入りません）。</p>';
   /* 前後の期間を見ている時は、その期間のリストは作れない（買い物の対象は1つ）。
      まぎらわしいので、切り替えを促す案内に差し替える */
   if(perOffset!==0){
@@ -1831,7 +1881,7 @@ function clearWeek(){
   if(!confirm(periodRangeText(viewPeriod())+" の献立をすべて消しますか？")) return;
   pushUndo("この期間の献立を消しました");
   dates.forEach(function(d){ const o=dayObj(keyOf(d),true); o.b=[]; o.l=[]; o.d=[]; });
-  save(); render();
+  pruneNoBuy(); save(); render();
 }
 /* 買い物リストの期間を変える（日付で指定する） */
 function wdOf(d){ return d?"("+DAYS[(d.getDay()+6)%7]+")":""; }
@@ -2145,14 +2195,22 @@ function renderPicker(){
   }
   const slot=day[pickMeal]||[];
   if(slot.length){
-    h+='<div class="selbox"><div class="selttl">✓ '+(ms.length>1?MEALS.find(m=>m.k===pickMeal).label+"の":"この日の")+'献立（'+slot.length+'品）</div><div class="selrows">';
+    h+='<div class="selbox"><div class="selttl">✓ '+(ms.length>1?MEALS.find(m=>m.k===pickMeal).label+"の":"この日の")+'献立（'+slot.length+'品）</div>';
+    h+='<div class="selhint">材料が家にある料理は「材料を買う」のチェックを外すと、買い物リストに入りません</div>';
+    h+='<div class="selrows">';
     slot.forEach((id,j)=>{
       const ds=dish(id); if(!ds) return;
       const ig=ds.ing.slice(0,4).map(x=>x.n).join("・");
       const nb=isNoBuy(pickKey,pickMeal,id);
-      h+=`<div class="selbig ${nb?"nobuy":""}" data-id="${id}"><div class="sbmain" onclick="event.stopPropagation();showDishDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div>`
-        +`<button class="sbbuy ${nb?"off":""}" onclick="event.stopPropagation();togNoBuy('${pickKey}','${pickMeal}','${id}')">${nb?"🏠 ある":"🛒 買う"}</button>`
-        +`<span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
+      h+=`<div class="selbig ${nb?"nobuy":""}" data-id="${id}">`
+        +`<div class="sbmain" onclick="event.stopPropagation();showDishDetail('${id}')">`
+        +`<div class="sbname">${esc(ds.name)}</div>`
+        +`<div class="sbig">${nb?"材料は買いません（家にある）":esc(ig)+(ds.ing.length>4?" など":"")}</div></div>`
+        +`<span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span>`
+        +`<span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span>`
+        +`<button class="sbbuy ${nb?"off":""}" onclick="event.stopPropagation();togNoBuy('${pickKey}','${pickMeal}','${id}')">`
+        +`<span class="sbck">${nb?"":"✓"}</span>材料を買う</button>`
+        +`</div>`;
     });
     h+='</div></div>';
   }
@@ -2227,7 +2285,7 @@ function renderPicker(){
     requestAnimationFrame(function(){ modalEl0.scrollTop=savedScroll; });
   }
 }
-function rmPick(j){ dayObj(pickKey,true)[pickMeal].splice(j,1); if(!dayObj(pickKey)[pickMeal].length) pickDetail=""; save(); renderPicker(); }
+function rmPick(j){ dayObj(pickKey,true)[pickMeal].splice(j,1); if(!dayObj(pickKey)[pickMeal].length) pickDetail=""; pruneNoBuy(); save(); renderPicker(); }
 /* カタログの品物を「そのまま食べる」1品の献立にして、その日に入れる */
 function addRawDish(name,unit){
   let d=S.dishes.find(x=>x.name===name);
@@ -2464,6 +2522,7 @@ function delDish(){
   S.dishes=S.dishes.filter(d=>d.id!==id);
   Object.keys(S.plans).forEach(k=>{ S.plans[k]=S.plans[k].map(day=>({b:(day.b||[]).filter(x=>x!==id), l:(day.l||[]).filter(x=>x!==id), d:(day.d||[]).filter(x=>x!==id)})); });
   S.recent=S.recent.filter(x=>x!==id);
+  pruneNoBuy();
   save(); closeModal();
 }
 
