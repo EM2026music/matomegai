@@ -352,6 +352,13 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
 .picklist .draghandle{padding:6px 0 6px 10px;}
 .selbig{display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #cfe6d3; border-radius:12px; padding:12px 12px;}
 .selbig .draghandle{color:#9cc7a3; padding:6px 0 6px 8px;}
+.nbmark{font-size:13px; flex-shrink:0; opacity:.75;}
+.sbbuy{flex-shrink:0; border:1.5px solid var(--green); background:#fff; color:var(--green);
+       border-radius:10px; padding:0 9px; min-height:40px; font-size:11.5px; font-weight:bold;
+       cursor:pointer; font-family:inherit; white-space:nowrap;}
+.sbbuy.off{border-color:#d8c8ae; color:#a2957f; background:#f7f2ea;}
+.selbig.nobuy{background:#f7f2ea;}
+.selbig.nobuy .sbname{color:#a2957f;}
 .sbmain{flex:1; min-width:0; cursor:pointer; touch-action:manipulation;}
 .sbname{font-size:17px; font-weight:bold; color:#2f7d3a; line-height:1.25;}
 .sbig{font-size:12px; color:var(--sub); margin-top:3px;}
@@ -795,7 +802,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-87";
+const APP_VERSION="0802-89";
 let S=null;
 function newState(){
   return {
@@ -1149,6 +1156,40 @@ function periodSlots(){
   return out;
 }
 /* 期間内に出てくる料理IDを全部集める */
+/* 料理ごとの「材料はもう家にある＝買わなくていい」印。
+   献立表は予定として残したまま、買い物リストにだけ入れない */
+function noBuyKey(dk,meal,id){ return dk+"|"+meal+"|"+id; }
+function isNoBuy(dk,meal,id){ return !!(S.noBuy&&S.noBuy[noBuyKey(dk,meal,id)]); }
+function togNoBuy(dk,meal,id){
+  if(!S.noBuy) S.noBuy={};
+  const k=noBuyKey(dk,meal,id);
+  if(S.noBuy[k]) delete S.noBuy[k]; else S.noBuy[k]=1;
+  save();
+  /* 料理を選ぶ画面が出ているかは、その画面にしかない検索欄で判定する。
+     overlayのclassだけを見ると、直前の画面遷移の具合で取りこぼすことがある */
+  if(document.getElementById("sPick")) renderPicker(); else render();
+  const d=dish(id);
+  flash((d?d.name:"この料理")+(S.noBuy[k]?" の材料は買いません":" の材料を買います"));
+}
+/* その日の献立のうち「買う」ものだけ（買い物リストの集計はこちらを使う） */
+function periodBuyIds(){
+  let a=[];
+  periodSlots().forEach(function(sl){
+    const dk=keyOf(sl.date), day=dayAt(sl.date);
+    sl.keys.forEach(function(k){
+      (day[k]||[]).forEach(function(id){ if(!isNoBuy(dk,k,id)) a.push(id); });
+    });
+  });
+  return a;
+}
+/* その日に「買わない」印が付いている料理があるか（献立表の表示用） */
+function dayNoBuy(dk){
+  if(!S.noBuy) return false;
+  const day=dayObj(dk);
+  return onMeals().some(function(m){
+    return (day[m.k]||[]).some(function(id){ return isNoBuy(dk,m.k,id); });
+  });
+}
 function periodIds(){
   let a=[];
   periodSlots().forEach(function(sl){
@@ -1609,6 +1650,7 @@ function rWeek(){
     const isLast=(i===dates.length-1);
     const lim=MEAL_ORDER.indexOf(vp.lastMeal);
     const ms2=isLast?ms.filter(m=>MEAL_ORDER.indexOf(m.k)<=lim):ms;
+    const nbDay=dayNoBuy(dk);
     h+=`<div class="dayrow ${cls}" data-id="${dk}" onclick="openDay('${dk}')">`;
     h+=`<div class="dcol"${total?` onpointerdown="event.stopPropagation();lpStart(function(){clearDay('${dk}')})" onpointerup="lpEnd()" onpointercancel="lpEnd()" onpointerleave="lpEnd()"`:""}><div class="ddate">${dt.getMonth()+1}/${dt.getDate()}</div><div class="dw">${w}</div></div>`;
     if(total){
@@ -1637,7 +1679,7 @@ function rWeek(){
         }
         h+='</div>';
       }
-      h+='<span class="chev">›</span>'+DRAG;
+      h+=(nbDay?'<span class="nbmark" title="材料は家にある料理があります">🏠</span>':'')+'<span class="chev">›</span>'+DRAG;
     } else if(ms2.length>1){
       h+='<div class="dmain mealcols">';
       ms2.forEach(m=>{
@@ -1650,7 +1692,7 @@ function rWeek(){
     h+='</div>';
   });
   h+='</div>';
-  h+='<p class="note" style="margin-top:-2px">右の<b>☰</b>を押したまま動かすと日を入れ替え。<b>長押し</b>で消せます。</p>';
+  h+='<p class="note" style="margin-top:-2px">右の<b>☰</b>を押したまま動かすと日を入れ替え。<b>長押し</b>で消せます。<br>日付を開くと、料理ごとに「<b>🏠 ある</b>」（材料は買わない）を切り替えられます。</p>';
   /* 前後の期間を見ている時は、その期間のリストは作れない（買い物の対象は1つ）。
      まぎらわしいので、切り替えを促す案内に差し替える */
   if(perOffset!==0){
@@ -2107,7 +2149,10 @@ function renderPicker(){
     slot.forEach((id,j)=>{
       const ds=dish(id); if(!ds) return;
       const ig=ds.ing.slice(0,4).map(x=>x.n).join("・");
-      h+=`<div class="selbig" data-id="${id}"><div class="sbmain" onclick="event.stopPropagation();showDishDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div><span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
+      const nb=isNoBuy(pickKey,pickMeal,id);
+      h+=`<div class="selbig ${nb?"nobuy":""}" data-id="${id}"><div class="sbmain" onclick="event.stopPropagation();showDishDetail('${id}')"><div class="sbname">${esc(ds.name)}</div><div class="sbig">${esc(ig)}${ds.ing.length>4?" など":""}</div></div>`
+        +`<button class="sbbuy ${nb?"off":""}" onclick="event.stopPropagation();togNoBuy('${pickKey}','${pickMeal}','${id}')">${nb?"🏠 ある":"🛒 買う"}</button>`
+        +`<span class="sbx" onclick="event.stopPropagation();rmPick(${j})">×</span><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
     });
     h+='</div></div>';
   }
@@ -2800,7 +2845,7 @@ let shopFilter="all";
 function setShopFilter(v){ shopFilter=v; S.shopFilter=v; save(); render(); }
 function aggregate(){
   const map=new Map();
-  periodIds().forEach(id=>{
+  periodBuyIds().forEach(id=>{
     const d=dish(id); if(!d) return;
     const f=S.family/Math.max(1,Number(d.sv)||3);
     d.ing.forEach(g=>{
@@ -2875,7 +2920,7 @@ function saveQty(){
    買い物中の「これ何に使うんだっけ」に、タップせず答えられるようにする */
 function usedBy(name){
   const out=[];
-  periodIds().forEach(function(id){
+  periodBuyIds().forEach(function(id){
     const d=dish(id); if(!d) return;
     if(out.indexOf(d.name)>=0) return;
     if(d.ing.some(function(g){ return g.n===name; })) out.push(d.name);
