@@ -260,6 +260,10 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
          display:inline-flex; align-items:center; gap:6px;}
 .addchip:active{background:var(--or-bg); border-color:var(--or); color:var(--or-d);}
 .addchip small{font-size:10.5px; color:#a2957f;}
+.rbttl{font-size:12.5px; font-weight:bold; color:var(--or-d); margin:6px 0 4px;}
+.rblist{margin:0 0 10px; padding-left:20px; font-size:13.5px; color:var(--sub); line-height:1.8;}
+.rblist li{margin:0;}
+.rblist b{color:var(--ink);}
 .triprow{display:flex; align-items:center; gap:10px; padding:11px 2px; border-bottom:1px solid var(--line); cursor:pointer; min-height:48px;}
 .triprow:last-child{border-bottom:none;}
 .triprow.on{background:#eef7ef; border-radius:10px;}
@@ -808,7 +812,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-91";
+const APP_VERSION="0802-92";
 let S=null;
 function newState(){
   return {
@@ -2140,11 +2144,35 @@ function savePantryEdit(){
   save(); closeModal(); flash("常備品・除外品を更新しました");
 }
 /* ゼロから作り直し（チェックも消える） */
-function rebuildList(){
-  if(!confirm("リストをゼロから作り直しますか？（購入済みチェックや「家にある」の印も消えます）")) return;
+/* 作り直しは「何が消えて何が残るのか」が分かりにくかったので、
+   はっきり書いて選べるようにする（定番が残るのは⭐と選択中のため） */
+function openRebuild(){ showModal(); renderRebuild(); }
+function renderRebuild(){
+  const star=(S.goods||[]).filter(function(g){ return S.goodsStar[g]; });
+  const sel=(S.goods||[]).filter(function(g){ return S.goodsSel[g]&&!S.goodsStar[g]; });
+  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>🔄 買い物リストを作り直す</b></div>';
+  h+='<div class="card"><div class="rbttl">消えるもの</div>';
+  h+='<ul class="rblist"><li>買った印（✓）</li><li>「家にある」の印</li><li>手で足した品物</li><li>消した物の記録</li></ul>';
+  h+='<div class="rbttl">入り直すもの</div>';
+  h+='<ul class="rblist"><li>この期間の献立の材料（「材料を買う」がONの分）</li>';
+  if(star.length) h+=`<li><b>⭐毎回買う定番 ${star.length}品</b>（${esc(star.slice(0,4).join("・"))}${star.length>4?" ほか":""}）</li>`;
+  if(sel.length) h+=`<li><b>定番タブで選んでいる ${sel.length}品</b>（${esc(sel.slice(0,4).join("・"))}${sel.length>4?" ほか":""}）</li>`;
+  h+='</ul></div>';
+  h+='<button class="btn wide" onclick="doRebuild(false)">🔄 このまま作り直す</button>';
+  if(star.length||sel.length){
+    h+='<button class="btn sub wide" style="margin-top:8px" onclick="doRebuild(true)">🧹 定番も外して、献立の材料だけにする</button>';
+    h+='<p class="note">「定番も外す」を選ぶと、定番タブの選択と⭐が外れます。次からは自動で入らなくなります（定番タブでまた付けられます）。</p>';
+  }
+  h+='<p class="note">作り直したあとでも、下に出る「元に戻す」で取り消せます。</p>';
+  setHTML(document.getElementById("modal"),h);
+}
+function doRebuild(clearGoods){
   pushUndo("リストを作り直しました");
+  if(clearGoods){ S.goodsSel={}; S.goodsStar={}; }
   S.list=newList();
-  shopFilter="all"; save(); render();
+  shopFilter="all"; S.shopFilter="all";
+  save(); closeModal();
+  flash(clearGoods?"献立の材料だけで作り直しました":"リストを作り直しました");
 }
 
 /* ===== 献立ピッカー（日ごと） ===== */
@@ -3301,7 +3329,8 @@ function rShop(){
     h+='<button class="btn sub wide" style="margin-top:4px" onclick="openTripPick()">🏃 今から買いに行く（買う物を選ぶ）</button>';
     h+='<button class="btn sub wide" style="margin-top:4px" onclick="copyListText()">📋 リストを文字でコピー（LINEなどに貼れます）</button>';
     h+='<div class="ctalink small" onclick="addManual()">キーボードで直接入力して追加</div>';
-    h+='<div class="ctalink small" onclick="rebuildList()">リストをゼロから作り直す</div>';
+    h+='<button class="btn sub wide" style="margin-top:4px" onclick="openRebuild()">🔄 買い物リストを作り直す</button>';
+    h+='<div class="ctanote" style="margin-bottom:6px">買った印を消して、献立から作り直します</div>';
     if((S.history||[]).length) h+=`<div class="ctalink small" onclick="openHistory()">🕘 買い物の履歴（${S.history.length}件）</div>`;
   } else {
     const sel=shopFilter;
