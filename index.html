@@ -260,6 +260,11 @@ input,textarea,select,[contenteditable]{-webkit-user-select:text !important; use
          display:inline-flex; align-items:center; gap:6px;}
 .addchip:active{background:var(--or-bg); border-color:var(--or); color:var(--or-d);}
 .addchip small{font-size:10.5px; color:#a2957f;}
+.inbrow{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 12px; background:var(--card); border:1px solid var(--line); border-radius:10px; margin-bottom:6px;}
+.inbrow b{font-size:14px;}
+.inbsub{font-size:12px; color:var(--sub); margin-left:8px;}
+.inbrow .btn.small{margin:0; flex:0 0 auto;}
+.inbrow .btn[disabled]{opacity:.4;}
 .rbttl{font-size:12.5px; font-weight:bold; color:var(--or-d); margin:6px 0 4px;}
 .rblist{margin:0 0 10px; padding-left:20px; font-size:13.5px; color:var(--sub); line-height:1.8;}
 .rblist li{margin:0;}
@@ -812,7 +817,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0802-92";
+const APP_VERSION="0803-01";
 let S=null;
 function newState(){
   return {
@@ -3715,9 +3720,31 @@ function shareDoc(roomId){
   if(!id) throw new Error("bad-room-id");
   return fbDb.collection("rooms").doc(id);
 }
+function devId(){
+  /* 自分が送った物が跳ね返ってきた時に見分けるための、端末ごとの番号 */
+  if(!S.devId){ S.devId="d"+Math.random().toString(36).slice(2,10); }
+  return S.devId;
+}
 function sharedPayload(){
   const items=((S.list&&S.list.items)||[]).map(function(x){ return {n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""}; });
-  return {week:(S.list&&S.list.week)||"", items:items};
+  const p={v:2, dev:devId(), week:(S.list&&S.list.week)||"", items:items};
+  /* 献立表・料理帳・定番も相手に届ける。ただし相手の画面を勝手に書き換えはしない。
+     受け取った側が「取り込む」を押した時だけ反映する（編集中の物が消えないように） */
+  p.plans=S.plans||{};
+  p.dishes=(S.dishes||[]).map(function(d){
+    return {id:d.id, name:d.name, cat:d.cat, sv:d.sv, url:d.url||"", memo:d.memo||"",
+            ing:(d.ing||[]).map(function(g){ return {n:g.n,q:g.q,u:g.u}; })};
+  });
+  p.goods=(S.goods||[]).slice();
+  p.goodsQty=S.goodsQty||{}; p.goodsCatMap=S.goodsCatMap||{};
+  /* 200KBの上限を超えると1文字も送れなくなる。買い物リストだけは必ず届くよう、重い順に落とす */
+  const size=function(o){ return new TextEncoder().encode(JSON.stringify(o)).length; };
+  if(size(p)>120000){ delete p.dishes; p.trimmed="dishes"; }
+  if(size(p)>120000){ delete p.plans; p.trimmed="plans"; }
+  return p;
+}
+function listSig(p){
+  return JSON.stringify({w:(p&&p.week)||"", i:(p&&p.items)||[]});
 }
 function scheduleSharePush(){
   if(!S.share||!S.share.active) return;
@@ -3765,14 +3792,67 @@ function shareSubscribe(){
       if(!snap.exists) return;
       const data=snap.data(); if(!data||!data.ciphertext) return;
       importShareKey(S.share.key).then(function(key){ return decryptJSON(key,data.ciphertext); })
-        .then(function(payload){
-          const json=JSON.stringify(payload);
-          if(json===lastPushedJSON) return;   /* 内容が同じなら何もしない */
-          lastPushedJSON=json;
-          applySharedPayload(payload);
-        }).catch(function(e){ console.warn("share decrypt failed",e); });
+        .then(function(payload){ handleIncoming(payload); })
+        .catch(function(e){ console.warn("share decrypt failed",e); });
     }, function(e){ console.warn("share listen failed",e); });
   }).catch(function(){});
+}
+/* 届いた物の振り分け。
+   買い物リスト＝今まで通りその場で反映（店でお互いに押し合うため）。
+   献立・料理・定番＝いったん預かるだけ。取り込むかは受け取った人が決める。
+   ここで「変わった時だけ save する」のが大事。毎回 save すると
+   保存→送信→相手が保存→送信…と往復が止まらなくなる */
+function handleIncoming(payload){
+  if(!payload||typeof payload!=="object") return;
+  if(payload.dev&&payload.dev===S.devId) return;      /* 自分が送った物の跳ね返り */
+  let changed=false;
+  if(listSig(payload)!==listSig(sharedPayload())){ applySharedPayload(payload); changed=true; }
+  const inb=sanitizeInbox(payload);
+  const old=(S.shareInbox&&S.shareInbox.data)?JSON.stringify(S.shareInbox.data):"";
+  if(JSON.stringify(inb.data)!==old){
+    S.shareInbox={at:Date.now(), data:inb.data};
+    changed=true;
+    if(!inboxEmpty(inb.data)) flash("相手の献立・料理が届きました");
+  }
+  if(changed){ save(); if(document.getElementById("shareBox")) renderShareModal(); }
+}
+function inboxEmpty(d){
+  if(!d) return true;
+  return !(d.dishes&&d.dishes.length)&&!(d.goods&&d.goods.length)&&!(d.plans&&Object.keys(d.plans).length);
+}
+/* 相手の端末から来た＝中身は信用できない。必ず形を整えてから預かる */
+function sanitizeInbox(p){
+  const str=function(v,max){ return String(v==null?"":v).trim().slice(0,max); };
+  const dishes=(Array.isArray(p.dishes)?p.dishes:[]).slice(0,1200).map(function(d){
+    if(!d||typeof d!=="object") return null;
+    return {
+      id:str(d.id,24), name:str(d.name,60), cat:str(d.cat,20),
+      sv:Math.max(1,Math.min(99,Number(d.sv)||3)),
+      url:safeUrl(d.url), memo:str(d.memo,500),
+      ing:(Array.isArray(d.ing)?d.ing:[]).slice(0,80).map(function(g){
+        if(!g||typeof g!=="object") return null;
+        const num=(typeof g.q==="number"&&isFinite(g.q))?g.q:str(g.q,20);
+        return {n:str(g.n,60), q:num, u:str(g.u,20)};
+      }).filter(function(g){ return g&&g.n; })
+    };
+  }).filter(function(d){ return d&&d.name&&d.id; });
+  const plans={};
+  const src=(p.plans&&typeof p.plans==="object")?p.plans:{};
+  Object.keys(src).slice(0,60).forEach(function(k){
+    if(!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(k)) return;
+    const w=Array.isArray(src[k])?src[k]:[]; const out=[];
+    const pick=function(a){ return (Array.isArray(a)?a:[]).slice(0,20).map(function(x){ return str(x,24); }).filter(Boolean); };
+    for(let i=0;i<7;i++){
+      const day=(w[i]&&typeof w[i]==="object")?w[i]:{};
+      out.push({b:pick(day.b), l:pick(day.l), d:pick(day.d)});
+    }
+    if(out.some(function(x){ return x.b.length||x.l.length||x.d.length; })) plans[k]=out;
+  });
+  const goods=(Array.isArray(p.goods)?p.goods:[]).slice(0,400).map(function(g){ return str(g,60); }).filter(Boolean);
+  const gq={}, gc={};
+  if(p.goodsQty&&typeof p.goodsQty==="object") goods.forEach(function(g){ if(p.goodsQty[g]!=null) gq[g]=String(p.goodsQty[g]).slice(0,20); });
+  if(p.goodsCatMap&&typeof p.goodsCatMap==="object") goods.forEach(function(g){ if(p.goodsCatMap[g]!=null) gc[g]=str(p.goodsCatMap[g],20); });
+  return {data:{dishes:dishes, plans:plans, goods:goods, goodsQty:gq, goodsCatMap:gc, trimmed:str(p.trimmed,20)}};
 }
 function applySharedPayload(payload){
   /* 相手の端末から届いたデータ＝こちらでは中身を保証できない。
@@ -3828,11 +3908,68 @@ function joinShare(roomId,key){
     }).then(function(payload){
       S.share={active:true, roomId:roomId, key:key};
       lastPushedJSON="";
-      applySharedPayload(payload);
+      handleIncoming(payload);
       shareSubscribe();
       closeModal(); go("shop");
       flash("共有リストに参加しました");
     }).catch(function(e){ alert("参加できませんでした。招待リンクが正しいか確認してください。"); console.warn(e); });
+}
+/* --- 相手から届いた物を取り込む --- */
+function inbox(){ return (S.shareInbox&&S.shareInbox.data)||null; }
+/* 相手の料理IDを、こちらの料理IDに読み替える表を作る。
+   同じ名前はこちらの物を使い、こちらに無い料理は足す。
+   これをやらないと、取り込んだ献立が「料理が見つからない」空欄になる */
+function mapInDishes(add){
+  const inb=inbox(); const map={};
+  if(!inb) return map;
+  (inb.dishes||[]).forEach(function(d){
+    const mine=(S.dishes||[]).find(function(x){ return x.name===d.name; });
+    if(mine){ map[d.id]=mine.id; return; }
+    if(!add) return;
+    const nid="u"+(S.nextId++);
+    S.dishes.push({id:nid, name:d.name, cat:d.cat||"その他", sv:d.sv||3, url:d.url||"", memo:d.memo||"", ing:d.ing||[]});
+    map[d.id]=nid;
+  });
+  return map;
+}
+function takeInDishes(){
+  const inb=inbox(); if(!inb||!inb.dishes.length){ flash("まだ届いていません"); return; }
+  if(!confirm("相手の料理 "+inb.dishes.length+"品を取り込みます。\n\n同じ名前の料理は相手の中身に置き換わります。\nこちらにしかない料理はそのまま残ります。")) return;
+  pushUndo("相手の料理を取り込みました");
+  let upd=0, add=0;
+  inb.dishes.forEach(function(d){
+    const mine=(S.dishes||[]).find(function(x){ return x.name===d.name; });
+    if(mine){ mine.cat=d.cat||mine.cat; mine.sv=d.sv; mine.url=d.url; mine.memo=d.memo; mine.ing=d.ing; upd++; }
+    else { S.dishes.push({id:"u"+(S.nextId++), name:d.name, cat:d.cat||"その他", sv:d.sv, url:d.url, memo:d.memo, ing:d.ing}); add++; }
+  });
+  save(); renderShareModal();
+  flash("料理を取り込みました（更新"+upd+"・追加"+add+"）");
+}
+function takeInPlans(){
+  const inb=inbox(); const ks=inb?Object.keys(inb.plans||{}):[];
+  if(!ks.length){ flash("まだ届いていません"); return; }
+  if(!confirm("相手の献立 "+ks.length+"週分を取り込みます。\n\n同じ週はこちらの献立が上書きされます。\n足りない料理は自動で追加されます。")) return;
+  pushUndo("相手の献立を取り込みました");
+  const map=mapInDishes(true);
+  const conv=function(a){ return a.map(function(x){ return map[x]||x; }).filter(function(x){ return !!dish(x); }); };
+  ks.forEach(function(k){
+    S.plans[k]=inb.plans[k].map(function(day){ return {b:conv(day.b), l:conv(day.l), d:conv(day.d)}; });
+  });
+  pruneNoBuy(); save(); renderShareModal();
+  flash("献立を取り込みました（"+ks.length+"週分）");
+}
+function takeInGoods(){
+  const inb=inbox(); if(!inb||!inb.goods.length){ flash("まだ届いていません"); return; }
+  if(!confirm("相手の定番 "+inb.goods.length+"品を取り込みます。\n\nこちらに無い品物が足されます。数量も相手に合わせます。\n選択中や⭐は変わりません。")) return;
+  pushUndo("相手の定番を取り込みました");
+  let add=0;
+  inb.goods.forEach(function(g){
+    if((S.goods||[]).indexOf(g)<0){ S.goods.push(g); add++; }
+    if(inb.goodsQty[g]!=null) S.goodsQty[g]=inb.goodsQty[g];
+    if(inb.goodsCatMap[g]!=null) S.goodsCatMap[g]=inb.goodsCatMap[g];
+  });
+  save(); renderShareModal();
+  flash("定番を取り込みました（追加"+add+"品）");
 }
 function stopShare(){
   if(!confirm("この端末の共有をやめます。相手の共有は続きます。よろしいですか？")) return;
@@ -3843,9 +3980,10 @@ function stopShare(){
 /* --- 共有画面 --- */
 function openShareModal(){ showModal(); renderShareModal(); }
 function renderShareModal(){
-  let h='<div class="mhead back"><button class="backbtn" onclick="closeModal()">←</button><b>👥 買い物リストの共有</b></div>';
+  let h='<div class="mhead back" id="shareBox"><button class="backbtn" onclick="closeModal()">←</button><b>👥 家族と共有</b></div>';
   if(S.share&&S.share.active){
-    h+='<p class="note" style="margin-top:0">共有中です。チェックした/しないが、お互いの端末にすぐ反映されます。</p>';
+    h+='<p class="note" style="margin-top:0"><b>買い物リストは自動で反映されます。</b>チェックした/しないが、お互いの端末にすぐ届きます。</p>';
+    h+=inboxHtml();
     h+='<div class="kindhead">招待用リンク</div>';
     h+=`<div class="sharelinkbox" id="shareLinkBox">${esc(shareLink())}</div>`;
     h+='<button class="btn sub wide" onclick="copyShareLink()">🔗 リンクをコピー</button>';
@@ -3853,7 +3991,7 @@ function renderShareModal(){
     h+='<p class="note">このリンクを知っている人だけが、この買い物リストを見られます。人に見せる時だけ共有してください。</p>';
     h+='<button class="btn danger small" onclick="stopShare()">この端末の共有をやめる</button>';
   } else {
-    h+='<p class="note" style="margin-top:0">家族と買い物リストをリアルタイムで共有できます。品物の名前はこの端末で暗号化されるので、運営者にも中身は読めません。献立や自作レシピは送られません。</p>';
+    h+='<p class="note" style="margin-top:0">家族と共有できます。<b>買い物リストは自動でお互いに反映</b>、<b>献立表と料理帳は押した時だけ取り込む</b>形です（勝手に書き換わらないように）。中身はこの端末で暗号化されるので、運営者にも読めません。</p>';
     h+='<button class="btn wide" onclick="startShare()">🔗 共有を始める（招待を作る）</button>';
     h+='<div class="kindhead">招待を受け取った場合</div>';
     h+='<input type="text" class="search" id="joinLinkInput" placeholder="届いたリンクをここに貼り付け">';
@@ -3861,6 +3999,30 @@ function renderShareModal(){
   }
   setHTML(document.getElementById("modal"),h);
   if(S.share&&S.share.active) renderShareQr();
+}
+function inboxHtml(){
+  const inb=inbox();
+  let h='<div class="kindhead">相手の献立・料理を取り込む</div>';
+  if(!inb||inboxEmpty(inb)){
+    h+='<p class="note" style="margin-top:0">まだ届いていません。相手が献立や料理を変えると、ここに出てきます。</p>';
+    return h;
+  }
+  const when=(S.shareInbox&&S.shareInbox.at)?new Date(S.shareInbox.at):null;
+  const p2=function(v){ return String(v).length<2?"0"+v:String(v); };
+  h+='<p class="note" style="margin-top:0">相手の端末から届いています'
+    +(when?'（'+(when.getMonth()+1)+'/'+when.getDate()+' '+p2(when.getHours())+':'+p2(when.getMinutes())+'）':'')
+    +'。<b>押すまで反映されません。</b></p>';
+  const wk=Object.keys(inb.plans||{}).length;
+  const row=function(name,cnt,unit,fn){
+    return '<div class="inbrow"><div><b>'+name+'</b><span class="inbsub">'+cnt+unit+'</span></div>'
+      +'<button class="btn small" onclick="'+fn+'"'+(cnt?'':' disabled')+'>取り込む</button></div>';
+  };
+  h+=row("献立表",wk,"週分","takeInPlans()");
+  h+=row("料理帳",inb.dishes.length,"品","takeInDishes()");
+  h+=row("定番",inb.goods.length,"品","takeInGoods()");
+  h+='<p class="note">取り込んだ後でも「元に戻す」で取り消せます。'
+    +(inb.trimmed==="dishes"?'<br>※相手の料理が多すぎるため、料理帳は届いていません。':'')+'</p>';
+  return h;
 }
 function copyShareLink(){
   const link=shareLink();
