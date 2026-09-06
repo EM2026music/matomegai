@@ -281,7 +281,7 @@ footer{text-align:center;padding:34px 0;color:var(--sub);font-size:12.5px;font-w
       <a class="toc-card" href="#period"><span class="toc-ic">📅</span><span class="toc-tx"><b>買い物の期間</b><small>カレンダーで自由に</small></span></a>
       <a class="toc-card" href="#handy"><span class="toc-ic">🗑</span><span class="toc-tx"><b>買い物中に助かる</b><small>今から買いに行く・戻せる</small></span></a>
       <a class="toc-card" href="#goodspick"><span class="toc-ic">🛍️</span><span class="toc-tx"><b>定番の選び方</b><small>洗剤・薬など約200品</small></span></a>
-      <a class="toc-card" href="#share"><span class="toc-ic">👥</span><span class="toc-tx"><b>家族と共有</b><small>リアルタイムでリストを共有</small></span></a>
+      <a class="toc-card" href="#share"><span class="toc-ic">👥</span><span class="toc-tx"><b>家族と共有</b><small>リストは自動・献立は取り込み</small></span></a>
       <a class="toc-card" href="#week"><span class="toc-ic">🕘</span><span class="toc-tx"><b>買い物の履歴</b><small>過去のリストを見返す</small></span></a>
       <a class="toc-card" href="#useful"><span class="toc-ic">💡</span><span class="toc-tx"><b>困ったときは</b><small>よくあるお悩み解決</small></span></a>
       <a class="toc-card" href="#faq"><span class="toc-ic">❓</span><span class="toc-tx"><b>よくある質問</b><small>Q&amp;A</small></span></a>
@@ -618,7 +618,7 @@ footer{text-align:center;padding:34px 0;color:var(--sub);font-size:12.5px;font-w
 <section id="share" style="padding-top:0">
   <div class="wrap">
     <div class="two reveal">
-      <div class="stephead"><span class="eyebrow e-p">NEW ・ 家族と使う</span><h3 style="font-size:clamp(19px,2.7vw,25px);font-weight:900;line-height:1.4">買い物リストを、<br>家族とリアルタイムで共有</h3></div>
+      <div class="stephead"><span class="eyebrow e-p">NEW ・ 家族と使う</span><h3 style="font-size:clamp(19px,2.7vw,25px);font-weight:900;line-height:1.4">買い物リストも、献立も、<br>家族と共有</h3></div>
       <div class="stepbody">
         <p style="color:var(--sub);margin-top:12px;font-size:15px;font-weight:500">片方が「牛乳を買った」とチェックすると、もう片方の画面にも数秒で反映されます。登録もログインも不要。相手に招待リンクかQRコードを見せるだけです。</p>
         <ol class="ol">
@@ -626,10 +626,11 @@ footer{text-align:center;padding:34px 0;color:var(--sub);font-size:12.5px;font-w
           <li>「🔗 共有を始める」→ 招待リンクとQRコードが出る</li>
           <li>相手に送る・見せる → 開けば参加完了</li>
         </ol>
-        <div class="tip"><b>中身は暗号化されています。</b> 品物の名前はこの端末で暗号化してから送るので、運営者にも読めません。共有するのは今の買い物リストだけで、献立や自作レシピ、これまでの履歴は一切送られません。</div>
+        <p style="color:var(--sub);margin-top:14px;font-size:15px;font-weight:500"><b>買い物リストは自動</b>でお互いに反映されます。<b>献立表・料理帳・定番は、押した時だけ</b>入ります（共有画面の「相手の献立・料理を取り込む」）。せっかく書いた献立や自作レシピが、相手の古い内容で勝手に消えないようにするためです。取り込んだ後でも「元に戻す」で取り消せます。</p>
+        <div class="tip"><b>中身は暗号化されています。</b> 品物や料理の名前はこの端末で暗号化してから送るので、運営者にも読めません。招待リンクを知っている人だけが読めます。買い物の履歴は送られません。</div>
       </div>
       <div class="shot" style="background:linear-gradient(150deg,#F5F1FF,#E7DEFF)">
-        <div class="scr"><img src="assets/g14-sharing.png" alt="買い物リストの共有画面。招待リンクとQRコードが表示されている"></div>
+        <div class="scr"><img src="assets/g14-sharing.png?v=09061159" alt="買い物リストの共有画面。招待リンクとQRコードが表示されている"></div>
       </div>
     </div>
   </div>
@@ -675,8 +676,10 @@ footer{text-align:center;padding:34px 0;color:var(--sub);font-size:12.5px;font-w
       <details><summary>買い物の途中でアプリを閉じても大丈夫？</summary><p>大丈夫です。チェックした物・選んでいたお店のタブ・売り場の並び順は、すべて保存されています。次に開いたときは続きから使えます。</p></details>
       <details><summary>料理を間違えて追加しました</summary><p>料理を選ぶ画面の「−」で1つずつ減らせます。その日を丸ごと消すなら、日付をタップして右上の「🗑 この日を空に」。ホームで日付を長押ししても同じです。</p></details>
       <details><summary>材料や分量を変えても大丈夫ですか？</summary><p>大丈夫です。むしろ変えて使うものだと思ってください。「🍲 料理」タブで料理をタップ → 材料・数量・単位を書き換えて「保存」。この端末の中だけで直るので、元に戻したくなったら⚙設定の「すべて初期化」で最初の状態に戻せます（ただし作った料理も消えます）。</p></details>
-      <details><summary>スマホとパソコンでデータは共有されますか？</summary><p>自動では共有されません。端末ごとに別々です。移したいときは「⚙設定 → バックアップ保存」でファイルを保存し、移動先で「読み込み」してください。買い物リストだけをリアルタイムで共有したい場合は、上の「👥 共有」機能をお使いください。</p></details>
-      <details><summary>共有した中身は運営者に見られますか？</summary><p>見られません。品物の名前などは、あなたの端末で暗号化してから送っています。サーバーに保存されるのは意味の分からない暗号文だけです。招待リンクを知っている人だけが、その場で復号して読めます。</p></details>
+      <details><summary>スマホとパソコンでデータは共有されますか？</summary><p>「👥 共有」を使えば共有できます。買い物リストは自動でお互いに反映され、献立表・料理帳・定番は共有画面で「取り込む」を押した時に入ります。まるごと移したい時は「⚙設定 → バックアップ保存」でファイルを保存し、移動先で「読み込み」してください。</p></details>
+      <details><summary>相手の献立を取り込むと、自分の献立は消えますか？</summary><p>同じ週だけ相手の内容に置き換わります。相手が入れていない週はそのまま残ります。取り込んだ直後に画面の下に出る「元に戻す」を押せば、取り込む前に戻せます。</p></details>
+      <details><summary>相手の料理を取り込むと、自作レシピは消えますか？</summary><p>消えません。同じ名前の料理だけが相手の中身に置き換わり、こちらにしかない料理はそのまま残ります。</p></details>
+      <details><summary>共有した中身は運営者に見られますか？</summary><p>見られません。品物や料理の名前は、あなたの端末で暗号化してから送っています。サーバーに保存されるのは意味の分からない暗号文だけです。招待リンクを知っている人だけが、その場で復号して読めます。</p></details>
       <details><summary>機種変更するとデータは消えますか？</summary><p>消えます。事前に「⚙設定 → バックアップ保存」でファイルを保存し、新しい端末で読み込んでください。</p></details>
       <details><summary>画面が古いまま更新されません</summary><p>ホーム画面をいちばん下まで送ると「🔄 アプリを最新に更新する」があります。押しても献立や買い物のデータは消えません。</p></details>
     </div>
