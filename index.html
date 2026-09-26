@@ -817,7 +817,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0803-02";
+const APP_VERSION="0803-03";
 let S=null;
 function newState(){
   return {
@@ -1331,6 +1331,7 @@ let dishSearch="", dishCat="";
    ただし「前の期間のリスト」だけは作り直すかどうかの判断が要るので自動では触らない */
 function autoSyncList(){
   if(!S.list||!S.list.items||!S.list.items.length) return;
+  if(S.list.fromHistory) return;      /* 履歴からそのまま復活させたリストは触らない */
   if(S.list.week&&S.list.week!==periodKey()) return;
   const df=listDiff();
   if(!df||df.same||df.other) return;
@@ -1971,6 +1972,7 @@ function makeListGo(){
    押す前に分かるようにしておかないと、押していいのか判断できないため */
 function listDiff(){
   if(!S.list||!S.list.items.length) return null;                 /* まだリストが無い */
+  if(S.list.fromHistory) return {other:true};                    /* 履歴そのままのリスト */
   if(S.list.week&&S.list.week!==periodKey()) return {other:true}; /* 前の期間のリスト */
   const ag=aggregate();
   const key=x=>x.n+"|"+(x.u||"");
@@ -1981,9 +1983,10 @@ function listDiff(){
     const nw=agMap.get(key(it));
     if(nw){ if(typeof nw.q==="number"&&it.q!==nw.q) updated++; agMap.delete(key(it)); return; }
     if(it.done) return;
+    if(S.share&&S.share.active&&it.by&&it.by!==devId()) return;   /* 相手の材料は数えない */
     removed++;
   });
-  agMap.forEach(nw=>{ if(!S.list.items.some(it=>it.daily&&it.n===nw.n)&&!isRemoved(nw)) added++; });
+  agMap.forEach(nw=>{ if(!S.list.items.some(it=>(it.daily||it.manual||it.pantry)&&it.n===nw.n)&&!isRemoved(nw)) added++; });
   S.goods.forEach(g=>{
     if(!S.goodsSel[g]&&!S.goodsStar[g]) return;
     const ex=S.list.items.find(it=>it.n===g);
@@ -2050,11 +2053,18 @@ function syncList(ag){
       return true;
     }
     if(it.done) return true;                           /* 購入済みは勝手に消さない */
+    /* 共有中、相手の献立はこちらには見えない。
+       「こちらの献立に無いから」で消すと、相手が入れた材料を丸ごと消してしまう。
+       献立を持っていない端末で買い物タブを開くだけで全部消えていた */
+    if(S.share&&S.share.active&&it.by&&it.by!==devId()) return true;
     removed++; return false;                           /* 未購入で不要になった → 削除 */
   });
-  agMap.forEach(nw=>{                                  /* 新しく必要 → 自動追加（定番と同名なら統合済みなのでスキップ） */
-    if(S.list.items.some(it=>it.daily&&it.n===nw.n)) return;
+  agMap.forEach(nw=>{                                  /* 新しく必要 → 自動追加 */
+    /* 定番・手で足した物・常備品として既に載っている物は二重に足さない。
+       履歴からリストを作り直した直後に、同じ材料が2回ずつ並ぶ原因だった */
+    if(S.list.items.some(it=>(it.daily||it.manual||it.pantry)&&it.n===nw.n)) return;
     if(isRemoved(nw)) return;                          /* 今回いらないと消した物は戻さない */
+    if(S.share&&S.share.active) nw.by=devId();         /* 誰の献立から入ったかを覚えておく */
     S.list.items.push(nw); added++;
   });
   S.goods.forEach(g=>{                                 /* 定番（選択中＋⭐毎回） */
@@ -2371,14 +2381,21 @@ function rDish(){
   S.cats.forEach(c=>{ h+=`<button class="fchip ${dishCat===c?"on":""}" onclick="dishCat='${esc(c)}';render()">${esc(c)}</button>`; });
   h+=`<button class="fchip" onclick="openCatEdit()" style="color:var(--sub)">✏️ カテゴリ</button>`;
   h+='</div></div>';
+  /* 検索と分類は重ねて効かせる。以前は文字が入っていると分類を無視していた */
   const q=dishSearch.trim();
   const list=S.dishes.filter(d=>{
+    if(dishCat==="__fav"){ if(!(S.favs&&S.favs[d.id])) return false; }
+    else if(dishCat&&d.cat!==dishCat) return false;
     if(q) return d.name.includes(q)||d.ing.some(i=>i.n.includes(q));
-    if(dishCat==="__fav") return S.favs&&S.favs[d.id];
-    return !dishCat||d.cat===dishCat;
+    return true;
   });
   h+='<div class="card listcard">';
-  if(!list.length) h+='<p class="note">見つかりません</p>';
+  if(!list.length){
+    if(q&&dishCat){
+      h+=`<p class="note">この分類に「${esc(q)}」はありません。`
+        +`<button class="btn small" style="margin-top:8px" onclick="dishCat='';render()">すべてから探す</button></p>`;
+    } else h+='<p class="note">見つかりません</p>';
+  }
   list.forEach(d=>{
     const fav=S.favs&&S.favs[d.id];
     h+=`<div class="dishrow" data-id="${d.id}"><div class="dbody" onclick="openEditor('${d.id}')"><div class="nm">${esc(d.name)}</div><div class="ings">材料 ${d.ing.length}品・${d.sv||3}人分</div></div><span class="favbtn ${fav?"on":""}" onclick="event.stopPropagation();togFav('${d.id}')">${fav?"★":"☆"}</span><span class="arrow">›</span><span class="draghandle" data-sort onclick="event.stopPropagation()">☰</span></div>`;
@@ -3463,8 +3480,10 @@ function reuseHistory(i){
   const r=(S.history||[])[i]; if(!r) return;
   if(S.list&&S.list.items.length&&!confirm("今あるリストを置き換えます。よろしいですか？\n（今のリストは履歴に保存されます）")) return;
   archiveList("切替");
+  /* 「そのままもう一度」なので、今の献立の材料を後から足さない。
+     足すと、履歴に無い材料が勝手に増えて何のリストか分からなくなる */
   S.list={ items:r.items.map(x=>({n:x.n,q:x.q,u:x.u,stock:false,done:false,store:x.store||"",manual:true})),
-           pantry:[], excluded:[], week:realKey(), at:Date.now() };
+           pantry:[], excluded:[], week:realKey(), at:Date.now(), fromHistory:true };
   shopFilter="all"; S.shopFilter="all";
   save(); closeModal(); go('shop'); flash("履歴からリストを作りました");
 }
@@ -3752,9 +3771,17 @@ function sharedPayload(){
     if(x.manual) o.manual=true;
     if(x.pantry) o.pantry=true;
     if(x.trip) o.trip=true;
+    /* 印が無い物は自分の献立から入った物とみなす。
+       相手はこれを見て「これは相手の材料だから消さない」と判断する */
+    if(!o.daily&&!o.manual&&!o.pantry) o.by=x.by||devId();
     return o;
   });
   const p={v:2, dev:devId(), week:(S.list&&S.list.week)||"", items:items};
+  /* 「今回はいらない」と消した記録も送る。
+     これが無いと、相手が買い物タブを開いた時に消した物を戻してしまう */
+  p.removed=((S.list&&S.list.removed)||[]).slice(0,500);
+  p.removedItems=((S.list&&S.list.removedItems)||[]).slice(0,300)
+    .map(function(x){ return {n:x.n, q:x.q, u:x.u, store:x.store||""}; });
   /* 献立表・料理帳・定番も相手に届ける。ただし相手の画面を勝手に書き換えはしない。
      受け取った側が「取り込む」を押した時だけ反映する（編集中の物が消えないように） */
   p.plans=S.plans||{};
@@ -3771,7 +3798,7 @@ function sharedPayload(){
   return p;
 }
 function listSig(p){
-  return JSON.stringify({w:(p&&p.week)||"", i:(p&&p.items)||[]});
+  return JSON.stringify({w:(p&&p.week)||"", i:(p&&p.items)||[], r:(p&&p.removed)||[]});
 }
 function scheduleSharePush(){
   if(!S.share||!S.share.active) return;
@@ -3904,9 +3931,26 @@ function applySharedPayload(payload){
       if(x.manual) o.manual=true;
       if(x.pantry) o.pantry=true;
       if(x.trip) o.trip=true;
+      /* 誰の献立から入った材料か。印が無ければ送り主の物とみなす */
+      const by=String(x.by==null?"":x.by).slice(0,24)||String(payload.dev||"").slice(0,24);
+      if(by&&!o.daily&&!o.manual&&!o.pantry) o.by=by;
       return o;
     });
   if(payload.week) S.list.week=String(payload.week).slice(0,10);
+  /* 「今回はいらない」の記録も相手に合わせる。
+     足し算にすると、相手が元に戻した物をこちらが消し続けてしまう */
+  S.list.removed=(Array.isArray(payload.removed)?payload.removed:[])
+    .slice(0,500).map(function(x){ return String(x==null?"":x).slice(0,110); }).filter(Boolean);
+  S.list.removedItems=(Array.isArray(payload.removedItems)?payload.removedItems:[])
+    .slice(0,300)
+    .filter(function(x){ return x&&typeof x==="object"&&String(x.n==null?"":x.n).trim(); })
+    .map(function(x){
+      const num=(typeof x.q==="number"&&isFinite(x.q))?x.q:null;
+      return {n:String(x.n).trim().slice(0,80),
+              q:num!==null?num:String(x.q==null?"":x.q).slice(0,20),
+              u:String(x.u==null?"":x.u).slice(0,20),
+              store:String(x.store==null?"":x.store).slice(0,40)};
+    });
   save();
   if(TAB==="shop") render();
   flash("共有リストが更新されました");
