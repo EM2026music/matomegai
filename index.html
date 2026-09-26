@@ -3793,8 +3793,10 @@ function sharedPayload(){
   p.goodsQty=S.goodsQty||{}; p.goodsCatMap=S.goodsCatMap||{};
   /* 200KBの上限を超えると1文字も送れなくなる。買い物リストだけは必ず届くよう、重い順に落とす */
   const size=function(o){ return new TextEncoder().encode(JSON.stringify(o)).length; };
-  if(size(p)>120000){ delete p.dishes; p.trimmed="dishes"; }
-  if(size(p)>120000){ delete p.plans; p.trimmed="plans"; }
+  /* 暗号文は元の約1.34倍になる。上限20万字なので、元は約15万バイトまで。
+     手前の14万で線を引く（以前の12万は厳しすぎて、料理が多い人の料理帳が届かなかった） */
+  if(size(p)>140000){ delete p.dishes; p.trimmed="dishes"; }
+  if(size(p)>140000){ delete p.plans; p.trimmed="plans"; }
   return p;
 }
 function listSig(p){
