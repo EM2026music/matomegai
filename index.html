@@ -817,7 +817,7 @@ function pantryNeeded(){
 
 /* ===== 状態 ===== */
 const KEY="matomegai1";
-const APP_VERSION="0803-01";
+const APP_VERSION="0803-02";
 let S=null;
 function newState(){
   return {
@@ -2271,14 +2271,26 @@ function renderPicker(){
   h+=`<button class="fchip ${pickCat===""?"on":""}" onclick="pickCat='';renderPicker()">すべて</button>`;
   S.cats.forEach(c=>{ h+=`<button class="fchip ${pickCat===c?"on":""}" onclick="pickCat='${esc(c)}';renderPicker()">${esc(c)}</button>`; });
   h+='</div>';
+  /* 検索と分類は重ねて効かせる。
+     以前は文字が入っていると分類を全部無視していたので、
+     「最近」「主食」などを押しても表示が変わらなかった */
   const q=pickSearch.trim();
   let list;
-  if(q) list=S.dishes.filter(d=>d.name.includes(q)||d.ing.some(i=>i.n.includes(q)));
-  else if(pickCat==="__recent") list=recentList;
+  if(pickCat==="__recent") list=recentList;
   else if(pickCat==="__fav") list=S.dishes.filter(d=>S.favs&&S.favs[d.id]);
   else if(pickCat==="") list=S.dishes;
   else list=S.dishes.filter(d=>d.cat===pickCat);
-  if(!list.length) h+='<p class="note">見つかりません</p>';
+  if(q) list=list.filter(d=>d.name.includes(q)||d.ing.some(i=>i.n.includes(q)));
+  if(!list.length){
+    if(q&&pickCat){
+      h+=`<p class="note">この分類に「${esc(q)}」はありません。`
+        +`<button class="btn small" style="margin-top:8px" onclick="pickCat='';renderPicker()">すべてから探す</button></p>`;
+    } else if(q){
+      h+=`<p class="note">「${esc(q)}」に合う料理はありません。</p>`;
+    } else {
+      h+='<p class="note">見つかりません</p>';
+    }
+  }
   h+='<div class="picklist">';
   list.forEach(d=>{
     const ig=d.ing.slice(0,3).map(x=>x.n).join("・");
@@ -2781,12 +2793,14 @@ function renderCatalog(){
   const all=allCatalog();
   const q=catSearch.trim();
   let list, showingAll=false;
-  if(q){ list=all.filter(x=>x.name.includes(q)||x.alias.includes(q)); }
-  else if(catFilter){ list=all.filter(x=>x.cat===catFilter); }
+  /* ここも検索と分類を重ねて効かせる（料理を選ぶ画面と同じ考え方） */
+  if(catFilter){ list=all.filter(x=>x.cat===catFilter); }
+  else if(q){ list=all; }
   else {
     list=(S.catRecent||[]).map(n=>all.find(x=>x.name===n)).filter(Boolean);
     if(!list.length){ list=all; showingAll=true; } /* 最近が空なら全部出す＝必ずスクロールできる */
   }
+  if(q) list=list.filter(x=>x.name.includes(q)||x.alias.includes(q));
   const ingMode=(catMode==="ing");
   let h=`<div class="mhead back"><button class="backbtn" onclick="${ingMode?"backToEditor()":"closeModal()"}">←</button><b>${ingMode?"材料をカタログから選ぶ":"品物を追加"}</b></div>`;
   if(ingMode) h+=`<p class="note" style="margin-top:0">タップすると「${esc(editTarget?editTarget.name||"この料理":"")}」の材料に入ります（単位も自動）。</p>`;
@@ -2794,15 +2808,18 @@ function renderCatalog(){
   h+=`<input type="text" class="search" style="margin-bottom:0" id="sCat" placeholder="🔍 品名で検索（別名でもOK）" value="${esc(catSearch)}" oninput="catSearch=this.value;catOpenName='';deferRender(renderCatalog)">`;
   h+='<button class="newbtn" onclick="newCatalogItem()">＋新規</button>';
   h+='</div>';
-  if(!q){
-    h+='<div class="catbar">';
-    h+=`<button class="fchip ${catFilter===""?"on":""}" onclick="catFilter='';renderCatalog()">${(S.catRecent||[]).length?"最近":"すべて"}</button>`;
-    CATALOG_CATS.forEach(c=>{ h+=`<button class="fchip ${catFilter===c?"on":""}" onclick="catFilter='${esc(c)}';renderCatalog()">${esc(c)}</button>`; });
-    h+='</div>';
-  }
+  h+='<div class="catbar">';
+  h+=`<button class="fchip ${catFilter===""?"on":""}" onclick="catFilter='';renderCatalog()">${q?"すべて":((S.catRecent||[]).length?"最近":"すべて")}</button>`;
+  CATALOG_CATS.forEach(c=>{ h+=`<button class="fchip ${catFilter===c?"on":""}" onclick="catFilter='${esc(c)}';renderCatalog()">${esc(c)}</button>`; });
+  h+='</div>';
   if(showingAll) h+='<p class="note" style="margin-top:0">全カタログ表示中。カテゴリで絞るか検索でどうぞ。</p>';
   h+='<div class="card listcard">';
-  if(!list.length) h+='<p class="note">見つかりません</p>';
+  if(!list.length){
+    if(q&&catFilter){
+      h+=`<p class="note">この分類に「${esc(q)}」はありません。`
+        +`<button class="btn small" style="margin-top:8px" onclick="catFilter='';renderCatalog()">すべてから探す</button></p>`;
+    } else h+='<p class="note">見つかりません</p>';
+  }
   list.forEach(it=>{
     const open=catOpenName===it.name&&!ingMode;
     const inGoods=S.goods.includes(it.name);
@@ -3726,7 +3743,17 @@ function devId(){
   return S.devId;
 }
 function sharedPayload(){
-  const items=((S.list&&S.list.items)||[]).map(function(x){ return {n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""}; });
+  const items=((S.list&&S.list.items)||[]).map(function(x){
+    const o={n:x.n,q:x.q,u:x.u,done:!!x.done,stock:!!x.stock,store:x.store||""};
+    /* 「定番」「手で足した」「常備品」の印も一緒に送る。
+       これが抜けていたため、相手が入れた定番を受け取った側が
+       買い物タブを開いた時に「献立に無い品」と見なして消していた */
+    if(x.daily) o.daily=true;
+    if(x.manual) o.manual=true;
+    if(x.pantry) o.pantry=true;
+    if(x.trip) o.trip=true;
+    return o;
+  });
   const p={v:2, dev:devId(), week:(S.list&&S.list.week)||"", items:items};
   /* 献立表・料理帳・定番も相手に届ける。ただし相手の画面を勝手に書き換えはしない。
      受け取った側が「取り込む」を押した時だけ反映する（編集中の物が消えないように） */
@@ -3865,13 +3892,19 @@ function applySharedPayload(payload){
     .slice(0,500)
     .map(function(x){
       const num=(typeof x.q==="number"&&isFinite(x.q))?x.q:null;
-      return {
+      const o={
         n:String(x.n).trim().slice(0,80),
         q:num!==null?num:String(x.q==null?"":x.q).slice(0,20),
         u:String(x.u==null?"":x.u).slice(0,20),
         done:!!x.done, stock:!!x.stock,
         store:String(x.store==null?"":x.store).slice(0,40)
       };
+      /* 印を捨てると、この後こちらで買い物タブを開いた時に消えてしまう */
+      if(x.daily) o.daily=true;
+      if(x.manual) o.manual=true;
+      if(x.pantry) o.pantry=true;
+      if(x.trip) o.trip=true;
+      return o;
     });
   if(payload.week) S.list.week=String(payload.week).slice(0,10);
   save();
